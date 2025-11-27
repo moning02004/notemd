@@ -12,7 +12,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: str = "1D"
     REFRESH_TOKEN_EXPIRE_MINUTES: str = "30D"
 
-    CORS_ORIGINS = []
+    CORS_ORIGINS = [
+        "http://localhost:3000",
+    ]
 
     class Config:
         env_file = ".env"  # It must be located at the project root.
