@@ -2,23 +2,25 @@
 
 import { useRef, useState } from "react"
 
-export default function () {
+export default function Page() {
     const [errorMessage, setErrorMessage] = useState("")
-    const usernameRef = useRef(null) 
-    const passwordRef = useRef(null)
-    const passwordConfirmRef = useRef(null)
-    const nameRef = useRef(null)
+    const usernameRef = useRef<HTMLInputElement>(null)
+    const passwordRef = useRef<HTMLInputElement>(null)
+    const passwordConfirmRef = useRef<HTMLInputElement>(null)
+    const nameRef = useRef<HTMLInputElement>(null)
 
     const registerAccount = () => {
-        let password = passwordRef.current
-        let password2 = passwordConfirmRef.current
+        const username = usernameRef.current;
+        const name = nameRef.current;
+        const password = passwordRef.current;
+        const password2 = passwordConfirmRef.current;
+
+        if (!username || !name || !password || !password2) return;
+
         if (password.value != password2.value) {
             setErrorMessage("비밀번호를 확인해주세요.")
             return;
         }
-        
-        let username = usernameRef.current
-        let name = nameRef.current
         console.log(username.value, name.value)
     }
     return (

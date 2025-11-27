@@ -1,11 +1,12 @@
 "use client"
 
-import { BlockNoteView } from "@blocknote/ariakit";
-import { useCreateBlockNote } from "@blocknote/react";
+import {BlockNoteView} from "@blocknote/ariakit";
+import {useCreateBlockNote} from "@blocknote/react";
 import "@blocknote/ariakit/style.css";
-import { FiArrowLeft, FiEdit, FiHome } from "react-icons/fi";
-import { useRouter } from "next/navigation";
-import { useRef } from "react";
+import {FiArrowLeft, FiEdit} from "react-icons/fi";
+import {useRouter} from "next/navigation";
+import {useRef} from "react";
+import {PartialBlock} from "@blocknote/core";
 
 const title = "이것은 제목입니다."
 const content = [
@@ -472,7 +473,7 @@ const content = [
       "content": [],
       "children": []
   }
-]
+] as unknown as PartialBlock<any, any, any>[];
 
 
 export default function () {
