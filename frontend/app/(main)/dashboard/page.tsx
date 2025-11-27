@@ -15,7 +15,7 @@ const mockupMemo = [
 export default function Page() {
     useEffect(() => {
         console.log("dashboard page loaded")
-        apiRequest.get("").then((data) => {
+        apiRequest.get("/notes?order_by=-updated_at&limit=5").then((data) => {
             console.log(data)
         }).catch((error) => {
             console.log(error)
