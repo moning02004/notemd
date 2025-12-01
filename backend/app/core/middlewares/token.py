@@ -2,8 +2,13 @@ from jwt import ExpiredSignatureError
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
-from app.core.manage_jwt import decode_jwt
-from app.modules.user.domain.exceptions import NotExistsToken
+from app.core.jwt_util import jwt_manager
+
+
+class NotExistsToken(Exception):
+    def __init__(self, message="Token does not exist"):
+        self.message = message
+        super().__init__(self.message)
 
 
 def get_user_id_from_token(token):
@@ -11,7 +16,7 @@ def get_user_id_from_token(token):
         raise NotExistsToken
 
     token = token.replace("Bearer ", "")
-    payload = decode_jwt(token)
+    payload = jwt_manager.decode_payload(token)
     return payload["user_id"]
 
 

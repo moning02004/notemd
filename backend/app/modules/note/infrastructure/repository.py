@@ -1,4 +1,4 @@
-from app.core.commons.repository import Repository
+from fastapi_clean_archi.core.commons.repository import Repository
 
 from app.modules.note.infrastructure.models import Note
 

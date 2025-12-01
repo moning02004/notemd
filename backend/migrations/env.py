@@ -21,7 +21,15 @@ if config.config_file_name is not None:
 from app.core.config import settings
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
-from app.core.db.base import BaseModel
+import os, importlib
+modules = os.listdir("app/modules")
+for module in modules:
+    try:
+        importlib.import_module(f"app.modules.{module}.infrastructure.models")
+    except ModuleNotFoundError:
+        continue
+
+from fastapi_clean_archi.core.db.base import BaseModel
 target_metadata = BaseModel.metadata
 # target_metadata = mymodel.Base.metadata
 

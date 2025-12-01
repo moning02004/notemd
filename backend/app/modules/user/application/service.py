@@ -1,9 +1,9 @@
 from fastapi import Depends, HTTPException
+from fastapi_clean_archi.core.commons.service import Service
 from starlette import status
 from starlette.requests import Request
 
-from app.core.commons.service import Service
-from app.core.db.session import get_db
+from app.core.session import get_db
 from app.modules.user.infrastructure.repository import UserRepository
 
 

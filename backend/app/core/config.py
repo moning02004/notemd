@@ -1,23 +1,30 @@
-from pydantic.v1 import BaseSettings
+from fastapi_clean_archi.core.config import AbstractSettings
 
 
-class Settings(BaseSettings):
+class Settings(AbstractSettings):
     APP_NAME: str = "FastAPI clean architecture"
 
-    DEBUG: bool = True
-    SECRET_KEY: str = "dLRfqVOKp6FEEGZNlOoCwVJNPdWGo5zAFUsFshfO4aQ"
-
-    DATABASE_URL: str = "sqlite:///./sqlite3.db"
+    # JWT settings
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: str = "1D"
     REFRESH_TOKEN_EXPIRE_MINUTES: str = "30D"
 
-    CORS_ORIGINS = [
-        "http://localhost:3000",
-    ]
+    # Application settings
+    DEBUG: bool = True
+    SECRET_KEY: str = "bkSqk0RAOx6SCsiE1An0c4rJIjlhCEfxKWTdKrfO98g"
 
-    class Config:
-        env_file = ".env"  # It must be located at the project root.
+    # Database settings
+    DATABASE = {
+        "driver": "sqlite",
+        "name": "sqlite.db",
+        "user": "",
+        "password": "",
+        "host": "",
+        "port": "",
+    }
+
+    # CORS settings
+    CORS_ORIGINS = []
 
 
 settings = Settings()
