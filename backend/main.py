@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 
 from app.core.config import settings
+from app.modules.user.interfaces.controller import router as auth_router
 
 modules = os.listdir("app/modules")
 for module in modules:
@@ -28,3 +29,4 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(auth_router)
