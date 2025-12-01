@@ -1,8 +1,18 @@
+import importlib
+import os
+
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 
 from app.core.config import settings
+
+modules = os.listdir("app/modules")
+for module in modules:
+    try:
+        importlib.import_module(f"app.modules.{module}.infrastructure.models")
+    except ModuleNotFoundError:
+        continue
 
 auth_header = APIKeyHeader(name="Authorization", auto_error=False)
 app = FastAPI(
