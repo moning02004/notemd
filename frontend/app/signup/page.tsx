@@ -25,8 +25,7 @@ export default function Page() {
     }
     return (
         <div className="login-container">
-            <h1 className="logo mb-4">My Note</h1>
-
+            <h1 className="logo mb-4">md.note</h1>
 
             <div className="flex flex-col gap-3">
                 <div className="flex flex-row w-full">

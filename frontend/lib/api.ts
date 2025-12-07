@@ -13,7 +13,7 @@ async function request<T = unknown>(endPoint: string, method: HttpMethod, option
     };
 
     let res = await fetch(`${API_HOST}${endPoint}`, {...options, method, headers});
-    let result = await res.json().catch(() => null);
+    let responseData = await res.json().catch(() => null);
 
     if (res.status === 401) {
         const refreshRes = await fetch(`${API_HOST}/auth/refresh`, {
@@ -27,17 +27,19 @@ async function request<T = unknown>(endPoint: string, method: HttpMethod, option
 
             headers.Authorization = `Bearer ${data.access_token}`;
             res = await fetch(endPoint, {...options, method, headers});
-            result = await res.json().catch(() => null);
+            responseData = await res.json().catch(() => null);
         } else {
             logout();
             throw new Error("Session expired. Please login again.");
         }
+    } else if (res.status.toString().startsWith("4")) {
+        console.log(responseData)
+        throw new Error("에러가 발생했습니다.");
     }
 
-    return result as T;
+    return responseData as T;
 }
 
-// apiRequest 객체 생성
 export const apiRequest = {
     get: <T = unknown>(endPoint: string, options?: RequestInit) => request<T>(endPoint, "GET", options),
     post: <T = unknown>(endPoint: string, options?: RequestInit) => request<T>(endPoint, "POST", options),

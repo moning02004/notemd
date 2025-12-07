@@ -12,7 +12,7 @@ from app.modules.user.interfaces.schemas import TokenObtainSchema, SignupSchema
 router = APIRouter(prefix="", tags=[])
 
 
-@router.post("/obtain-token")
+@router.post("/auth/obtain-token")
 def obtain_token(request: TokenObtainSchema,
                  response: Response,
                  db: Session = Depends(get_db)):
@@ -29,7 +29,7 @@ def obtain_token(request: TokenObtainSchema,
     return {"access_token": token_info["access_token"]}
 
 
-@router.post("/refresh-token")
+@router.post("/auth/refresh-token")
 def refresh_token(response: Response, refreshtoken: str = Cookie(None)):
     if not refreshtoken or not verify_refresh_token(refreshtoken):
         raise HTTPException(status_code=401, detail="Invalid refresh token")

@@ -24,7 +24,9 @@ class Settings(AbstractSettings):
     }
 
     # CORS settings
-    CORS_ORIGINS = []
+    CORS_ORIGINS = [
+        "http://localhost:3000",
+    ]
 
 
 settings = Settings()

@@ -1,13 +1,22 @@
-import { create } from 'zustand';
+import {create} from "zustand";
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 interface AuthState {
-  token: string;
-  setToken: (token: string) => void;
-  logout: () => void;
+    token: string | null;
+    setToken: (token: string) => void;
+    logout: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-    token: '',
-    setToken: (token) => set(() => ({ token })),
-    logout: () => set(() => ({ token: '' })),
-}));
+export const useAuthStore = create<AuthState>()(
+    persist(
+        (set) => ({
+            token: null,
+            setToken: (token) => set({token}),
+            logout: () => set({token: null}),
+        }),
+        {
+            name: 'auth-session-storage',
+            storage: createJSONStorage(() => sessionStorage),
+        }
+    )
+);
