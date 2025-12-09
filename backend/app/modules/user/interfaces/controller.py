@@ -7,7 +7,7 @@ from app.modules.user.application.service import verify_refresh_token, UserServi
 from app.modules.user.infrastructure.repository import UserRepository
 from app.modules.user.interfaces.schemas import TokenObtainSchema, SignupSchema
 
-router = APIRouter(prefix="", tags=[])
+router = APIRouter(prefix="", tags=["Auth"])
 
 
 @router.post("/auth/obtain-token")

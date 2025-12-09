@@ -12,8 +12,8 @@ from app.modules.user.infrastructure.repository import UserRepository
 
 
 def get_current_user(request: Request, db=Depends(get_db)):
-    if request.state.user_id is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="로그인 필요")
+    if not hasattr(request.state, "user_id") or request.state.user_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="인증이 필요합니다.")
 
     user = UserRepository(db).get_by_pk(request.state.user_id)
     if not user:
