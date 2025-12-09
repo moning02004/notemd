@@ -2,8 +2,6 @@ from fastapi import APIRouter, Cookie, HTTPException, Depends
 from sqlalchemy.orm import Session
 from starlette.responses import Response
 
-from app.core.jwt_util import jwt_manager
-from app.core.middlewares.token import get_user_id_from_token
 from app.core.session import get_db
 from app.modules.user.application.service import verify_refresh_token, UserService
 from app.modules.user.infrastructure.repository import UserRepository

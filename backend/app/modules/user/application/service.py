@@ -69,5 +69,5 @@ class UserService(Service):
         user_entity = UserSignupEntity(username=request.username,
                                        hashed_password=hash_password(request.password1),
                                        name=request.name)
-        user = self.repository.create(user_entity)
+        user = self.repository.create_user(user_entity)
         return user

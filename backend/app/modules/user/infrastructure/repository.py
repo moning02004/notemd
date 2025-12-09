@@ -10,7 +10,7 @@ class UserRepository(Repository):
         instance = self.db.query(self.DB_MODEL).filter(self.DB_MODEL.username == username).first()
         return instance
 
-    def create(self, user_entity) -> User:
+    def create_user(self, user_entity) -> User:
         new_user = self.DB_MODEL(username=user_entity.username,
                                  hashed_password=user_entity.hashed_password,
                                  name=user_entity.name)
