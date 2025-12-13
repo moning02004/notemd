@@ -45,7 +45,6 @@ h6 { @apply text-base }
 }
 
 .body-editor {
-  padding: 1rem 0.1rem;
   background-color: var(--color-editor);
   overflow-y: scroll;
 }

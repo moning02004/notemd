@@ -5,7 +5,7 @@ export default function MainLayout({children}: {
 }) {
 
     return (
-        <div className="flex flex-col h-screen font-sans bg-gray-50">
+        <div className="flex flex-col h-screen font-sans bg-editor">
             <main className="flex-1 overflow-auto">{children}</main>
         </div>
     );

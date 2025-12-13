@@ -33,6 +33,7 @@ export default function Page() {
             return null
         })
         setToken(data.access_token)
+        window.location.href = "/"
     }
 
     return (

@@ -1,88 +1,73 @@
 "use client"
 
+import dynamic from "next/dynamic";
 import {useEffect, useState} from "react";
 import {FiX} from "react-icons/fi";
+import {PartialBlock} from "@blocknote/core";
 import {useParams} from "next/navigation";
 import {apiRequest} from "@/lib/api";
-import {MilkdownProvider} from "@milkdown/react";
 
-import "@milkdown/crepe/theme/common/style.css";
-import "@milkdown/crepe/theme/frame.css";
-import MarkdownEditor from "@/components/editor";
-import {TemplateApplyModal} from "@/components/modal";
 
+const Editor = dynamic(() => import("@/components/editor"), {
+    ssr: false,
+});
 
 export default function Page() {
     const [isOpenedSetting, setOpenedSetting] = useState(false)
     const [isPublic, setIsPublic] = useState(false);
-    const [editable, setEditable] = useState(true);
+    const [editable, setEditable] = useState(false);
     const {noteId} = useParams();
 
-    const [openModal, setOpenModal] = useState(false)
     const [title, setTitle] = useState<string | null>(null);
-    const [content, setContent] = useState<string | null>(null);
-    const [statusText, setStatusText] = useState<string>("");
+    const [contents, setContents] = useState([] as PartialBlock[]);
 
     const handleContent = (values: {
         title: string | null;
-        content: string | null;
+        content: PartialBlock[]
     }) => {
-        setStatusText("동기화 중")
-        setTitle(values.title || "")
-        setContent(values.content || "")
+        setTitle(values.title)
+        setContents(values.content)
     }
 
     useEffect(() => {
+        if (!editable) return;
+
         const timer = setTimeout(async () => {
             const data = await apiRequest.patch(`/notes/${noteId}`, {
                 body: JSON.stringify({
                     title: title,
-                    content: content,
+                    content: contents,
                     is_public: false,
                 })
-            }).then(() => {
-                setStatusText("동기화 완료")
             }).catch(error => {
-                setStatusText("서버 연결이 원활하지 않음")
+                console.log(error)
             })
+            console.log(data)
         }, 2000);
 
         return () => clearTimeout(timer);
-    }, [title, content, noteId]);
+    }, [title, contents]);
 
     useEffect(() => {
         const fetchData = async () => {
             const data = await apiRequest.get(`/notes/${noteId}`)
             setTitle(data.title || "")
-            setContent(data.content || "")
+            setContents(data.content && JSON.parse(data.content))
         }
         fetchData()
     }, []);
-
-    const cancelModal = () => {
-        setOpenModal(false)
-    }
-
-    const applyTemplate = (templateMarkdown) => {
-        setContent(templateMarkdown)
-        setOpenModal(false)}
 
     if (title === null) return "..."
 
     return (
         <>
-            <div className="flex w-full h-[100%]" onClick={() => {
-                setEditable(true)
-            }}>
-                <MilkdownProvider>
-                    <MarkdownEditor onChange={handleContent}
-                                    onClickMenu={() => setOpenedSetting(true)}
-                                    isReadonly={!editable}
-                                    paramsTitle={title}
-                                    paramsContent={content}
-                                    statusText={statusText}
-                    />
-                </MilkdownProvider>
+            <div className="flex w-full h-[100%]" onClick={() => setEditable(true)}>
+                <Editor onChange={handleContent}
+                        onClickMenu={() => setOpenedSetting(true)}
+                        isEditable={editable}
+                        paramsTitle={title}
+                        paramsContent={contents}
+                />
             </div>
 
             <div className={`w-[25vw] bg-white fixed right-0 top-0 h-screen border-l border-[#ededed] shadow-xl
@@ -110,15 +95,7 @@ export default function Page() {
                     </div>
 
                 </div>
-                <div className="flex flex-row justify-between p-5 border-b border-[#ededed]">
-                    <button className="font-bold px-2 border rounded " onClick={() => setOpenModal(true)}>템플릿 적용</button>
-                </div>
             </div>
-
-            {openModal && <TemplateApplyModal templateList={[]}
-                                              cancel={cancelModal}
-                                              apply={applyTemplate}
-            />}
         </>
     );
 }

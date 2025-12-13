@@ -16,7 +16,7 @@ async function request<T = unknown>(endPoint: string, method: HttpMethod, option
     let responseData = await res.json().catch(() => null);
 
     if (res.status === 401) {
-        const refreshRes = await fetch(`${API_HOST}/auth/refresh`, {
+        const refreshRes = await fetch(`${API_HOST}/auth/refresh-token`, {
             method: "POST",
             credentials: "include",
         });
