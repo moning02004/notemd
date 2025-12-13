@@ -7,10 +7,10 @@ from app.modules.note.interfaces.schemas import NoteListSchema, NoteCreateSchema
     NoteDetailSchema, NoteUpdateRequest
 from app.modules.user.application.service import get_current_user
 
-note_router = APIRouter(prefix="/notes", tags=["Notes"])
+router = APIRouter(prefix="/notes", tags=["Notes"])
 
 
-@note_router.get("", response_model=list[NoteListSchema])
+@router.get("", response_model=list[NoteListSchema])
 def list_notes(user=Depends(get_current_user), db=Depends(get_db)):
     repository = NoteRepository(db)
     service = NoteService(repository)
@@ -18,7 +18,7 @@ def list_notes(user=Depends(get_current_user), db=Depends(get_db)):
     return notes
 
 
-@note_router.post("", response_model=NoteCreateSchema)
+@router.post("", response_model=NoteCreateSchema)
 def create_note(user=Depends(get_current_user), db=Depends(get_db)):
     repository = NoteRepository(db)
     service = NoteService(repository)
@@ -26,7 +26,7 @@ def create_note(user=Depends(get_current_user), db=Depends(get_db)):
     return note
 
 
-@note_router.get("/{note_id}", response_model=NoteDetailSchema)
+@router.get("/{note_id}", response_model=NoteDetailSchema)
 def get_note(note_id: str, user=Depends(get_current_user), db=Depends(get_db)):
     repository = NoteRepository(db)
     service = NoteService(repository)
@@ -34,7 +34,7 @@ def get_note(note_id: str, user=Depends(get_current_user), db=Depends(get_db)):
     return note
 
 
-@note_router.patch("/{note_id}", response_model=NoteDetailSchema)
+@router.patch("/{note_id}", response_model=NoteDetailSchema)
 def update_note(request: NoteUpdateRequest, note_id: str, user=Depends(get_current_user), db=Depends(get_db)):
     repository = NoteRepository(db)
     service = NoteService(repository)
@@ -42,7 +42,7 @@ def update_note(request: NoteUpdateRequest, note_id: str, user=Depends(get_curre
     return note
 
 
-@note_router.delete("/{note_id}")
+@router.delete("/{note_id}")
 def delete_note(note_id: str, user=Depends(get_current_user), db=Depends(get_db)):
     repository = NoteRepository(db)
     service = NoteService(repository)
@@ -50,7 +50,7 @@ def delete_note(note_id: str, user=Depends(get_current_user), db=Depends(get_db)
     return note
 
 
-@note_router.delete("/{note_id}/permanently")
+@router.delete("/{note_id}/permanently")
 def permanency_delete_note(note_id: str, user=Depends(get_current_user), db=Depends(get_db)):
     repository = NoteRepository(db)
     service = NoteService(repository)
@@ -58,7 +58,7 @@ def permanency_delete_note(note_id: str, user=Depends(get_current_user), db=Depe
     return note
 
 
-@note_router.patch("/{note_id}/restore")
+@router.patch("/{note_id}/restore")
 def restore_note(note_id: str, user=Depends(get_current_user), db=Depends(get_db)):
     repository = NoteRepository(db)
     service = NoteService(repository)

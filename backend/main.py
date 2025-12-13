@@ -7,7 +7,7 @@ from fastapi.security import APIKeyHeader
 
 from app.core.config import settings
 from app.core.middlewares.token import AuthTokenMiddleware
-from app.modules.note.interfaces.note_controller import note_router
+from app.modules.note.interfaces.controller import router as note_router
 from app.modules.template.interfaces.controller import router as template_router
 from app.modules.user.interfaces.controller import router as auth_router
 

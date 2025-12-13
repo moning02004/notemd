@@ -8,6 +8,8 @@ class TemplateCreateRequest(BaseModel):
 
 class TemplateListSchema(BaseModel):
     id: int
+    name: str
+    description: str
     title: str
     content: str
 
