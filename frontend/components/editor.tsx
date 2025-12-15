@@ -32,6 +32,8 @@ export default function MarkdownEditor({
     const [content, setContent] = useState(paramsContent);
 
     useEffect(() => {
+        if (title == paramsTitle && content == paramsContent) return
+
         onChange({title: title, content: content})
     }, [title, content])
 
@@ -76,7 +78,7 @@ export default function MarkdownEditor({
         }
     }
     const goBack = () => {
-        if (statusText == "동기화 중" && !confirm("저장이 완료되지 않았습니다. 계속 하시겠습니까?")) return
+        if (statusText == "동기화 중" && !confirm(`저장이 완료되지 않았습니다. 계속 하시겠습니까?`)) return
         router.back()
     }
 
@@ -98,7 +100,7 @@ export default function MarkdownEditor({
                     <FiMenu size={24}/>
                 </div>
             </div>
-            <div className="pr-3 text-right bg-editor">
+            <div className="pr-3 text-right bg-editor min-h-[1.5rem]">
                 {statusText}
             </div>
             <div
