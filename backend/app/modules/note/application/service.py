@@ -18,8 +18,17 @@ class NoteService(Service):
         )
         return self.repository.create_note(default_note)
 
-    def get_note_by_hash_id(self, user_id: int, note_id: str):
-        return self.repository.get_by_hash_id_and_user_id(user_id=user_id, hash_id=note_id)
+    def get_note_by_hash_id(self, user_id: int | None, note_id: str):
+        note = self.repository.get_by_hash_id(hash_id=note_id)
+        if note is None:
+            return None
+
+        if not note.is_public and user_id is None:
+            return None
+
+        if user_id and note.user_id != user_id:
+            return None
+        return note
 
     def update_note(self, user_id: int, note_id: str, request):
         return self.repository.update_note(user_id=user_id, hash_id=note_id, request=request)

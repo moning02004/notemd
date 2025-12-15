@@ -24,10 +24,11 @@ class AuthTokenMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         token = request.headers.get("Authorization")
 
+        request.state.user_id = None
         try:
             request.state.user_id = get_user_id_from_token(token)
         except (ExpiredSignatureError, NotExistsToken):
-            request.state.user_id = None
+            pass
 
         response = await call_next(request)
         return response

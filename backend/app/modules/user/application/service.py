@@ -22,7 +22,7 @@ def get_current_user(request: Request, db=Depends(get_db)):
 
 
 def get_user_or_none(request: Request, db=Depends(get_db)):
-    if request.state.user_id:
+    if hasattr(request.state, "user_id") and request.state.user_id:
         return UserRepository(db).get_by_pk(request.state.user_id)
     return None
 

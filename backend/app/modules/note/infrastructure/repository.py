@@ -19,9 +19,8 @@ class NoteRepository(Repository):
         self.db.refresh(new_note)
         return new_note
 
-    def get_by_hash_id_and_user_id(self, user_id: int, hash_id: str):
-        instance = self.db.query(self.DB_MODEL).filter(self.DB_MODEL.user_id == user_id,
-                                                       self.DB_MODEL.hash_id == hash_id).first()
+    def get_by_hash_id(self, hash_id: str):
+        instance = self.db.query(self.DB_MODEL).filter(self.DB_MODEL.hash_id == hash_id).first()
         return instance
 
     def update_note(self, user_id: int, hash_id: str, request):

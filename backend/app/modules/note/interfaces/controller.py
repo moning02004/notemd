@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.session import get_db
 from app.modules.note.application.service import NoteService
 from app.modules.note.infrastructure.repository import NoteRepository
 from app.modules.note.interfaces.schemas import NoteListSchema, NoteCreateSchema, \
     NoteDetailSchema, NoteUpdateRequest
-from app.modules.user.application.service import get_current_user
+from app.modules.user.application.service import get_current_user, get_user_or_none
 
 router = APIRouter(prefix="/notes", tags=["Notes"])
 
@@ -26,11 +26,13 @@ def create_note(user=Depends(get_current_user), db=Depends(get_db)):
     return note
 
 
-@router.get("/{note_id}", response_model=NoteDetailSchema)
-def get_note(note_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+@router.get("/{note_id}", response_model=NoteDetailSchema | None)
+def get_note(note_id: str, user=Depends(get_user_or_none), db=Depends(get_db)):
     repository = NoteRepository(db)
     service = NoteService(repository)
-    note = service.get_note_by_hash_id(user_id=user.pk, note_id=note_id)
+    note = service.get_note_by_hash_id(user_id=user and user.pk, note_id=note_id)
+    if note is None:
+        raise HTTPException(status_code=404, detail="노트를 찾을 수 없습니다.")
     return note
 
 
