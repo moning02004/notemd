@@ -42,7 +42,7 @@ export default function MarkdownEditor({
             root: root,
             defaultValue: paramsContent,
         })
-        // crepe.setReadonly(!isReadonly)
+        crepe.setReadonly(isReadonly)
         crepe.editor.config((ctx) => {
             // Add attributes to the editor container
             ctx.update(editorViewOptionsCtx, (prev) => ({
@@ -78,27 +78,38 @@ export default function MarkdownEditor({
         }
     }
     const goBack = () => {
-        if (statusText == "동기화 중" && !confirm(`저장이 완료되지 않았습니다. 계속 하시겠습니까?`)) return
+        if (statusText == "동기화 중") {
+            alert("동기화가 완료되지 않았습니다. 잠시 후 다시 시도해주세요.")
+            return
+        }
         router.back()
     }
 
     return (
         <div className="w-full mx-auto flex flex-col bg-editor">
             <div className="group flex-1 flex flex-row bg-editor border-b border-editor-line px-3">
-                <div className="my-auto cursor-pointer"
-                     onClick={goBack}>
-                    <FiArrowLeft size={24}/>
-                </div>
+                {
+                    !isReadonly &&
+                    <div className="my-auto cursor-pointer"
+                         onClick={goBack}>
+                        <FiArrowLeft size={24}/>
+                    </div>
+                }
                 <input type="text"
                        onKeyUp={titleKeyup}
                        value={title || ''}
+                       readOnly={isReadonly}
                        onChange={(e) => setTitle(e.currentTarget.value)}
-                       className="title-editor w-[100%] outline-none" placeholder="제목"
+                       className={`title-editor w-[100%] outline-none ${isReadonly ? "cursor-default" : "cursor-pointer"}`}
+                       placeholder="제목"
                 />
-                <div className="my-auto p-3 cursor-pointer"
-                     onClick={clickMenu}>
-                    <FiMenu size={24}/>
-                </div>
+                {
+                    !isReadonly &&
+                    <div className="my-auto p-3 cursor-pointer"
+                         onClick={clickMenu}>
+                        <FiMenu size={24}/>
+                    </div>
+                }
             </div>
             <div className="pr-3 text-right bg-editor min-h-[1.5rem]">
                 {statusText}
