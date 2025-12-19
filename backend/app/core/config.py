@@ -15,12 +15,18 @@ class Settings(AbstractSettings):
 
     # Database settings
     DATABASE = {
-        "driver": "sqlite",
-        "name": "sqlite.db",
-        "user": "",
-        "password": "",
-        "host": "",
-        "port": "",
+        "driver": "postgresql",
+        "name": "mdnote",
+        "user": "admin",
+        "password": "admin123!",
+        "host": "localhost",
+        "port": "5433",
+    }
+
+    # storage
+    STORAGE = {
+        "type": "local",
+        "name": "uploads",
     }
 
     # CORS settings

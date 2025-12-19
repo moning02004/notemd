@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 
 from app.core.session import get_db
+from app.core.storages import get_storage
 from app.modules.note.application.service import NoteService
 from app.modules.note.infrastructure.repository import NoteRepository
 from app.modules.note.interfaces.schemas import NoteListSchema, NoteCreateSchema, \
-    NoteDetailSchema, NoteUpdateRequest
+    NoteDetailSchema, NoteUpdateRequest, DefaultNoteRequest
 from app.modules.user.application.service import get_current_user, get_user_or_none
 
 router = APIRouter(prefix="/notes", tags=["Notes"])
@@ -19,10 +20,12 @@ def list_notes(user=Depends(get_current_user), db=Depends(get_db)):
 
 
 @router.post("", response_model=NoteCreateSchema)
-def create_note(user=Depends(get_current_user), db=Depends(get_db)):
+def create_note(request: DefaultNoteRequest, user=Depends(get_current_user), db=Depends(get_db)):
     repository = NoteRepository(db)
     service = NoteService(repository)
-    note = service.create_default_note(user_id=user.pk)
+    note = service.create_default_note(user_id=user.pk,
+                                       default_title=request.title,
+                                       default_content=request.content)
     return note
 
 
@@ -42,6 +45,16 @@ def update_note(request: NoteUpdateRequest, note_id: str, user=Depends(get_curre
     service = NoteService(repository)
     note = service.update_note(user_id=user.pk, note_id=note_id, request=request)
     return note
+
+
+@router.post("/{note_id}/images")
+async def create_note_image(note_id: str, file: UploadFile = File(...),
+                            user=Depends(get_current_user),
+                            db=Depends(get_db),
+                            storage=Depends(get_storage)):
+    repository = NoteRepository(db)
+    service = NoteService(repository, storage)
+    return await service.create_note_image(user_id=user.pk, note_id=note_id, file=file)
 
 
 @router.delete("/{note_id}")

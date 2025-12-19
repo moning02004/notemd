@@ -4,6 +4,7 @@ import os
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
+from starlette.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.middlewares.token import AuthTokenMiddleware
@@ -30,6 +31,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+if settings.STORAGE["type"] == "local":
+    app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 app.add_middleware(AuthTokenMiddleware)
 app.include_router(auth_router)
 app.include_router(note_router)
