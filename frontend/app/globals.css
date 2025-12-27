@@ -1,76 +1,82 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f9f9f9;
-  --foreground: #171717;
+    --background: #f9f9f9;
+    --foreground: #171717;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --font-sans: var(--font-geist-sans);
+    --font-mono: var(--font-geist-mono);
 
-  --color-editor: #ffffff;
-  --color-editor-line: #ededed;
-  
+    --color-editor: #ffffff;
+    --color-editor-line: #ededed;
+
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+    :root {
+        --background: #0a0a0a;
+        --foreground: #ededed;
+    }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+    background: var(--background);
+    color: var(--foreground);
 }
 
-h1 { @apply text-4xl font-bold; }
-h2 { @apply text-3xl font-bold; }
-h3 { @apply text-2xl font-bold; }
-h4 { @apply text-xl }
-h5 { @apply text-lg }
-h6 { @apply text-base }
+h1 {
+    @apply text-4xl font-bold border-b-2 border-[#b3b3b3] mt-0! mb-[16px]!;
+}
+
+h2 {
+    @apply text-3xl font-bold border-b-1 border-[#dadada] mt-0! mb-[12px]!;
+}
+
+h3 {
+    @apply text-2xl font-bold mt-0! mb-[8px]!;
+}
+
+h4 {
+    @apply text-xl mt-0! mb-[4px]!
+}
+
+h5 {
+    @apply text-lg mt-0! mb-[4px]!
+}
+
+h6 {
+    @apply text-base font-medium! mt-0! mb-[4px]!
+}
+
+body * {
+    font-family: Arial, Helvetica, sans-serif !important;
+}
 
 .title-editor {
-  background-color: var(--color-editor);
-  padding: 1rem;
-  padding-left: 3rem;
-  font-size: 1.2rem;
-  font-weight: bold;
+    background-color: var(--color-editor);
+    padding: 1rem;
+    padding-left: 3rem;
+    font-size: 1.2rem;
+    font-weight: bold;
 }
 
 .body-editor {
-  background-color: var(--color-editor);
-  overflow-y: scroll;
+    background-color: var(--color-editor);
+    overflow-y: scroll;
 }
-
-.left-menu {
-  border-right: 1px solid #ededed;
-  width: calc(20% - 0.5rem);
-  margin-right: 0.5rem;
-  background-color: var(--color-editor);
-}
-
 
 .login-container {
-  @apply max-w-md mx-auto mt-24 p-8 bg-white rounded-lg shadow-lg;
+    @apply max-w-md mx-auto mt-24 p-8 bg-white rounded-lg shadow-lg;
 }
+
 .login-form button {
-  @apply w-full px-3 py-2 bg-[#cfcfcf] rounded hover:bg-[#adadad] cursor-pointer;
+    @apply w-full px-3 py-2 bg-[#cfcfcf] rounded hover:bg-[#adadad] cursor-pointer;
 }
+
 .login-footer a {
-  @apply text-sm text-gray-500 hover:underline mx-2;
-}
-
-.team-label {
-  margin-bottom: 1rem;
-}
-
-.team-list:last-child {
-  margin-bottom: 1rem;
+    @apply text-sm text-gray-500 hover:underline mx-2;
 }

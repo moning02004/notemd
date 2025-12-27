@@ -17,19 +17,41 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - db
+      - postgres
 
-  db:
-    image: postgres:13
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: mydatabase
-    volumes:
-      - db_data:/var/lib/postgresql/data
+  postgres:
+    image: postgres:16
+    container_name: postgres
     restart: always
+    environment:
+      POSTGRES_DB: mdnote
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123!
+      TZ: Asia/Seoul
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+      TZ: Asia/Seoul
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Web Console
+
+networks:
+  backend:
+    driver: bridge
 
 volumes:
-  db_data:
-  nginx_data:
-  mynote_backend:
+  postgres_data:
+  minio_data:

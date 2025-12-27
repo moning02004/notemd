@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useState} from "react";
+import React, {KeyboardEventHandler, useEffect, useRef, useState} from "react";
 import {Milkdown, useEditor} from "@milkdown/react";
 import {FiArrowLeft, FiMenu} from "react-icons/fi";
 import {useRouter} from "next/navigation";
@@ -8,63 +8,89 @@ import "@milkdown/crepe/theme/common/style.css";
 import "@milkdown/crepe/theme/frame.css";
 import {Crepe} from "@milkdown/crepe";
 import {editorViewCtx, editorViewOptionsCtx} from "@milkdown/core";
+import {apiRequest} from "@/lib/api";
+import {API_HOST} from "@/constants/api";
 
 interface EditorProps {
-    onChange: (values: { title: string; content: string }) => void;
     onClickMenu: () => void;
     isReadonly: boolean;
-    paramsTitle: string;
-    paramsContent: string;
+    isOwner: boolean;
+    title: string;
+    content: string;
+    setTitle: (value: string) => void;
+    setContent: (value: string) => void;
+    paramsNoteId: string;
     statusText: string;
 }
 
-export default function MarkdownEditor({
-                                           onChange,
-                                           onClickMenu,
-                                           paramsTitle,
-                                           paramsContent,
-                                           isReadonly,
-                                           statusText
-                                       }: EditorProps
+export function MarkdownEditor({
+                                   onClickMenu,
+                                   paramsNoteId,
+                                   title,
+                                   content,
+                                   isOwner,
+                                   setTitle,
+                                   setContent,
+                                   isReadonly,
+                                   statusText
+                               }: EditorProps
 ) {
     const router = useRouter();
-    const [title, setTitle] = useState(paramsTitle);
-    const [content, setContent] = useState(paramsContent);
+    const crepeRef = useRef<Crepe | null>(null)
 
     useEffect(() => {
-        if (title == paramsTitle && content == paramsContent) return
-
-        onChange({title: title, content: content})
-    }, [title, content])
+        if (!crepeRef.current) return;
+        crepeRef.current.setReadonly(isReadonly);
+    }, [isReadonly]);
 
     const editor = useEditor((root) => {
         const crepe = new Crepe({
             root: root,
-            defaultValue: paramsContent,
+            defaultValue: content,
+            features: {
+                [Crepe.Feature.ImageBlock]: true,
+            },
+            featureConfigs: {
+                [Crepe.Feature.ImageBlock]: {
+                    blockCaptionPlaceholderText: 'Add image caption...',
+                    onUpload: async (file) => {
+                        const formData = new FormData();
+                        formData.append("file", file);
+
+                        const response = await apiRequest.post(`/notes/${paramsNoteId}/images`, {
+                            body: formData,
+                        }, null).catch(error => {
+                            console.log(error)
+                        })
+                        return `${API_HOST}${response.url}`
+                    },
+                },
+            },
         })
         crepe.setReadonly(isReadonly)
         crepe.editor.config((ctx) => {
-            // Add attributes to the editor container
             ctx.update(editorViewOptionsCtx, (prev) => ({
                 ...prev,
                 attributes: {
-                    class: "!px-[3.5rem] !py-[1rem]",
+                    class: "!px-[3.5rem] !py-[1rem] editor-font",
                 },
             }))
         })
 
         crepe.on((listener) => {
-            listener.markdownUpdated((ctx, markdown, prevMarkdown) => {
+            listener.markdownUpdated((ctx, markdown) => {
                 setContent(markdown)
             })
         })
+
+        crepeRef.current = crepe;
         return crepe
     }, []);
 
     const clickMenu = () => {
-        console.log("click menu")
         onClickMenu();
     }
+
     const focusEditor = () => {
         const editorGet = editor.get()
         editorGet?.action(ctx => {
@@ -72,7 +98,8 @@ export default function MarkdownEditor({
             view.focus()
         })
     }
-    const titleKeyup = (e) => {
+
+    const titleKeyup = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key == "Enter") {
             focusEditor()
         }
@@ -89,7 +116,7 @@ export default function MarkdownEditor({
         <div className="w-full mx-auto flex flex-col bg-editor">
             <div className="group flex-1 flex flex-row bg-editor border-b border-editor-line px-3">
                 {
-                    !isReadonly &&
+                    isOwner &&
                     <div className="my-auto cursor-pointer"
                          onClick={goBack}>
                         <FiArrowLeft size={24}/>
@@ -100,11 +127,11 @@ export default function MarkdownEditor({
                        value={title || ''}
                        readOnly={isReadonly}
                        onChange={(e) => setTitle(e.currentTarget.value)}
-                       className={`title-editor w-[100%] outline-none ${isReadonly ? "cursor-default" : "cursor-pointer"}`}
+                       className={`title-editor w-[100%] outline-none  ${isReadonly ? "cursor-text" : "cursor-text"}`}
                        placeholder="제목"
                 />
                 {
-                    !isReadonly &&
+                    isOwner &&
                     <div className="my-auto p-3 cursor-pointer"
                          onClick={clickMenu}>
                         <FiMenu size={24}/>
@@ -118,7 +145,9 @@ export default function MarkdownEditor({
                 className={`${isReadonly ? "" : ""}  flex-20 bg-editor`}
                 onClick={focusEditor}>
                 <Milkdown/>
+                <div className="h-[10rem]"
+                     onClick={focusEditor}></div>
             </div>
         </div>
     );
-};
+}

@@ -3,13 +3,15 @@ import {API_HOST} from "@/constants/api";
 
 type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 
-async function request<T = unknown>(endPoint: string, method: HttpMethod, options: RequestInit = {}) {
-    const {token, setToken, logout} = useAuthStore.getState();
+async function request<T = unknown>(endPoint: string, method: HttpMethod, options: RequestInit = {}, contentType?: string | null): Promise<T> {
+    const {token, setAuth, logout} = useAuthStore.getState();
 
     const headers = {
         ...(options.headers || {}),
-        Authorization: token ? `Bearer ${token}` : "",
-        "Content-Type": "application/json",
+        ...(token && {Authorization: `Bearer ${token}`}),
+        ...(contentType !== null && {
+            "Content-Type": "application/json",
+        }),
     };
 
     let res = await fetch(`${API_HOST}${endPoint}`, {...options, method, headers});
@@ -23,7 +25,7 @@ async function request<T = unknown>(endPoint: string, method: HttpMethod, option
 
         if (refreshRes.ok) {
             const data = await refreshRes.json();
-            setToken(data.access_token);
+            setAuth(data.access_token, data.user_id);
 
             headers.Authorization = `Bearer ${data.access_token}`;
             res = await fetch(endPoint, {...options, method, headers});
@@ -33,7 +35,6 @@ async function request<T = unknown>(endPoint: string, method: HttpMethod, option
             throw new Error("Session expired. Please login again.");
         }
     } else if (res.status.toString().startsWith("4")) {
-        console.log(responseData)
         throw new Error("에러가 발생했습니다.");
     }
 
@@ -41,8 +42,8 @@ async function request<T = unknown>(endPoint: string, method: HttpMethod, option
 }
 
 export const apiRequest = {
-    get: <T = unknown>(endPoint: string, options?: RequestInit) => request<T>(endPoint, "GET", options),
-    post: <T = unknown>(endPoint: string, options?: RequestInit) => request<T>(endPoint, "POST", options),
-    patch: <T = unknown>(endPoint: string, options?: RequestInit) => request<T>(endPoint, "PATCH", options),
-    delete: <T = unknown>(endPoint: string, options?: RequestInit) => request<T>(endPoint, "DELETE", options),
+    get: <T = unknown>(endPoint: string, options?: RequestInit, contentType?: string | null) => request<T>(endPoint, "GET", options, contentType),
+    post: <T = unknown>(endPoint: string, options?: RequestInit, contentType?: string | null) => request<T>(endPoint, "POST", options, contentType),
+    patch: <T = unknown>(endPoint: string, options?: RequestInit, contentType?: string | null) => request<T>(endPoint, "PATCH", options, contentType),
+    delete: <T = unknown>(endPoint: string, options?: RequestInit, contentType?: string | null) => request<T>(endPoint, "DELETE", options, contentType),
 };

@@ -1,15 +1,10 @@
 "use client"
 
 import {usePathname, useRouter} from "next/navigation";
-import {FiBook, FiBookmark, FiMenu, FiTrash} from "react-icons/fi";
+import {FiMenu} from "react-icons/fi";
 import {useMenuStore} from "@/store/menu";
+import {menuItems} from "@/constants/menus";
 
-
-const menuItems = [
-    {name: "전체 노트", icon: FiBook, path: "/"},
-    // {name: "북마크", icon: FiBookmark, path: "/bookmarks"},
-    // {name: "삭제된", icon: FiTrash, path: "/deleted"},
-];
 
 export function Sidebar() {
     const router = useRouter();
