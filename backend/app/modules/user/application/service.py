@@ -49,7 +49,7 @@ class UserService(Service):
             raise self.NotFoundUser
 
         tokens = jwt_manager.create({"user_id": str(user.pk)})
-        return tokens
+        return tokens, user.pk
 
     def refresh_token(self, token):
         if not verify_refresh_token(token):

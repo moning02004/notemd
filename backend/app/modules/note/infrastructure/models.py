@@ -9,6 +9,8 @@ class Note(BaseModel):
     title = Column(String)
     content = Column(Text)
     is_public = Column(Boolean, default=False)
+    is_protected = Column(Boolean, default=False)
+    is_deleted = Column(Boolean, default=False)
 
     # relationships
     user = relationship("User", back_populates="notes")

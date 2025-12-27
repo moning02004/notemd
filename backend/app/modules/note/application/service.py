@@ -9,8 +9,8 @@ class NoteService(Service):
         super().__init__(repository)
         self.storage = storage
 
-    def list_notes(self, user_id: int):
-        notes = self.repository.list_by_user_id(user_id)
+    def list_notes(self, user_id: int, is_deleted: bool):
+        notes = self.repository.list_by_user_id(user_id, is_deleted)
         return notes
 
     def create_default_note(self, user_id: int, default_title: str, default_content: str):
@@ -29,8 +29,12 @@ class NoteService(Service):
         if not note.is_public and user_id is None:
             return None
 
+        if not note.is_public and user_id is None:
+            return None
+
         if user_id and note.user_id != user_id:
             return None
+
         return note
 
     def update_note(self, user_id: int, note_id: str, request):

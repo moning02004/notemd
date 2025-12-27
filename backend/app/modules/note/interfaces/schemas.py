@@ -8,16 +8,20 @@ from pydantic import BaseModel, ConfigDict, field_serializer
 class QueryParams(BaseModel):
     keyword: str | None = Query(None, min_length=2)
     limit: int = Query(10, ge=1, le=100)
+    is_deleted: int = Query(0)
 
 
-def get_query_params(keyword: str = Query(None), limit: int = Query(10)) -> QueryParams:
-    return QueryParams(keyword=keyword, limit=limit)
+def get_query_params(keyword: str = Query(None),
+                     limit: int = Query(10),
+                     is_deleted:int = Query(0)) -> QueryParams:
+    return QueryParams(keyword=keyword, limit=limit, is_deleted=is_deleted)
 
 
 class NoteListSchema(BaseModel):
     title: str
     content: str
     is_public: bool
+    is_protected: bool
     hash_id: str
     created_at: datetime
 
@@ -50,12 +54,20 @@ class NoteCreateSchema(BaseModel):
 class NoteDetailSchema(BaseModel):
     title: str
     content: str
+    user_id: int
     is_public: bool
+    is_protected: bool
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class NoteUpdateRequest(BaseModel):
+    title: str = None
+    content: str = None
+    is_public: bool = None
+    is_protected: bool = None
+
+
+class DefaultNoteRequest(BaseModel):
     title: str
     content: str
-    is_public: bool

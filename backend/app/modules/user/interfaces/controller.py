@@ -16,7 +16,8 @@ def obtain_token(request: TokenObtainSchema,
                  db: Session = Depends(get_db)):
     repository = UserRepository(db)
     service = UserService(repository)
-    token_info = service.obtain_token(request)
+    token_info, user_id = service.obtain_token(request)
+
     response.set_cookie(
         key="refreshtoken",
         value=token_info["refresh_token"],
@@ -24,7 +25,8 @@ def obtain_token(request: TokenObtainSchema,
         secure=True,
         samesite="lax",
     )
-    return {"access_token": token_info["access_token"]}
+    return {"access_token": token_info["access_token"],
+            "user_id": user_id}
 
 
 @router.post("/auth/refresh-token")
