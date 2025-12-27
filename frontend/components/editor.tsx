@@ -10,6 +10,7 @@ import {Crepe} from "@milkdown/crepe";
 import {editorViewCtx, editorViewOptionsCtx} from "@milkdown/core";
 import {apiRequest} from "@/lib/api";
 import {API_HOST} from "@/constants/api";
+import {CreateNoteImageResponse} from "@/types/note";
 
 interface EditorProps {
     onClickMenu: () => void;
@@ -57,10 +58,10 @@ export function MarkdownEditor({
                         const formData = new FormData();
                         formData.append("file", file);
 
-                        const response = await apiRequest.post(`/notes/${paramsNoteId}/images`, {
+                        const response = await apiRequest.post<CreateNoteImageResponse>(`/notes/${paramsNoteId}/images`, {
                             body: formData,
                         }, null).catch(error => {
-                            console.log(error)
+                            throw error
                         })
                         return `${API_HOST}${response.url}`
                     },
@@ -78,7 +79,7 @@ export function MarkdownEditor({
         })
 
         crepe.on((listener) => {
-            listener.markdownUpdated((ctx, markdown) => {
+            listener.markdownUpdated((_ctx, markdown) => {
                 setContent(markdown)
             })
         })

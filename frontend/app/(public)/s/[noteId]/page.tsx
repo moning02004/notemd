@@ -12,6 +12,13 @@ import {LoadingPage} from "@/components/loading";
 import {useAuthStore} from "@/store/auth";
 import {NoteSettings} from "@/components/note_settings";
 
+interface NoteResponse {
+    title: string | null
+    content: string | null
+    is_public: boolean
+    is_protected: boolean
+    user_id: number
+}
 
 export default function Page() {
     const {token, userId} = useAuthStore.getState();
@@ -24,8 +31,8 @@ export default function Page() {
     const [isOwner, setIsOwner] = useState(false);
     const {noteId} = useParams() as { noteId: string };
 
-    const [title, setTitle] = useState<string | null>(null);
-    const [content, setContent] = useState<string | null>(null);
+    const [title, setTitle] = useState<string>("");
+    const [content, setContent] = useState<string>("");
     const [statusText, setStatusText] = useState<string>("");
 
     useEffect(() => {
@@ -69,7 +76,7 @@ export default function Page() {
 
     useEffect(() => {
         const fetchData = async () => {
-            await apiRequest.get(`/notes/${noteId}`)
+            await apiRequest.get<NoteResponse>(`/notes/${noteId}`)
                 .then(response => {
                     setTitle(response.title || "")
                     setContent(response.content || "")

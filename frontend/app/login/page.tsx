@@ -4,12 +4,12 @@ import {useRef, useState} from "react"
 import {useRouter} from "next/navigation";
 import {apiRequest} from "@/lib/api";
 import {useAuthStore} from "@/store/auth";
+import { GetAuthResponse } from "@/types/auth";
 
 export default function Page() {
     const usernameRef = useRef<HTMLInputElement>(null)
     const passwordRef = useRef<HTMLInputElement>(null)
     const [errorMessage, setErrorMessage] = useState("")
-    const router = useRouter();
     const {setAuth} = useAuthStore.getState();
 
     const login = async () => {
@@ -23,14 +23,14 @@ export default function Page() {
             return
         }
 
-        const data = await apiRequest.post("/auth/obtain-token", {
+        const data = await apiRequest.post<GetAuthResponse>("/auth/obtain-token", {
             body: JSON.stringify({
                 username: usernameRef.current.value,
                 password: passwordRef.current.value,
             })
         }).catch(error => {
             setErrorMessage(error.detail || "계정을 찾을 수 없습니다.")
-            return null
+            return {access_token: "", user_id: 0}
         })
         setAuth(data.access_token, data.user_id)
         window.location.href = "/"

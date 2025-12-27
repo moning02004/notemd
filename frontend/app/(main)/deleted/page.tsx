@@ -2,7 +2,7 @@
 
 import {useEffect, useState} from "react";
 import {useAuthStore} from "@/store/auth";
-import {NoteCard} from "@/types/note_list";
+import {NoteCard} from "@/types/note";
 import {apiRequest} from "@/lib/api";
 import {useRouter} from "next/navigation";
 import {useMenuStore} from "@/store/menu";
@@ -23,7 +23,7 @@ export default function Page() {
 
         const fetchData = async () => {
             try {
-                const res = await apiRequest.get("/notes?is_deleted=1");
+                const res = await apiRequest.get<Array<NoteCard>>("/notes?is_deleted=1");
                 setNotes(res);
             } catch (error) {
                 alert("서버를 확인해주세요.");

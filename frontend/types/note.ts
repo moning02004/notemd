@@ -5,3 +5,11 @@ export interface NoteCard {
     is_public: boolean;
     created_at: string
 }
+
+export interface CreateNoteResponse {
+    hash_id: string;
+}
+
+export interface CreateNoteImageResponse {
+    url: string;
+}

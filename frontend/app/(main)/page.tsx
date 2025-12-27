@@ -3,7 +3,7 @@
 import {useEffect, useState} from "react";
 import {useAuthStore} from "@/store/auth";
 import {FiPlus} from "react-icons/fi";
-import {NoteCard} from "@/types/note_list";
+import {NoteCard} from "@/types/note";
 import {apiRequest} from "@/lib/api";
 import {useRouter} from "next/navigation";
 import {useMenuStore} from "@/store/menu";
@@ -26,7 +26,7 @@ export default function Page() {
 
         const fetchData = async () => {
             try {
-                const res = await apiRequest.get("/notes");
+                const res = await apiRequest.get<Array<NoteCard>>("/notes");
                 setNotes(res);
             } catch (error) {
                 alert("서버를 확인해주세요.");
