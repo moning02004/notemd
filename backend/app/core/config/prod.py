@@ -13,7 +13,7 @@ class Settings(BaseAbstractSettings):
         "user": os.environ["DB_USER"],
         "password": os.environ["DB_PASSWORD"],
         "host": "postgres",
-        "port": "5433",
+        "port": "5432",
     }
 
     # CORS settings
