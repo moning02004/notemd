@@ -21,29 +21,32 @@ def obtain_token(request: TokenObtainSchema,
     response.set_cookie(
         key="refreshtoken",
         value=token_info["refresh_token"],
+        expires=service.get_token_expires(),
         httponly=True,
         secure=True,
-        domain="localhost"
+        samesite="lax",
     )
     return {"access_token": token_info["access_token"],
             "user_id": user_id}
 
 
 @router.post("/auth/refresh-token")
-def refresh_token(response: Response, refreshtoken: str = Cookie(None)):
+def refresh_token(response: Response, refreshtoken: str = Cookie(...)):
     if not refreshtoken or not verify_refresh_token(refreshtoken):
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
     service = UserService(None)
-    token_info = service.refresh_token(refreshtoken)
+    token_info, user_id = service.refresh_token(refreshtoken)
     response.set_cookie(
         key="refreshtoken",
         value=token_info["refresh_token"],
+        expires=service.get_token_expires(),
         httponly=True,
         secure=True,
         samesite="lax",
     )
-    return {"access_token": token_info["access_token"]}
+    return {"access_token": token_info["access_token"],
+            "user_id": user_id}
 
 
 @router.post("/users")

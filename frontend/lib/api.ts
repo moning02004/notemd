@@ -13,8 +13,12 @@ async function request<T = unknown>(endPoint: string, method: HttpMethod, option
             "Content-Type": "application/json",
         }),
     };
-
-    let res = await fetch(`${API_HOST}${endPoint}`, {...options, method, headers});
+    let res = await fetch(`${API_HOST}${endPoint}`, {
+        ...options,
+        method,
+        headers,
+        credentials: "include",
+    });
     let responseData = await res.json().catch(() => null);
 
     if (res.status === 401) {

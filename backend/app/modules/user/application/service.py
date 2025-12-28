@@ -5,6 +5,7 @@ from fastapi_clean_archi.core.commons.service import Service
 from starlette import status
 from starlette.requests import Request
 
+from app.core.config import settings
 from app.core.jwt_util import jwt_manager
 from app.core.session import get_db
 from app.modules.user.domain.entity import UserEntity, UserSignupEntity
@@ -39,6 +40,17 @@ class UserService(Service):
     NotFoundUser = HTTPException(status_code=404, detail="계정을 찾을 수 없습니다.")
     InvalidToken = HTTPException(status_code=403, detail="토큰이 유효하지 않습니다.")
 
+    def get_token_expires(self):
+        refresh_token_expires = settings.REFRESH_TOKEN_EXPIRE_MINUTES
+        number, number_type = int(refresh_token_expires[:-1]), str(refresh_token_expires[-1]).lower()
+        if number_type == "d":
+            return number * 60 * 60 * 24
+        elif number_type == "h":
+            return number * 60 * 60
+        elif number_type == "m":
+            return number * 60
+        return 0
+
     def obtain_token(self, request):
         user = self.repository.get_by_username(request.username)
         if not user:
@@ -57,7 +69,7 @@ class UserService(Service):
 
         payload = jwt_manager.decode_payload(token)
         new_tokens = jwt_manager.create({"user_id": payload["user_id"]})
-        return new_tokens
+        return new_tokens, payload["user_id"]
 
     def create_user(self, request):
         if self.repository.get_by_username(request.username):
