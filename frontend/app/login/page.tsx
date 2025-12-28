@@ -1,10 +1,9 @@
 "use client"
 
-import {useRef, useState} from "react"
-import {useRouter} from "next/navigation";
+import React, {useRef, useState} from "react"
 import {apiRequest} from "@/lib/api";
 import {useAuthStore} from "@/store/auth";
-import { GetAuthResponse } from "@/types/auth";
+import {GetAuthResponse} from "@/types/auth";
 
 export default function Page() {
     const usernameRef = useRef<HTMLInputElement>(null)
@@ -37,15 +36,26 @@ export default function Page() {
         setAuth(data.access_token, data.user_id)
         window.location.href = "/"
     }
-
+    const isEnterLogin = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            login()
+        }
+    }
     return (
         <div className="login-container">
             <h1 className="logo mb-4">note.md</h1>
 
             <div className="flex flex-col">
-                <input ref={usernameRef} type="text" placeholder="계정" className="p-3 border outline-none rounded-t"/>
+                <input ref={usernameRef}
+                       type="text"
+                       placeholder="계정"
+                       className="p-3 border outline-none rounded-t"
+                       onKeyUp={isEnterLogin}
+                />
                 <input ref={passwordRef} type="password" placeholder="비밀번호"
-                       className="p-3 border outline-none border-t-0 rounded-b"/>
+                       className="p-3 border outline-none border-t-0 rounded-b"
+                       onKeyUp={isEnterLogin}
+                />
                 <span>{errorMessage}</span>
                 <button type="button" onClick={login}
                         className="mt-3 rounded cursor-pointer p-3 bg-[#cfcfcf] hover:bg-[#adadad]">로그인
