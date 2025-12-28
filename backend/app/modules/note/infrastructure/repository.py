@@ -32,13 +32,13 @@ class NoteRepository(Repository):
         instance = self.db.query(self.DB_MODEL).filter(self.DB_MODEL.user_id == user_id,
                                                        self.DB_MODEL.hash_id == hash_id).first()
         if instance:
-            if request.title:
+            if request.title is not None:
                 instance.title = request.title
-            if request.content:
+            if request.content is not None:
                 instance.content = request.content
-            if request.is_public:
+            if request.is_public is not None:
                 instance.is_public = request.is_public
-            if request.is_protected:
+            if request.is_protected is not None:
                 instance.is_protected = request.is_protected
             self.db.commit()
             self.db.refresh(instance)

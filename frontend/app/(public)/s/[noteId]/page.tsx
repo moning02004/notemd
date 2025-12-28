@@ -25,9 +25,9 @@ export default function Page() {
 
     const [loadingStatus, setLoadingStatus] = useState("loading")
     const [isOpenedSetting, setOpenedSetting] = useState(false)
-    const [isPublic, setIsPublic] = useState(false);
+    const [isPublic, setIsPublic] = useState<boolean>(false);
     const [isProtected, setIsProtected] = useState<boolean>(false);
-    const [isReadonly, setIsReadonly] = useState(!token);
+    const [isReadonly, setIsReadonly] = useState<boolean>(!token);
     const [isOwner, setIsOwner] = useState(false);
     const {noteId} = useParams() as { noteId: string };
 
@@ -36,7 +36,7 @@ export default function Page() {
     const [statusText, setStatusText] = useState<string>("");
 
     useEffect(() => {
-        if (!isOwner || isProtected || loadingStatus == "loading") return
+        if (!isOwner || loadingStatus == "loading") return
 
         setStatusText("동기화 중")
         const timer = setTimeout(async () => {
@@ -47,16 +47,16 @@ export default function Page() {
                 })
             }).then(() => {
                 setStatusText("동기화 완료")
-            }).catch(error => {
+            }).catch(() => {
                 setStatusText("서버 연결이 원활하지 않음")
             })
         }, 2000);
 
         return () => clearTimeout(timer);
-    }, [title, content, noteId, token, loadingStatus]);
+    }, [title, content, noteId, token]);
 
     useEffect(() => {
-        if (!isOwner || isProtected || loadingStatus == "loading") return
+        if (!isOwner || loadingStatus == "loading") return
 
         const patchRequest = async (data: Partial<{
             is_public: boolean
@@ -66,7 +66,7 @@ export default function Page() {
                 body: JSON.stringify(data)
             }).then(() => {
                 setStatusText("동기화 완료")
-            }).catch(error => {
+            }).catch(() => {
                 setStatusText("서버 연결이 원활하지 않음")
             })
         }
@@ -84,7 +84,7 @@ export default function Page() {
                     setIsProtected(response.is_protected)
                     setIsOwner(response.user_id === userId)
                 })
-                .catch((e) => {
+                .catch(() => {
                     setLoadingStatus("404")
                 })
         }
@@ -96,10 +96,11 @@ export default function Page() {
 
     return (
         <>
-            <div className="flex w-full h-[100%]" onClick={() => {
-                setIsReadonly(!token)
-                setLoadingStatus("loaded")
-            }}>
+            <div className="flex w-full h-[100%]"
+                 onClick={() => {
+                     setIsReadonly(!token)
+                     setLoadingStatus("loaded")
+                 }}>
                 <MilkdownProvider>
                     <MarkdownEditor onClickMenu={() => setOpenedSetting(true)}
                                     isReadonly={isProtected || isReadonly}

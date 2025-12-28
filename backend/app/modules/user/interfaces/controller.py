@@ -23,7 +23,7 @@ def obtain_token(request: TokenObtainSchema,
         value=token_info["refresh_token"],
         httponly=True,
         secure=True,
-        samesite="lax",
+        domain="localhost"
     )
     return {"access_token": token_info["access_token"],
             "user_id": user_id}

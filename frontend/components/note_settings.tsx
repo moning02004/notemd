@@ -24,7 +24,7 @@ export const NoteSettings = ({
                                  isOpenedSetting
                              }: SettingsProps) => {
     const deleteNote = async () => {
-        await apiRequest.delete(`/notes/${noteId}`).then(response => {
+        await apiRequest.delete(`/notes/${noteId}`).then(() => {
             window.location.href = "/"
         })
     }
