@@ -32,6 +32,8 @@ export default function Page() {
             setErrorMessage(error.detail || "계정을 찾을 수 없습니다.")
             return {access_token: "", user_id: 0}
         })
+        if (!data.access_token) return
+
         setAuth(data.access_token, data.user_id)
         window.location.href = "/"
     }

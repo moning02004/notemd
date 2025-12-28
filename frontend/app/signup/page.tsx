@@ -21,7 +21,6 @@ export default function Page() {
             setErrorMessage("비밀번호를 확인해주세요.")
             return;
         }
-        console.log(username.value, name.value)
     }
     return (
         <div className="login-container">

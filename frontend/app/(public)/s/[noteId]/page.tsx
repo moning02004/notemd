@@ -31,7 +31,7 @@ export default function Page() {
     const [isOwner, setIsOwner] = useState(false);
     const {noteId} = useParams() as { noteId: string };
 
-    const [title, setTitle] = useState<string>("");
+    const [title, setTitle] = useState<string | null>(null);
     const [content, setContent] = useState<string>("");
     const [statusText, setStatusText] = useState<string>("");
 
