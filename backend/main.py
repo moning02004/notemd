@@ -33,6 +33,8 @@ app.add_middleware(
 )
 
 if settings.STORAGE["type"] == "local":
+    if not os.path.exists(settings.STORAGE["name"]):
+        os.makedirs(settings.STORAGE["name"])
     app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 app.add_middleware(AuthTokenMiddleware)
