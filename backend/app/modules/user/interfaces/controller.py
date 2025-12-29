@@ -9,6 +9,13 @@ from app.modules.user.interfaces.schemas import TokenObtainSchema, SignupSchema
 
 router = APIRouter(prefix="", tags=["Auth"])
 
+@router.get("/check")
+def check_service(db: Session = Depends(get_db)):
+    repository = UserRepository(db)
+    service = UserService(repository)
+    exists_user = service.exists_user()
+    return {"exists": exists_user}
+
 
 @router.post("/auth/obtain-token")
 def obtain_token(request: TokenObtainSchema,

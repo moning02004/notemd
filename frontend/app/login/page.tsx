@@ -1,15 +1,30 @@
 "use client"
 
-import React, {useRef, useState} from "react"
+import React, {useEffect, useRef, useState} from "react"
 import {apiRequest} from "@/lib/api";
 import {useAuthStore} from "@/store/auth";
 import {GetAuthResponse} from "@/types/auth";
+import {SignupPage} from "@/components/signup";
+import {LoadingPage} from "@/components/loading";
 
 export default function Page() {
     const usernameRef = useRef<HTMLInputElement>(null)
     const passwordRef = useRef<HTMLInputElement>(null)
     const [errorMessage, setErrorMessage] = useState("")
     const {setAuth} = useAuthStore.getState();
+    const [existsAccount, setExistsAccount] = useState<boolean | null>(null);
+
+    useEffect(() => {
+        const checkAccountExistence = async () => {
+            try {
+                const res = await apiRequest.get<{ exists: boolean }>("/check");
+                setExistsAccount(res.exists);
+            } catch (error) {
+                setExistsAccount(false);
+            }
+        };
+        checkAccountExistence();
+    }, []);
 
     const login = async () => {
         // setErrorMessage("계정을 찾을 수 없습니다.")
@@ -41,29 +56,30 @@ export default function Page() {
             login()
         }
     }
+
+    if (existsAccount === null) return <LoadingPage/>
+    if (!existsAccount) return <SignupPage setExistsAccount={setExistsAccount}/>
+
     return (
         <div className="login-container">
             <h1 className="logo mb-4">note.md</h1>
 
-            <div className="flex flex-col">
+            <div className="flex flex-col gap-3">
                 <input ref={usernameRef}
                        type="text"
                        placeholder="계정"
-                       className="p-3 border outline-none rounded-t"
+                       className="p-2 border outline-none rounded"
                        onKeyUp={isEnterLogin}
                 />
                 <input ref={passwordRef} type="password" placeholder="비밀번호"
-                       className="p-3 border outline-none border-t-0 rounded-b"
+                       className="p-2 border outline-none rounded"
                        onKeyUp={isEnterLogin}
                 />
+
                 <span>{errorMessage}</span>
                 <button type="button" onClick={login}
-                        className="mt-3 rounded cursor-pointer p-3 bg-[#cfcfcf] hover:bg-[#adadad]">로그인
+                        className="rounded cursor-pointer p-3 bg-[#cfcfcf] hover:bg-[#adadad]">로그인
                 </button>
-            </div>
-
-            <div className="login-footer">
-                <a href="/signup">계정 등록하기</a>
             </div>
         </div>
     )

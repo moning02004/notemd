@@ -83,3 +83,6 @@ class UserService(Service):
                                        name=request.name)
         user = self.repository.create_user(user_entity)
         return user
+
+    def exists_user(self):
+        return self.repository.exists_user()

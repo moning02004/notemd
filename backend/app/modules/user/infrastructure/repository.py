@@ -18,3 +18,6 @@ class UserRepository(Repository):
         self.db.commit()
         self.db.refresh(new_user)
         return new_user
+
+    def exists_user(self) -> bool:
+        return self.db.query(self.DB_MODEL).first() is not None
