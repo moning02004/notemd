@@ -66,7 +66,7 @@ export default function Page() {
                     }
                 </div>
             </main>
-            <div className="fixed right-0 bottom-0 border m-6 mr-6 p-4 bg-white rounded-full shadow-lg
+            <div className="fixed right-0 bottom-[10vh] md:bottom-0 border m-6 mr-6 p-4 bg-white rounded-full shadow-lg
                         cursor-pointer hover:bg-gray-100 transition-all duration-200 hover:shadow-xl"
                  onClick={() => gotoNote({id: null, router: router})}>
                 <FiPlus size={22}/>

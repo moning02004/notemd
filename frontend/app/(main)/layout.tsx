@@ -3,6 +3,7 @@
 import {Sidebar} from "@/components/sidebar";
 import {Topbar} from "@/components/topbar";
 import {useAuthStore} from "@/store/auth";
+import {Bottombar} from "@/components/bottombar";
 
 export default function MainLayout({children}: {
     children: React.ReactNode;
@@ -19,10 +20,16 @@ export default function MainLayout({children}: {
     return (
         <>
             <div className="flex flex-row">
-                <Sidebar/>
+                <div className="w-0 md:w-auto">
+                    <Sidebar/>
+                </div>
                 <div className="flex flex-col flex-1">
                     <Topbar/>
                     {children}
+                    <div className="border-t md:h-0 ">
+                        <Bottombar/>
+                    </div>
+
                 </div>
             </div>
         </>
