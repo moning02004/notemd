@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, Cookie, HTTPException, Depends
 from sqlalchemy.orm import Session
 from starlette.responses import Response
@@ -8,6 +10,7 @@ from app.modules.user.infrastructure.repository import UserRepository
 from app.modules.user.interfaces.schemas import TokenObtainSchema, SignupSchema
 
 router = APIRouter(prefix="", tags=["Auth"])
+
 
 @router.get("/check")
 def check_service(db: Session = Depends(get_db)):
@@ -24,6 +27,9 @@ def obtain_token(request: TokenObtainSchema,
     repository = UserRepository(db)
     service = UserService(repository)
     token_info, user_id = service.obtain_token(request)
+    frontend_url = os.environ["FRONTEND_URL"].split(".")
+    domain = ".".join(frontend_url[-2:])  # 최상위 도메인 설정 예: example.com
+    domain = f".{domain}"
 
     response.set_cookie(
         key="refreshtoken",
@@ -31,7 +37,10 @@ def obtain_token(request: TokenObtainSchema,
         expires=service.get_token_expires(),
         httponly=True,
         secure=True,
-        samesite="lax",
+        samesite="none",  # 중요
+        domain=domain,
+        path="/",
+        max_age=60 * 60 * 24 * 14,  # 14일
     )
     return {"access_token": token_info["access_token"],
             "user_id": user_id}
@@ -44,13 +53,20 @@ def refresh_token(response: Response, refreshtoken: str = Cookie(...)):
 
     service = UserService(None)
     token_info, user_id = service.refresh_token(refreshtoken)
+
+    frontend_url = os.environ["FRONTEND_URL"].split(".")
+    domain = ".".join(frontend_url[-2:])  # 최상위 도메인 설정 예: example.com
+    domain = f".{domain}"
     response.set_cookie(
         key="refreshtoken",
         value=token_info["refresh_token"],
         expires=service.get_token_expires(),
         httponly=True,
         secure=True,
-        samesite="lax",
+        samesite="none",  # 중요
+        domain=domain,
+        path="/",
+        max_age=60 * 60 * 24 * 14,  # 14일
     )
     return {"access_token": token_info["access_token"],
             "user_id": user_id}
