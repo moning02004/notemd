@@ -1,14 +1,12 @@
 "use client"
 
-import {usePathname, useRouter} from "next/navigation";
+import {usePathname} from "next/navigation";
 import {FiLogOut} from "react-icons/fi";
-import {useAuthStore} from "@/store/auth";
 import {menuItems} from "@/constants/menus";
+import {authLogout} from "@/lib/auth";
 
 export function Topbar() {
-    const router = useRouter();
     const pathname = usePathname();
-    const {logout} = useAuthStore.getState();
 
     const topTitle = menuItems.find(item => item.path === pathname)?.name ?? ""
     return (
@@ -16,8 +14,8 @@ export function Topbar() {
             <h3 className="m-0!">{topTitle}</h3>
             <div className="flex flex-row ml-auto my-auto">
                 <div className="ml-3 my-auto cursor-pointer" onClick={() => {
-                    logout();
-                    router.replace("/login")
+                    authLogout();
+                    window.location.replace("/")
                 }
                 }>
                     <FiLogOut size={24}/>

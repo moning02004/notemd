@@ -28,7 +28,7 @@ def obtain_token(request: TokenObtainSchema,
     service = UserService(repository)
     token_info, user_id = service.obtain_token(request)
     frontend_url = os.environ["FRONTEND_URL"].split(".")
-    domain = ".".join(frontend_url[-2:])  # 최상위 도메인 설정 예: example.com
+    domain = ".".join(frontend_url[-2:])
     domain = f".{domain}"
 
     response.set_cookie(
@@ -55,7 +55,7 @@ def refresh_token(response: Response, refreshtoken: str = Cookie(...)):
     token_info, user_id = service.refresh_token(refreshtoken)
 
     frontend_url = os.environ["FRONTEND_URL"].split(".")
-    domain = ".".join(frontend_url[-2:])  # 최상위 도메인 설정 예: example.com
+    domain = ".".join(frontend_url[-2:])
     domain = f".{domain}"
     response.set_cookie(
         key="refreshtoken",
@@ -70,6 +70,14 @@ def refresh_token(response: Response, refreshtoken: str = Cookie(...)):
     )
     return {"access_token": token_info["access_token"],
             "user_id": user_id}
+
+
+@router.delete("/auth/token")
+def delete_refresh_token(response: Response, refreshtoken: str = Cookie(...)):
+    response.delete_cookie(
+        key="refreshtoken",
+    )
+    return {"message": "success"}
 
 
 @router.post("/users")

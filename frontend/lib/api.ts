@@ -1,5 +1,6 @@
 import {useAuthStore} from "@/store/auth";
 import {API_HOST} from "@/constants/api";
+import {authLogout} from "@/lib/auth";
 
 type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 
@@ -35,8 +36,8 @@ async function request<T = unknown>(endPoint: string, method: HttpMethod, option
             res = await fetch(endPoint, {...options, method, headers});
             responseData = await res.json().catch(() => null);
         } else {
-            logout();
-            throw new Error("Session expired. Please login again.");
+            authLogout();
+            throw new Error("세션이 만료되었습니다. 다시 로그인해주세요.");
         }
     } else if (res.status.toString().startsWith("4")) {
         throw new Error("에러가 발생했습니다.");
