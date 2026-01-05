@@ -1,6 +1,6 @@
 "use client";
 
-import React, {KeyboardEventHandler, useEffect, useRef, useState} from "react";
+import React, {useEffect, useRef} from "react";
 import {Milkdown, useEditor} from "@milkdown/react";
 import {FiArrowLeft, FiMenu} from "react-icons/fi";
 import {useRouter} from "next/navigation";
@@ -11,6 +11,7 @@ import {editorViewCtx, editorViewOptionsCtx} from "@milkdown/core";
 import {apiRequest} from "@/lib/api";
 import {API_HOST} from "@/constants/api";
 import {CreateNoteImageResponse} from "@/types/note";
+import {TextSelection} from "prosemirror-state";
 
 interface EditorProps {
     onClickMenu: () => void;
@@ -73,7 +74,7 @@ export function MarkdownEditor({
             ctx.update(editorViewOptionsCtx, (prev) => ({
                 ...prev,
                 attributes: {
-                    class: "!px-[3.5rem] !py-[1rem] editor-font",
+                    class: "!px-[3.5rem] !py-[0.5rem] editor-font",
                 },
             }))
         })
@@ -92,17 +93,27 @@ export function MarkdownEditor({
         onClickMenu();
     }
 
-    const focusEditor = () => {
+    const focusEditor = ({pos}: { pos?: string } = {}) => {
         const editorGet = editor.get()
         editorGet?.action(ctx => {
             const view = ctx.get(editorViewCtx)
+            const {state, dispatch} = view
+
+            const doc = state.doc
+            const lastNodePos = (pos === "top") ? 1 : doc.content.size - 1
+
+            const tr = state.tr.setSelection(
+                TextSelection.create(state.doc, lastNodePos)
+            )
+
+            dispatch(tr)
             view.focus()
         })
     }
 
     const titleKeyup = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key == "Enter") {
-            focusEditor()
+            focusEditor({"pos": "top"})
         }
     }
     const goBack = () => {
@@ -143,11 +154,10 @@ export function MarkdownEditor({
                 {statusText}
             </div>
             <div
-                className={`${isReadonly ? "" : ""}  flex-20 bg-editor`}
-                onClick={focusEditor}>
+                className={`${isReadonly ? "" : ""}  flex-20 bg-editor`}>
                 <Milkdown/>
                 <div className="h-[10rem]"
-                     onClick={focusEditor}></div>
+                     onClick={() => focusEditor({"pos": "bottom"})}></div>
             </div>
         </div>
     );
