@@ -17,8 +17,10 @@ export default function Page() {
     const [existsAccount, setExistsAccount] = useState<boolean | null>(null);
 
     useEffect(() => {
-        cookieStore.get("auto_login").then(r => {
-            if (r !== null) {
+        const checkAutoLogin = async () => {
+            const autoLoginCookie = await cookieStore.get("auto_login")
+            const refreshTokenCookie = await cookieStore.get("refreshtoken")
+            if (autoLoginCookie?.value === "1" && refreshTokenCookie?.value !== "") {
                 const refreshAuth = async () => {
                     const refreshRes = await fetch(`${API_HOST}/auth/refresh-token`, {
                         method: "POST",
@@ -32,22 +34,24 @@ export default function Page() {
                     }
                 }
                 refreshAuth()
+            } else {
+                const checkAccountExistence = async () => {
+                    try {
+                        const res = await apiRequest.get<{ exists: boolean }>("/check");
+                        setExistsAccount(res.exists);
+                    } catch (error) {
+                        setExistsAccount(false);
+                    }
+                };
+                checkAccountExistence();
+                cookieStore.delete("auto_login")
+                cookieStore.delete("refreshtoken")
             }
-            const checkAccountExistence = async () => {
-                try {
-                    const res = await apiRequest.get<{ exists: boolean }>("/check");
-                    setExistsAccount(res.exists);
-                } catch (error) {
-                    setExistsAccount(false);
-                }
-            };
-            checkAccountExistence();
-            cookieStore.delete("auto_login")
-        })
+        }
+        checkAutoLogin()
     }, []);
 
     const login = async () => {
-        // setErrorMessage("계정을 찾을 수 없습니다.")
         if (!usernameRef.current || !passwordRef.current || !authLoginRef.current) {
             return
         }

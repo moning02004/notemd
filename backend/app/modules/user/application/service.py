@@ -69,7 +69,7 @@ class UserService(Service):
 
         payload = jwt_manager.decode_payload(token)
         new_tokens = jwt_manager.create({"user_id": payload["user_id"]})
-        return new_tokens, payload["user_id"]
+        return new_tokens, int(payload["user_id"])
 
     def create_user(self, request):
         if self.repository.get_by_username(request.username):
