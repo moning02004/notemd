@@ -15,9 +15,7 @@ export function Topbar() {
             <div className="flex flex-row ml-auto my-auto">
                 <div className="ml-3 my-auto cursor-pointer" onClick={() => {
                     authLogout();
-                    window.location.replace("/")
-                }
-                }>
+                }}>
                     <FiLogOut size={24}/>
                 </div>
             </div>
