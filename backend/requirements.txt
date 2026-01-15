@@ -1,3 +1,5 @@
 fastapi-clean-archi
 python-multipart
 psycopg2
+pillow
+pillow-heif
