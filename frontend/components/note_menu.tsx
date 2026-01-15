@@ -2,7 +2,7 @@ import {LuEllipsisVertical} from "react-icons/lu";
 import {Drawer} from "vaul";
 import {apiRequest} from "@/lib/api";
 
-export const NoteMenu = ({noteId}: { noteId: string }) => {
+export const NoteMenu = ({noteId, canDelete}: { noteId: string, canDelete: boolean }) => {
     const deleteNote = () => {
         if (!confirm("정말로 이 노트를 삭제하시겠습니까?")) {
             return;
@@ -35,11 +35,11 @@ export const NoteMenu = ({noteId}: { noteId: string }) => {
                         <button
                             className="w-full p-2 text-left hover:bg-[#efefef] cursor-pointer rounded border-b border-[#ededed]">수정
                         </button>
-                        <button
+                        {canDelete && <button
                             className="w-full p-2 text-left hover:bg-[#efefef] cursor-pointer rounded border-b border-[#ededed] text-red-600"
                             onClick={deleteNote}
                         >삭제
-                        </button>
+                        </button>}
                         <Drawer.Close
                             className="w-full p-2 hover:bg-[#efefef] rounded cursor-pointer text-left">취소</Drawer.Close>
                     </div>

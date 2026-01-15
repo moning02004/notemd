@@ -3,6 +3,7 @@ export interface NoteCard {
     title: string;
     content: string;
     is_public: boolean;
+    is_protected: boolean;
     created_at: string
 }
 

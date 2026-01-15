@@ -6,12 +6,13 @@ import {NoteMenu} from "@/components/note_menu";
 import {Badge} from "@/components/badge";
 import {DeletedMenu} from "@/components/deleted_menu";
 
-export const Card = ({onClick, hashId, title, content, isPublic, created_at, noteMenu, templateMenu, deletedMenu, width}: {
+export const Card = ({onClick, hashId, title, content, isPublic, isProtected, created_at, noteMenu, templateMenu, deletedMenu, width}: {
     onClick?: React.MouseEventHandler<HTMLDivElement>
     hashId: string,
     title: string,
     content: string,
     isPublic?: boolean,
+    isProtected?: boolean,
     created_at?: string,
 
     noteMenu?: boolean,
@@ -29,7 +30,7 @@ export const Card = ({onClick, hashId, title, content, isPublic, created_at, not
                     <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
                 </div>
                 {
-                    noteMenu && <NoteMenu noteId={hashId}/>
+                    noteMenu && <NoteMenu noteId={hashId} canDelete={!isProtected}/>
                 }
                 {
                     templateMenu && <TemplateMenu/>
