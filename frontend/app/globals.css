@@ -56,6 +56,15 @@ body * {
     font-family: Arial, Helvetica, sans-serif !important;
 }
 
+.drawer-button {
+    @apply absolute flex right-3 top-3 opacity-100 md:opacity-0 group-hover:opacity-100;
+}
+.drawer-menu {
+    @apply px-1 bg-[#ffffff] md:bg-[#fafafa] cursor-pointer hover:text-[#9a9a9a] rounded;
+}
+.drawer-content {
+    @apply fixed bottom-0 left-0 right-0 z-50 mx-auto w-[85vw] md:w-[50vw] rounded-t-2xl bg-white border
+}
 .title-editor {
     background-color: var(--color-editor);
     padding: 1rem;

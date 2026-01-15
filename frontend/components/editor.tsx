@@ -154,7 +154,7 @@ export function MarkdownEditor({
                 {statusText}
             </div>
             <div
-                className={`${isReadonly ? "" : ""}  flex-20 bg-editor`}>
+                className={`${isReadonly ? "" : ""} flex-20 bg-editor`}>
                 <Milkdown/>
                 <div className="h-[10rem]"
                      onClick={() => focusEditor({"pos": "bottom"})}></div>

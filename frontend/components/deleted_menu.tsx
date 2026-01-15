@@ -19,8 +19,8 @@ export const DeletedMenu = ({noteId}: {noteId: string}) => {
         <Drawer.Root>
             {/* 기존 버튼 그대로 */}
             <Drawer.Trigger asChild>
-                <div className="absolute flex right-3 top-3 opacity-100 md:opacity-0 group-hover:opacity-100">
-                    <button className="px-1 bg-[#fafafa] cursor-pointer hover:text-[#9a9a9a] rounded">
+                <div className="drawer-button">
+                    <button className="drawer-menu">
                         <LuEllipsisVertical size={22}/>
                     </button>
                 </div>
@@ -28,15 +28,7 @@ export const DeletedMenu = ({noteId}: {noteId: string}) => {
 
             <Drawer.Portal>
                 <Drawer.Overlay className="fixed inset-0 z-40 bg-black/40"/>
-
-                <Drawer.Content
-                    className="
-            fixed bottom-0 left-0 right-0 z-50
-            mx-auto w-[95vw] md:w-[50vw]
-            rounded-t-2xl bg-white
-            border
-          "
-                >
+                <Drawer.Content className="drawer-content">
                     <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-gray-300"/>
 
                     <div className="flex flex-col p-4">

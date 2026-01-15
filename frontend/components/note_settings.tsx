@@ -29,7 +29,7 @@ export const NoteSettings = ({
         })
     }
     return (
-        <div className={`w-[25vw] bg-white fixed flex  flex-col right-0 top-0 h-screen border-l border-[#ededed] shadow-xl
+        <div className={`w-[60vw] md:w-[25vw] bg-white fixed flex  flex-col right-0 top-0 h-screen border-l border-[#ededed] shadow-xl
           transform transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]
           ${isOpenedSetting ? "translate-x-0" : "translate-x-full"}`}>
             <div className="flex flex-col p-5 w-full">
