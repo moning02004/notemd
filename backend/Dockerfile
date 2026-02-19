@@ -1,7 +1,20 @@
-FROM python:3.13
+FROM python:3.13-slim
 
 WORKDIR /app
-COPY . /app
 
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+RUN apt-get update && \
+    apt-get install -y gcc && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-CMD ["python3", "manage.py", "runserver", "0.0.0.0:8000"]
+
+COPY . .
+
+CMD ["gunicorn", "finansis.asgi:application", \
+     "-k", "uvicorn.workers.UvicornWorker", \
+     "-w", "1", \
+     "-b", "0.0.0.0:8000"]
