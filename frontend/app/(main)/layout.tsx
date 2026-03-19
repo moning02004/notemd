@@ -4,6 +4,7 @@ import {Sidebar} from "@/components/sidebar";
 import {Topbar} from "@/components/topbar";
 import {useAuthStore} from "@/store/auth";
 import {Bottombar} from "@/components/bottombar";
+import {Toaster} from "react-hot-toast";
 
 export default function MainLayout({children}: {
     children: React.ReactNode;
@@ -26,7 +27,6 @@ export default function MainLayout({children}: {
             <div className="border-t border-[#dedede]">
                 <Bottombar/>
             </div>
-
         </div>
     );
 }
