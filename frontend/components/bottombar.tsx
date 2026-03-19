@@ -13,7 +13,7 @@ export function Bottombar() {
                 {
                     menuItems.map((item) => (
                         <div key={item.name}
-                             className={`p-3 cursor-pointer hover:bg-[#dedede]
+                             className={`p-3 my-2 cursor-pointer hover:bg-[#dedede]
                                 ${pathname === item.path ? "bg-[#d4d4d4]" : "bg-white"}
                              `}
                              onClick={() => router.push(item.path)}>
