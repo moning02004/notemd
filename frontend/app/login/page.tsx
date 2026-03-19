@@ -20,20 +20,27 @@ export default function Page() {
         const checkAutoLogin = async () => {
             const autoLoginCookie = await cookieStore.get("auto_login")
             const refreshTokenCookie = await cookieStore.get("refreshtoken")
-            if (autoLoginCookie?.value === "1" && refreshTokenCookie?.value !== "") {
-                const refreshAuth = async () => {
-                    const refreshRes = await fetch(`${API_HOST}/auth/refresh-token`, {
-                        method: "POST",
-                        credentials: "include",
-                    });
 
-                    if (refreshRes.ok) {
-                        const data = await refreshRes.json();
-                        setAuth(data.access_token, data.user_id);
-                        window.location.replace("/")
+            if (autoLoginCookie?.value === "1") {
+                if (refreshTokenCookie?.value && refreshTokenCookie?.value !== "") {
+                    const refreshAuth = async () => {
+                        const refreshRes = await fetch(`${API_HOST}/auth/refresh-token`, {
+                            method: "POST",
+                            credentials: "include",
+                        });
+
+                        if (refreshRes.ok) {
+                            const data = await refreshRes.json();
+                            setAuth(data.access_token, data.user_id);
+                            window.location.replace("/")
+                        }
                     }
+                    refreshAuth()
+                } else {
+                    cookieStore.delete("auto_login")
+                    cookieStore.delete("refreshtoken")
+                    window.location.reload()
                 }
-                refreshAuth()
             } else {
                 const checkAccountExistence = async () => {
                     try {
@@ -44,8 +51,6 @@ export default function Page() {
                     }
                 };
                 checkAccountExistence();
-                cookieStore.delete("auto_login")
-                cookieStore.delete("refreshtoken")
             }
         }
         checkAutoLogin()
@@ -90,29 +95,31 @@ export default function Page() {
     if (!existsAccount) return <SignupPage setExistsAccount={setExistsAccount}/>
 
     return (
-        <div className="login-container">
-            <h1 className="logo mb-4">note.md</h1>
+        <div className="h-screen  from-gray-200 to-yellow-50 rounded shadow-md bg-gradient-to-br">
+            <div className="max-w-md mx-auto mt-24 p-8 bg-white rounded-lg shadow-lg">
+                <h1 className="logo mb-4">note.md</h1>
 
-            <div className="flex flex-col gap-3">
-                <input ref={usernameRef}
-                       type="text"
-                       placeholder="계정"
-                       className="p-2 border outline-none rounded"
-                       onKeyUp={isEnterLogin}
-                />
-                <input ref={passwordRef} type="password" placeholder="비밀번호"
-                       className="p-2 border outline-none rounded"
-                       onKeyUp={isEnterLogin}
-                />
+                <div className="flex flex-col gap-3">
+                    <input ref={usernameRef}
+                           type="text"
+                           placeholder="계정"
+                           className="p-2 border outline-none rounded"
+                           onKeyUp={isEnterLogin}
+                    />
+                    <input ref={passwordRef} type="password" placeholder="비밀번호"
+                           className="p-2 border outline-none rounded"
+                           onKeyUp={isEnterLogin}
+                    />
 
-                <span>{errorMessage}</span>
-                <label htmlFor="auto_login" className="text-sm text-gray-600">
-                    <input ref={authLoginRef} type="checkbox" id="auto_login" className="mr-1"/>
-                    <span>로그인 상태 유지</span>
-                </label>
-                <button type="button" onClick={login}
-                        className="rounded cursor-pointer p-3 bg-[#cfcfcf] hover:bg-[#adadad]">로그인
-                </button>
+                    <span>{errorMessage}</span>
+                    <label htmlFor="auto_login" className="text-sm text-gray-600">
+                        <input ref={authLoginRef} type="checkbox" id="auto_login" className="mr-1"/>
+                        <span>로그인 상태 유지</span>
+                    </label>
+                    <button type="button" onClick={login}
+                            className="rounded cursor-pointer p-3 bg-[#cfcfcf] hover:bg-[#adadad]">로그인
+                    </button>
+                </div>
             </div>
         </div>
     )

@@ -16,7 +16,6 @@ export default function Page() {
     const router = useRouter()
     const {token} = useAuthStore.getState()
     const [notes, setNotes] = useState(Array<NoteCard>)
-    const isOpen = useMenuStore((state) => state.isOpen)
 
     useEffect(() => {
         if (!token) {
@@ -35,39 +34,27 @@ export default function Page() {
         fetchData()
     }, []);
 
-    if (!notes) return <LoadingPage />;
+    if (!notes) return <LoadingPage/>;
 
     return (
         <>
-            <main className="bg-white flex-1 overflow-auto ">
-                {/*<div className="flex p-2 border-b border-[#dedede] text-gray-600 gap-3">*/}
-                    {/*<div className="my-auto">총: {notes.length}개</div>*/}
-                    {/*<div className="ml-auto my-auto"><IoGridOutline size={22} /></div>*/}
-                    {/*<div className="my-auto"><IoList size={22} /></div>*/}
-                {/*</div>*/}
-
-                <div className={` h-[100%] mx-auto grid 
-                        ${isOpen ? "grid-cols-1" : "grid-cols-2"} pt-5
-                        md:grid-cols-3 lg:grid-cols-4 
-                        content-start`}>
-                    {
-                        notes.map((note) => (
-                            <Card key={note.hash_id}
-                                  hashId={note.hash_id}
-                                  onClick={() => gotoNote({id: note.hash_id, router: router})}
-                                  title={note.title || "제목 없음"}
-                                  content={note.content}
-                                  isPublic={note.is_public}
-                                  isProtected={note.is_protected}
-                                  created_at={note.created_at}
-                                  noteMenu={true}
-                                  width={isOpen ? "w-[50vw] md:w-[25vw] lg:w-[20vw]" : "w-[37vw] md:w-[29vw] lg:w-[21vw]"}
-                            />
-                        ))
-                    }
-                </div>
-            </main>
-            <div className="fixed right-0 bottom-[10vh] md:bottom-0 border m-6 mr-6 p-4 bg-white rounded-full shadow-lg
+            <div className={`min-h-[100%] pt-5 grid grid-cols-2 lg:grid-cols-4 md:grid-cols-3`}>
+                {
+                    notes.map((note) => (
+                        <Card key={note.hash_id}
+                              hashId={note.hash_id}
+                              onClick={() => gotoNote({id: note.hash_id, router: router})}
+                              title={note.title || "제목 없음"}
+                              content={note.content}
+                              isPublic={note.is_public}
+                              isProtected={note.is_protected}
+                              created_at={note.created_at}
+                              noteMenu={true}
+                        />
+                    ))
+                }
+            </div>
+            <div className="fixed right-0 bottom-[8vh] border m-6 mr-6 p-4 bg-white rounded-full shadow-lg
                         cursor-pointer hover:bg-gray-100 transition-all duration-200 hover:shadow-xl"
                  onClick={() => gotoNote({id: null, router: router})}>
                 <FiPlus size={22}/>

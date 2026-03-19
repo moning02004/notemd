@@ -84,9 +84,6 @@ body * {
     overflow-y: scroll;
 }
 
-.login-container {
-    @apply max-w-md mx-auto mt-24 p-8 bg-white rounded-lg shadow-lg;
-}
 
 .login-form button {
     @apply w-full px-3 py-2 bg-[#cfcfcf] rounded hover:bg-[#adadad] cursor-pointer;

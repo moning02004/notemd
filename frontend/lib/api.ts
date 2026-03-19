@@ -5,7 +5,7 @@ import {authLogout} from "@/lib/auth";
 type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 
 async function request<T = unknown>(endPoint: string, method: HttpMethod, options: RequestInit = {}, contentType?: string | null): Promise<T> {
-    const {token, setAuth, logout} = useAuthStore.getState();
+    const {token, setAuth} = useAuthStore.getState();
 
     const headers = {
         ...(options.headers || {}),

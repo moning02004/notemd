@@ -18,20 +18,15 @@ export default function MainLayout({children}: {
     )
 
     return (
-        <>
-            <div className="flex flex-row">
-                <div className="w-0 md:w-auto">
-                    <Sidebar/>
-                </div>
-                <div className="flex flex-col flex-1">
-                    <Topbar/>
-                    {children}
-                    <div className="border-t md:h-0 ">
-                        <Bottombar/>
-                    </div>
-
-                </div>
+        <div className="flex flex-col h-screen">
+            <Topbar/>
+            <div className="flex-1  bg-gradient-to-br from-white to-emerald-50 flex-wrap overflow-y-auto">
+                {children}
             </div>
-        </>
+            <div className="border-t border-[#dedede]">
+                <Bottombar/>
+            </div>
+
+        </div>
     );
 }
