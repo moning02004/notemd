@@ -50,7 +50,6 @@ export default function Page() {
                                   isPublic={note.is_public}
                                   created_at={note.created_at}
                                   deletedMenu={true}
-                                  width={isOpen ? "w-[50vw] md:w-[25vw] lg:w-[20vw]" : "w-[37vw] md:w-[29vw] lg:w-[21vw]"}
                             />
                         ))
                     }
