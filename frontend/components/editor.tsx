@@ -33,13 +33,16 @@ export function MarkdownEditor({
 ) {
     const router = useRouter();
 
-    useEffect(() => {
-    }, [isReadonly]);
-
     const editor = useEditorInstance({
         initialContent: content,
         setContent: setContent
     })
+
+    useEffect(() => {
+        if (editor) {
+            editor.setEditable(!isReadonly);
+        }
+    }, [editor, isReadonly]);
 
     const clickMenu = () => {
         onClickMenu();
