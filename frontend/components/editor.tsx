@@ -48,12 +48,9 @@ export function MarkdownEditor({
         onClickMenu();
     }
 
-    const focusEditor = ({pos}: { pos?: string } = {}) => {
-    }
-
     const titleKeyup = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key == "Enter") {
-            focusEditor({"pos": "top"})
+            editor.commands.focus("start")
         }
     }
     const goBack = () => {
