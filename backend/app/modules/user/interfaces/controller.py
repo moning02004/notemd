@@ -27,7 +27,7 @@ def obtain_token(request: TokenObtainSchema,
     repository = UserRepository(db)
     service = UserService(repository)
     token_info, user_id = service.obtain_token(request)
-    frontend_url = os.environ["FRONTEND_URL"].split(".")
+    frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000").split(".")
     domain = ".".join(frontend_url[-2:])
     domain = f".{domain}"
 
@@ -54,7 +54,7 @@ def refresh_token(response: Response, refreshtoken: str = Cookie(...)):
     service = UserService(None)
     token_info, user_id = service.refresh_token(refreshtoken)
 
-    frontend_url = os.environ["FRONTEND_URL"].split(".")
+    frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000").split(".")
     domain = ".".join(frontend_url[-2:])
     domain = f".{domain}"
     response.set_cookie(

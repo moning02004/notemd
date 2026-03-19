@@ -1,17 +1,11 @@
 "use client";
 
-import React, {useEffect, useRef} from "react";
-import {Milkdown, useEditor} from "@milkdown/react";
+import React, {useEffect} from "react";
 import {FiArrowLeft, FiMenu} from "react-icons/fi";
 import {useRouter} from "next/navigation";
-import "@milkdown/crepe/theme/common/style.css";
-import "@milkdown/crepe/theme/frame.css";
-import {Crepe} from "@milkdown/crepe";
-import {editorViewCtx, editorViewOptionsCtx} from "@milkdown/core";
-import {apiRequest} from "@/lib/api";
-import {API_HOST} from "@/constants/api";
-import {CreateNoteImageResponse} from "@/types/note";
-import {TextSelection} from "prosemirror-state";
+
+import {EditorContent} from "@tiptap/react";
+import {useEditorInstance} from "@/lib/create_editor";
 
 interface EditorProps {
     onClickMenu: () => void;
@@ -38,77 +32,20 @@ export function MarkdownEditor({
                                }: EditorProps
 ) {
     const router = useRouter();
-    const crepeRef = useRef<Crepe | null>(null)
 
     useEffect(() => {
-        if (!crepeRef.current) return;
-        crepeRef.current.setReadonly(isReadonly);
     }, [isReadonly]);
 
-    const editor = useEditor((root) => {
-        const crepe = new Crepe({
-            root: root,
-            defaultValue: content,
-            features: {
-                [Crepe.Feature.ImageBlock]: true,
-            },
-            featureConfigs: {
-                [Crepe.Feature.ImageBlock]: {
-                    blockCaptionPlaceholderText: 'Add image caption...',
-                    onUpload: async (file) => {
-                        const formData = new FormData();
-                        formData.append("file", file);
-
-                        const response = await apiRequest.post<CreateNoteImageResponse>(`/notes/${paramsNoteId}/images`, {
-                            body: formData,
-                        }, null).catch(error => {
-                            throw error
-                        })
-                        return `${API_HOST}${response.url}`
-                    },
-                },
-            },
-        })
-        crepe.setReadonly(isReadonly)
-        crepe.editor.config((ctx) => {
-            ctx.update(editorViewOptionsCtx, (prev) => ({
-                ...prev,
-                attributes: {
-                    class: "!px-[3.5rem] !py-[0.5rem] editor-font",
-                },
-            }))
-        })
-
-        crepe.on((listener) => {
-            listener.markdownUpdated((_ctx, markdown) => {
-                setContent(markdown)
-            })
-        })
-
-        crepeRef.current = crepe;
-        return crepe
-    }, []);
+    const editor = useEditorInstance({
+        initialContent: content,
+        setContent: setContent
+    })
 
     const clickMenu = () => {
         onClickMenu();
     }
 
     const focusEditor = ({pos}: { pos?: string } = {}) => {
-        const editorGet = editor.get()
-        editorGet?.action(ctx => {
-            const view = ctx.get(editorViewCtx)
-            const {state, dispatch} = view
-
-            const doc = state.doc
-            const lastNodePos = (pos === "top") ? 1 : doc.content.size - 1
-
-            const tr = state.tr.setSelection(
-                TextSelection.create(state.doc, lastNodePos)
-            )
-
-            dispatch(tr)
-            view.focus()
-        })
     }
 
     const titleKeyup = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -124,6 +61,7 @@ export function MarkdownEditor({
         router.back()
     }
 
+    if (!editor) return <div></div>;
     return (
         <div className="w-full mx-auto flex flex-col bg-editor">
             <div className="group flex-1 flex flex-row bg-editor border-b border-editor-line px-3">
@@ -150,14 +88,13 @@ export function MarkdownEditor({
                     </div>
                 }
             </div>
-            <div className="pr-3 text-right bg-editor min-h-[1.5rem]">
-                {statusText}
+            <div className="pr-3 bg-editor min-h-[1.5rem] flex">
+                <div className="flex flex-wrap gap-2 sticky top-0 bg-white z-10"></div>
+                <div className="ml-auto">{statusText}</div>
             </div>
-            <div
-                className={`${isReadonly ? "" : ""} flex-20 bg-editor`}>
-                <Milkdown/>
-                <div className="h-[10rem]"
-                     onClick={() => focusEditor({"pos": "bottom"})}></div>
+            <div className={`${isReadonly ? "" : ""} flex-20 bg-editor`}>
+
+                <EditorContent editor={editor} className="h-[100%]"/>
             </div>
         </div>
     );

@@ -3,10 +3,7 @@
 import {useEffect, useState} from "react";
 import {notFound, useParams} from "next/navigation";
 import {apiRequest} from "@/lib/api";
-import {MilkdownProvider} from "@milkdown/react";
 
-import "@milkdown/crepe/theme/common/style.css";
-import "@milkdown/crepe/theme/frame.css";
 import {MarkdownEditor} from "@/components/editor";
 import {LoadingPage} from "@/components/loading";
 import {useAuthStore} from "@/store/auth";
@@ -101,7 +98,6 @@ export default function Page() {
                      setIsReadonly(!token)
                      setLoadingStatus("loaded")
                  }}>
-                <MilkdownProvider>
                     <MarkdownEditor onClickMenu={() => setOpenedSetting(true)}
                                     isReadonly={isProtected || isReadonly}
                                     paramsNoteId={noteId}
@@ -113,7 +109,6 @@ export default function Page() {
                                     setContent={setContent}
                                     statusText={statusText}
                     />
-                </MilkdownProvider>
             </div>
 
             <NoteSettings noteId={noteId}

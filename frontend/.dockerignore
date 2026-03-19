@@ -1,3 +1,6 @@
-.env.*
 node_modules
+.next
 .git
+.env
+Dockerfile
+docker-compose.yml

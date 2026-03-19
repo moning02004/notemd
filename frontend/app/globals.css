@@ -1,3 +1,6 @@
+@import '../styles/_variables.scss';
+@import '../styles/_keyframe-animations.scss';
+
 @import "tailwindcss";
 
 :root {
@@ -59,12 +62,15 @@ body * {
 .drawer-button {
     @apply absolute flex right-3 top-3 opacity-100 md:opacity-0 group-hover:opacity-100;
 }
+
 .drawer-menu {
     @apply px-1 bg-[#ffffff] md:bg-[#fafafa] cursor-pointer hover:text-[#9a9a9a] rounded;
 }
+
 .drawer-content {
     @apply fixed bottom-0 left-0 right-0 z-50 mx-auto w-[85vw] md:w-[50vw] rounded-t-2xl bg-white border
 }
+
 .title-editor {
     background-color: var(--color-editor);
     padding: 1rem;
@@ -88,4 +94,109 @@ body * {
 
 .login-footer a {
     @apply text-sm text-gray-500 hover:underline mx-2;
+}
+
+.ProseMirror pre {
+    background: var(--color-gray-800);
+    border-radius: 0.5rem;
+    color: var(--white);
+    font-family: 'JetBrainsMono', monospace;
+    margin: 1.5rem 0;
+    padding: 0.75rem 1rem;
+}
+
+.ProseMirror pre code {
+    background: none;
+    color: inherit;
+    font-size: 0.9rem;
+    padding: 0;
+}
+
+.ProseMirror p code {
+    background-color: var(--color-blue-50);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    margin: 0 0.2rem;
+}
+
+.ProseMirror {
+    min-height: 100%;
+    padding: 1rem;
+}
+.ProseMirror p a {
+    @apply cursor-pointer;
+    color: var(--color-blue-600);
+    text-decoration: underline;
+}
+.ProseMirror p:not(table p, blockquote p, li p) {
+    margin: 0.25rem;
+    padding: 0.25rem;
+}
+
+.ProseMirror p:not(table p):hover {
+    background-color: var(--color-cyan-100);
+}
+
+.ProseMirror ul, .ProseMirror ol {
+    margin-bottom: 0.25rem;
+}
+
+.ProseMirror ul li {
+    list-style-type: initial;
+    margin-left: 1rem;
+}
+
+.ProseMirror ol li {
+    list-style-type: decimal;
+    margin-left: 1rem;
+}
+
+.ProseMirror li li {
+    list-style-type: circle;
+}
+
+.ProseMirror li p {
+    margin: 0;
+}
+
+.ProseMirror:focus {
+    outline: none;
+}
+
+.ProseMirror table {
+    border-collapse: collapse;
+    width: 90%;
+    table-layout: fixed;
+}
+
+.ProseMirror th,
+.ProseMirror td {
+    border: 1px solid #e5e7eb;
+    padding: 8px;
+    position: relative;
+}
+
+.ProseMirror th {
+    background: #f9fafb;
+    font-weight: 600;
+}
+
+.ProseMirror tr:hover td {
+    background: #fafafa;
+}
+
+.ProseMirror blockquote {
+    border-left: 4px solid #d1d5db;
+    padding-left: 1rem;
+    margin: 1rem 0;
+    color: #4b5563;
+    font-style: italic;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    color: #9ca3af;
+    pointer-events: none;
+    height: 0;
 }
