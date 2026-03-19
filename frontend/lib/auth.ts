@@ -4,8 +4,7 @@ import {useAuthStore} from "@/store/auth";
 export const authLogout = async () => {
     const {logout} = useAuthStore.getState();
 
-    apiRequest.delete("/auth/token").then(r => {
-        logout()
-        window.location.replace("/")
-    })
+    apiRequest.delete("/auth/token")
+    logout()
+    window.location.replace("/")
 }

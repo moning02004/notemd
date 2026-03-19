@@ -1,5 +1,5 @@
-@import '../styles/_variables.scss';
-@import '../styles/_keyframe-animations.scss';
+/*@import '../styles/_variables.scss';*/
+/*@import '../styles/_keyframe-animations.scss';*/
 
 @import "tailwindcss";
 
@@ -99,7 +99,7 @@ body * {
 .ProseMirror pre {
     background: var(--color-gray-800);
     border-radius: 0.5rem;
-    color: var(--white);
+    color: var(--color-white);
     font-family: 'JetBrainsMono', monospace;
     margin: 1.5rem 0;
     padding: 0.75rem 1rem;
