@@ -6,6 +6,7 @@ import {useRouter} from "next/navigation";
 
 import {EditorContent} from "@tiptap/react";
 import {useEditorInstance} from "@/lib/create_editor";
+import MenuBar from "@/components/editor_menubar";
 
 interface EditorProps {
     onClickMenu: () => void;
@@ -63,7 +64,7 @@ export function MarkdownEditor({
 
     if (!editor) return <div></div>;
     return (
-        <div className="w-full mx-auto flex flex-col bg-editor">
+        <div className="h-screen flex flex-col bg-editor w-full  overflow-y-auto">
             <div className="group flex-1 flex flex-row bg-editor border-b border-editor-line px-3">
                 {
                     isOwner &&
@@ -80,6 +81,7 @@ export function MarkdownEditor({
                        className={`title-editor w-[100%] outline-none  ${isReadonly ? "cursor-text" : "cursor-text"}`}
                        placeholder="제목"
                 />
+
                 {
                     isOwner &&
                     <div className="my-auto p-3 cursor-pointer"
@@ -88,13 +90,17 @@ export function MarkdownEditor({
                     </div>
                 }
             </div>
-            <div className="pr-3 bg-editor min-h-[1.5rem] flex">
-                <div className="flex flex-wrap gap-2 sticky top-0 bg-white z-10"></div>
-                <div className="ml-auto">{statusText}</div>
-            </div>
-            <div className={`${isReadonly ? "" : ""} flex-20 bg-editor`}>
-
-                <EditorContent editor={editor} className="h-[100%]"/>
+            {
+                !isReadonly &&
+                <div className="pr-3 bg-editor sticky top-0 z-10 flex border-b border-gray-300">
+                    <div className="flex-11">
+                        <MenuBar editor={editor}/>
+                    </div>
+                    <div className="flex-3 my-auto text-right">{statusText}</div>
+                </div>
+            }
+            <div className="flex-20 bg-editor">
+                <EditorContent editor={editor} className=""/>
             </div>
         </div>
     );
