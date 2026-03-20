@@ -95,8 +95,8 @@ export default function Page() {
     if (!existsAccount) return <SignupPage setExistsAccount={setExistsAccount}/>
 
     return (
-        <div className="h-screen  from-gray-200 to-yellow-50 rounded shadow-md bg-gradient-to-br">
-            <div className="max-w-md mx-auto mt-24 p-8 bg-white rounded-lg shadow-lg">
+        <div className="h-screen from-gray-200 to-yellow-50 rounded shadow-md bg-gradient-to-br pt-24">
+            <div className="max-w-md mx-auto p-8 bg-white rounded-lg shadow-lg">
                 <h1 className="logo mb-4">note.md</h1>
 
                 <div className="flex flex-col gap-3">
