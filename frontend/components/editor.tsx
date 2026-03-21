@@ -100,7 +100,7 @@ export function MarkdownEditor({
                 </div>
             }
             <div className="flex-20 bg-editor">
-                <EditorContent editor={editor} className=""/>
+                <EditorContent editor={editor} className="h-[100%]"/>
             </div>
         </div>
     );
