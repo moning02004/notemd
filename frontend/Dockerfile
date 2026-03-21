@@ -9,7 +9,7 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # 의존성 캐싱을 위한 파일 먼저 복사
-COPY package.json pnpm-lock.yaml ./
+COPY package.json ./
 
 # pnpm store 캐시 활용
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
