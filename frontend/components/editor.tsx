@@ -7,6 +7,20 @@ import {useRouter} from "next/navigation";
 import {EditorContent} from "@tiptap/react";
 import {useEditorInstance} from "@/lib/create_editor";
 import MenuBar from "@/components/editor_menubar";
+import {IoIosCheckmarkCircleOutline} from "react-icons/io";
+import {Warning} from "@/components/icons";
+
+function LoadingSpinner() {
+    return (
+        <div className="ml-auto w-5 h-5 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin"></div>
+    );
+}
+
+function Complete() {
+    return (
+        <IoIosCheckmarkCircleOutline size={22} className="text-green-500"/>
+    );
+}
 
 interface EditorProps {
     onClickMenu: () => void;
@@ -17,7 +31,7 @@ interface EditorProps {
     setTitle: (value: string) => void;
     setContent: (value: string) => void;
     paramsNoteId: string;
-    statusText: string;
+    statusType: string;
 }
 
 export function MarkdownEditor({
@@ -29,11 +43,14 @@ export function MarkdownEditor({
                                    setTitle,
                                    setContent,
                                    isReadonly,
-                                   statusText
+                                   statusType
                                }: EditorProps
 ) {
     const router = useRouter();
-
+    const status = (statusType == "loading") ? <LoadingSpinner/> :
+        ((statusType == "complete") ? <Complete/> :
+            ((statusType == "warning") ? <Warning /> :
+                ""));
     const editor = useEditorInstance({
         initialContent: content,
         setContent: setContent
@@ -55,7 +72,7 @@ export function MarkdownEditor({
         }
     }
     const goBack = () => {
-        if (statusText == "동기화 중") {
+        if (statusType == "loading") {
             alert("동기화가 완료되지 않았습니다. 잠시 후 다시 시도해주세요.")
             return
         }
@@ -96,7 +113,7 @@ export function MarkdownEditor({
                     <div className="flex-11">
                         <MenuBar editor={editor}/>
                     </div>
-                    <div className="flex-3 my-auto text-right">{statusText}</div>
+                    <div className="my-auto text-right">{status}</div>
                 </div>
             }
             <div className="flex-20 bg-editor">

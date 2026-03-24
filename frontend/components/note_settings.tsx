@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 interface SettingsProps {
     noteId: string,
     setOpenedSetting: (flag: boolean) => void;
-    setStatusText: (flag: string) => void;
+    setStatusType: (flag: string) => void;
     setIsPublic: (flag: boolean) => void;
     setIsProtected: (flag: boolean) => void;
     isProtected: boolean;
@@ -16,7 +16,7 @@ interface SettingsProps {
 export const NoteSettings = ({
                                  noteId,
                                  setOpenedSetting,
-                                 setStatusText,
+                                 setStatusType,
                                  setIsPublic,
                                  setIsProtected,
 
@@ -57,7 +57,7 @@ export const NoteSettings = ({
 
                 <div className="px-2 cursor-pointer select-none my-auto"
                      onClick={() => {
-                         setStatusText("동기화 중")
+                         setStatusType("loading")
                          setIsPublic(!isPublic)
                      }}>
                     <div className={`w-10 h-5 flex items-center rounded-full p-1 transition-all duration-300 
@@ -74,7 +74,7 @@ export const NoteSettings = ({
 
                 <div className="px-2 cursor-pointer select-none"
                      onClick={() => {
-                         setStatusText("동기화 중")
+                         setStatusType("loading")
                          setIsProtected(!isProtected)
                      }}>
                     <div className={`w-10 h-5 flex items-center rounded-full p-1 transition-all duration-300 
