@@ -9,18 +9,18 @@ export function Bottombar() {
     const pathname = usePathname()
 
     return (
-        <div className={`flex justify-center gap-3 bg-white p-1 border-r border-[#dedede]`}>
-                {
-                    menuItems.map((item) => (
-                        <div key={item.name}
-                             className={`p-3 my-2 cursor-pointer hover:bg-[#dedede]
+        <div className={`flex gap-3 p-1`}>
+            {
+                menuItems.map((item) => (
+                    <div key={item.name}
+                         className={`flex-1 p-3 my-2 cursor-pointer hover:bg-[#dedede] pr-3
                                 ${pathname === item.path ? "bg-[#d4d4d4]" : "bg-white"}
                              `}
-                             onClick={() => router.push(item.path)}>
-                            <item.icon className="my-auto" size={24}/>
-                        </div>
-                    ))
-                }
+                         onClick={() => router.push(item.path)}>
+                        <item.icon className="m-auto" size={24}/>
+                    </div>
+                ))
+            }
         </div>
     );
 }

@@ -30,12 +30,12 @@ export default function Page() {
 
     const [title, setTitle] = useState<string | null>(null);
     const [content, setContent] = useState<string>("");
-    const [statusText, setStatusText] = useState<string>("");
+    const [statusType, setStatusType] = useState<string>("");
 
     useEffect(() => {
         if (!isOwner || loadingStatus == "loading") return
 
-        setStatusText("동기화 중")
+        setStatusType("loading")
         const timer = setTimeout(async () => {
             await apiRequest.patch(`/notes/${noteId}`, {
                 body: JSON.stringify({
@@ -43,9 +43,9 @@ export default function Page() {
                     content: content,
                 })
             }).then(() => {
-                setStatusText("동기화 완료")
+                setStatusType("complete")
             }).catch(() => {
-                setStatusText("서버 연결이 원활하지 않음")
+                setStatusType("warning")
             })
         }, 2000);
 
@@ -62,9 +62,9 @@ export default function Page() {
             await apiRequest.patch(`/notes/${noteId}`, {
                 body: JSON.stringify(data)
             }).then(() => {
-                setStatusText("동기화 완료")
+                setStatusType("complete")
             }).catch(() => {
-                setStatusText("서버 연결이 원활하지 않음")
+                setStatusType("warning")
             })
         }
 
@@ -107,14 +107,14 @@ export default function Page() {
                                     content={content}
                                     setTitle={setTitle}
                                     setContent={setContent}
-                                    statusText={statusText}
+                                    statusType={statusType}
                     />
             </div>
 
             <NoteSettings noteId={noteId}
                           setIsPublic={setIsPublic}
                           setOpenedSetting={setOpenedSetting}
-                          setStatusText={setStatusText}
+                          setStatusType={setStatusType}
                           setIsProtected={setIsProtected}
 
                           isProtected={isProtected}
