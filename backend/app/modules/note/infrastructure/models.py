@@ -3,7 +3,6 @@ from sqlalchemy import Column, String, Text, ForeignKey, Integer, Boolean
 from sqlalchemy.orm import relationship
 
 
-
 class Note(BaseModel):
     user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
 
@@ -16,3 +15,14 @@ class Note(BaseModel):
     # relationships
     user = relationship("User", back_populates="notes")
     tags = relationship("Tag", secondary="notetag", back_populates="notes")
+    snapshot = relationship("NoteSnapshot", back_populates="note", uselist=False)
+
+
+class NoteSnapshot(BaseModel):
+    note_id = Column(Integer, ForeignKey("note.id"), nullable=False)
+
+    title = Column(String)
+    content = Column(Text)
+
+    # relationships
+    note = relationship("Note", back_populates="snapshot")
