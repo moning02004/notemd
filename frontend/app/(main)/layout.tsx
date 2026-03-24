@@ -24,8 +24,10 @@ export default function MainLayout({children}: {
             <div className="flex-1  bg-gradient-to-br from-white to-emerald-50 flex-wrap overflow-y-auto">
                 {children}
             </div>
-            <div className="border-t border-[#dedede]">
-                <Bottombar/>
+            <div className="border-t border-[#dedede] bg-white">
+                <div className="w-[80%] mx-auto">
+                    <Bottombar/>
+                </div>
             </div>
         </div>
     );
