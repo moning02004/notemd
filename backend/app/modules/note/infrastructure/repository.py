@@ -7,6 +7,8 @@ from app.modules.note.infrastructure.models import Note
 from app.modules.tag.infrastructure.models import Tag
 from app.modules.user.infrastructure.models import User
 
+from app.modules.note.infrastructure.models import NoteSnapshot
+
 
 class NoteRepository(Repository):
     DB_MODEL = Note
@@ -36,6 +38,10 @@ class NoteRepository(Repository):
                                  title=note_entity.title,
                                  content=note_entity.content)
         self.db.add(new_note)
+        self.db.flush()
+
+        snapshot = NoteSnapshot(note_id=new_note.id, title=note_entity.title, content=note_entity.content)
+        self.db.add(snapshot)
         self.db.commit()
         self.db.refresh(new_note)
         return new_note
