@@ -308,3 +308,7 @@ body * {
     outline: 1px solid rgba(0, 0, 0, 0.25);
     border-radius: 0.125rem;
 }
+
+.ProseMirror [data-node="image"] {
+    justify-content: center;
+}
