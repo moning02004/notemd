@@ -3,6 +3,7 @@ import {useEditor} from "@tiptap/react";
 import Placeholder from "@tiptap/extension-placeholder";
 import Image from '@tiptap/extension-image'
 import {Dropcursor} from "@tiptap/extensions";
+import TextAlign from "@tiptap/extension-text-align";
 
 export function useEditorInstance({initialContent, setContent}: {
     initialContent: string,
@@ -18,6 +19,9 @@ export function useEditorInstance({initialContent, setContent}: {
                     enabled: true,
                     alwaysPreserveAspectRatio: true,
                 },
+            }),
+            TextAlign.configure({
+                types: ["heading", "paragraph"],
             }),
             Dropcursor,
             Placeholder.configure({

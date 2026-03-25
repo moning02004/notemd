@@ -3,6 +3,7 @@
 import React, {useRef} from "react";
 import {Editor} from "@tiptap/react";
 import {
+    AlignLeft,
     Bold,
     Code2,
     Heading1,
@@ -14,6 +15,9 @@ import {
     Redo2,
     Strikethrough,
     Undo2,
+    AlignCenter,
+    AlignRight,
+    AlignJustify
 } from "lucide-react";
 import {FiImage} from "react-icons/fi";
 import {apiRequest} from "@/lib/api";
@@ -99,6 +103,27 @@ export default function MenuBar({editor, noteId}: Props) {
                 <Strikethrough size={18}/>
             )}
 
+            <div className="w-px h-6 bg-gray-300 mx-1  my-auto"/>
+
+            {button(
+                () => editor.chain().focus().setTextAlign("left").run(),
+                editor.isActive({textAlign: "left"}),
+                <AlignLeft size={18}/>
+            )}
+
+            {button(
+                () => editor.chain().focus().setTextAlign("center").run(),
+                editor.isActive({textAlign: "center"}),
+                <AlignCenter size={18}/>
+            )}
+
+            {button(
+                () => editor.chain().focus().setTextAlign("right").run(),
+                editor.isActive({textAlign: "right"}),
+                <AlignRight size={18}/>
+            )}
+
+            <div className="w-px h-6 bg-gray-300 mx-1  my-auto"/>
             {button(
                 () =>
                     editor.chain().focus().toggleHeading({level: 1}).run(),
