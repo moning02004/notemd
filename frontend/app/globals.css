@@ -90,12 +90,13 @@ body * {
 }
 
 .ProseMirror pre {
+    position: relative;
     background: var(--color-gray-800);
     border-radius: 0.5rem;
     color: var(--color-white);
     font-family: 'JetBrainsMono', monospace;
     margin: 1.5rem 0;
-    padding: 0.75rem 1rem;
+    padding: 1.25rem;
 }
 
 .ProseMirror pre code {
@@ -104,6 +105,20 @@ body * {
     font-size: 0.9rem;
     padding: 0;
 }
+
+.ProseMirror pre::before {
+    position: absolute;
+    top: 0.2rem;
+    right: 0.2rem;
+    font-size: 0.75rem;
+    color: #aaa;
+    text-transform: uppercase;
+}
+
+.ProseMirror pre::before {
+    content: attr(data-language);
+}
+
 
 .ProseMirror p code {
     background-color: var(--color-blue-50);
@@ -203,6 +218,7 @@ body * {
     max-width: 100%;
 
 }
+
 .ProseMirror-selectednode > div {
     outline: 3px solid var(--color-blue-500);
 }
