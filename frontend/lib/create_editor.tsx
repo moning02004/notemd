@@ -6,8 +6,22 @@ import {Dropcursor} from "@tiptap/extensions";
 import TextAlign from "@tiptap/extension-text-align";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import {createLowlight} from "lowlight";
+
 import javascript from 'highlight.js/lib/languages/javascript'
+import typescript from 'highlight.js/lib/languages/typescript'
 import python from 'highlight.js/lib/languages/python'
+import bash from 'highlight.js/lib/languages/bash'
+import json from 'highlight.js/lib/languages/json'
+import yaml from 'highlight.js/lib/languages/yaml'
+import xml from 'highlight.js/lib/languages/xml'
+import css from 'highlight.js/lib/languages/css'
+import sql from 'highlight.js/lib/languages/sql'
+import markdown from 'highlight.js/lib/languages/markdown'
+import dockerfile from 'highlight.js/lib/languages/dockerfile'
+import nginx from 'highlight.js/lib/languages/nginx'
+import go from 'highlight.js/lib/languages/go'
+import java from 'highlight.js/lib/languages/java'
+
 import 'highlight.js/styles/atom-one-dark.css'
 
 export const CustomCodeBlock = CodeBlockLowlight.extend({
@@ -15,7 +29,7 @@ export const CustomCodeBlock = CodeBlockLowlight.extend({
         return {
             Tab: ({editor}) => {
                 if (editor.isActive('codeBlock')) {
-                    editor.commands.insertContent('  ') // 공백 2칸
+                    editor.commands.insertContent('    ') // 공백 2칸
                     return true
                 }
                 return false
@@ -26,8 +40,8 @@ export const CustomCodeBlock = CodeBlockLowlight.extend({
                     const {state, dispatch} = editor.view
                     const {from, to} = state.selection
 
-                    const text = state.doc.textBetween(from - 2, from)
-                    if (text === '  ') {
+                    const text = state.doc.textBetween(from - 4, from)
+                    if (text === '    ') {
                         dispatch(
                             state.tr.delete(from - 2, from)
                         )
@@ -65,9 +79,44 @@ export function useEditorInstance({initialContent, setContent}: {
     initialContent: string,
     setContent: (value: string) => void
 }) {
+
     const lowlight = createLowlight()
+
     lowlight.register('javascript', javascript)
+    lowlight.register('js', javascript)
+
+    lowlight.register('typescript', typescript)
+    lowlight.register('ts', typescript)
+
     lowlight.register('python', python)
+    lowlight.register('py', python)
+
+    lowlight.register('bash', bash)
+    lowlight.register('sh', bash)
+    lowlight.register('shell', bash)
+
+    lowlight.register('json', json)
+    lowlight.register('yaml', yaml)
+    lowlight.register('yml', yaml)
+
+    lowlight.register('html', xml)
+    lowlight.register('xml', xml)
+
+    lowlight.register('css', css)
+
+    lowlight.register('sql', sql)
+
+    lowlight.register('markdown', markdown)
+    lowlight.register('md', markdown)
+
+    lowlight.register('dockerfile', dockerfile)
+    lowlight.register('docker', dockerfile)
+
+    lowlight.register('nginx', nginx)
+
+    lowlight.register('go', go)
+
+    lowlight.register('java', java)
 
 
     return useEditor({

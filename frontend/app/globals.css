@@ -97,22 +97,31 @@ body * {
     font-family: 'JetBrainsMono', monospace;
     margin: 1.5rem 0;
     padding: 1.25rem;
+    padding-top: 4rem;
 }
 
 .ProseMirror pre code {
     background: none;
     color: inherit;
     font-size: 0.9rem;
-    padding: 0;
+    padding-top: 2rem;
+
 }
 
 .ProseMirror pre::before {
     position: absolute;
-    top: 0.2rem;
-    right: 0.2rem;
-    font-size: 0.75rem;
-    color: #aaa;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    background-color: var(--color-gray-900);
+    border-bottom: 1px solid #30363d;
+    color: #efefef;
     text-transform: uppercase;
+    font-weight: bold;
+    border-top-left-radius: 1rem;
+    border-top-right-radius: 1rem;
 }
 
 .ProseMirror pre::before {
