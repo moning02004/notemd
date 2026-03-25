@@ -111,7 +111,7 @@ export function MarkdownEditor({
                 !isReadonly &&
                 <div className="pr-3 bg-editor sticky top-0 z-10 flex border-b border-gray-300">
                     <div className="flex-11">
-                        <MenuBar editor={editor}/>
+                        <MenuBar editor={editor} noteId={paramsNoteId}/>
                     </div>
                     <div className="my-auto text-right">{status}</div>
                 </div>

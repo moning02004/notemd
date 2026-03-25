@@ -1,26 +1,33 @@
 "use client";
 
-import React from "react";
+import React, {useRef} from "react";
 import {Editor} from "@tiptap/react";
 import {
     Bold,
-    Italic,
-    Strikethrough,
+    Code2,
     Heading1,
     Heading2,
+    Italic,
     List,
     ListOrdered,
-    Code2,
     Quote,
-    Undo2,
     Redo2,
+    Strikethrough,
+    Undo2,
 } from "lucide-react";
+import {FiImage} from "react-icons/fi";
+import {apiRequest} from "@/lib/api";
+import {CreateNoteImageResponse} from "@/types/note";
+import {API_HOST} from "@/constants/api";
 
 type Props = {
     editor: Editor;
+    noteId: string;
 };
 
-export default function MenuBar({editor}: Props) {
+export default function MenuBar({editor, noteId}: Props) {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     if (!editor) return null;
 
     const base =
@@ -40,6 +47,37 @@ export default function MenuBar({editor}: Props) {
             {icon}
         </button>
     );
+
+    const handleImageClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleImageUpload = async (
+        e: React.ChangeEvent<HTMLInputElement>
+    ) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const response = await apiRequest.post<CreateNoteImageResponse>(`/notes/${noteId}/images`, {
+                body: formData,
+            }, null).catch(error => {
+                throw error
+            })
+
+            editor
+                .chain()
+                .focus()
+                .setImage({src: `${API_HOST}${response.url}`})
+                .run();
+
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     return (
         <div className="flex flex-wrap gap-1 p-2">
@@ -98,6 +136,15 @@ export default function MenuBar({editor}: Props) {
                 editor.isActive("blockquote"),
                 <Quote size={18}/>
             )}
+
+            {button(handleImageClick, false, <FiImage size={18}/>)}
+            <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={handleImageUpload}
+            />
 
             <div className="w-px h-6 bg-gray-300 mx-1  my-auto"/>
 
