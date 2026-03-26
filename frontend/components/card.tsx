@@ -32,7 +32,7 @@ export const Card = ({
 
     const texts = [
         isPublic ? "공유됨" : "",
-        isProtected ? "읽기전용" : ""
+        isProtected ? "보호됨" : ""
     ]
     return (
         <div className={`flex-1 flex flex-col h-[17rem] mx-auto mb-8 group w-[90%]`}>

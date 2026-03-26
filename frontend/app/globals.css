@@ -153,7 +153,7 @@ body * {
 }
 
 .ProseMirror p:not(table p):hover {
-    background-color: var(--color-cyan-100);
+    background-color: var(--color-gray-50);
 }
 
 .ProseMirror ul, .ProseMirror ol {
