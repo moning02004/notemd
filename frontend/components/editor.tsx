@@ -51,20 +51,15 @@ export function MarkdownEditor({
         ((statusType == "complete") ? <Complete/> :
             ((statusType == "warning") ? <Warning /> :
                 ""));
+
     const editor = useEditorInstance({
         initialContent: content,
         setContent: setContent
     })
 
     useEffect(() => {
-        if (editor) {
-            editor.setEditable(!isReadonly);
-        }
+        editor?.setEditable(!isReadonly);
     }, [editor, isReadonly]);
-
-    const clickMenu = () => {
-        onClickMenu();
-    }
 
     const titleKeyup = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key == "Enter") {
@@ -80,6 +75,7 @@ export function MarkdownEditor({
     }
 
     if (!editor) return <div></div>;
+
     return (
         <div className="h-screen flex flex-col bg-editor w-full  overflow-y-auto">
             <div className="group flex-1 flex flex-row bg-editor border-b border-editor-line px-3">
@@ -102,7 +98,7 @@ export function MarkdownEditor({
                 {
                     isOwner &&
                     <div className="my-auto p-3 cursor-pointer"
-                         onClick={clickMenu}>
+                         onClick={onClickMenu}>
                         <FiMenu size={24}/>
                     </div>
                 }
@@ -110,7 +106,7 @@ export function MarkdownEditor({
             {
                 !isReadonly &&
                 <div className="pr-3 bg-editor sticky top-0 z-10 flex border-b border-gray-300">
-                    <div className="flex-11">
+                    <div className="flex-1">
                         <MenuBar editor={editor} noteId={paramsNoteId}/>
                     </div>
                     <div className="my-auto text-right">{status}</div>

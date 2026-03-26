@@ -160,7 +160,7 @@ body * {
     margin-bottom: 0.25rem;
 }
 
-.ProseMirror ul li {
+.ProseMirror ul:not([data-type="taskList"]) li {
     list-style-type: initial;
     margin-left: 1rem;
 }
@@ -336,4 +336,20 @@ body * {
 
 .ProseMirror [data-node="image"] {
     justify-content: center;
+}
+
+ul[data-type="taskList"] {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+ul[data-type="taskList"] li {
+    display: flex;
+    gap: 8px;
+}
+
+ul[data-type="taskList"] li > label input[type="checkbox"] {
+    cursor: pointer;
+    margin: auto;
 }

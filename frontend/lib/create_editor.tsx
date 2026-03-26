@@ -1,9 +1,5 @@
-import StarterKit from "@tiptap/starter-kit"
 import {useEditor} from "@tiptap/react";
-import Placeholder from "@tiptap/extension-placeholder";
-import Image from '@tiptap/extension-image'
-import {Dropcursor} from "@tiptap/extensions";
-import TextAlign from "@tiptap/extension-text-align";
+
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import {createLowlight} from "lowlight";
 
@@ -23,6 +19,11 @@ import go from 'highlight.js/lib/languages/go'
 import java from 'highlight.js/lib/languages/java'
 
 import 'highlight.js/styles/atom-one-dark.css'
+import {TaskItem, TaskList} from "@tiptap/extension-list";
+import Image from '@tiptap/extension-image'
+import StarterKit from "@tiptap/starter-kit";
+import TextAlign from "@tiptap/extension-text-align";
+import {Dropcursor, Placeholder} from "@tiptap/extensions";
 
 export const CustomCodeBlock = CodeBlockLowlight.extend({
     addKeyboardShortcuts() {
@@ -118,10 +119,14 @@ export function useEditorInstance({initialContent, setContent}: {
 
     lowlight.register('java', java)
 
-
     return useEditor({
         immediatelyRender: false,
+        shouldRerenderOnTransaction: false,
         extensions: [
+            TaskList,
+            TaskItem.configure({
+                nested: true,
+            }),
             StarterKit.configure({
                 codeBlock: false,
             }),
@@ -141,14 +146,8 @@ export function useEditorInstance({initialContent, setContent}: {
             CustomCodeBlock.configure({
                 lowlight,
             }),
-
         ],
         content: initialContent,
-        editorProps: {
-            attributes: {
-                class: "",
-            },
-        },
         onUpdate: ({editor}) => {
             setContent(editor.getHTML())
         }

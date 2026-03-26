@@ -3,8 +3,11 @@
 import React, {useRef} from "react";
 import {Editor} from "@tiptap/react";
 import {
+    AlignCenter,
     AlignLeft,
+    AlignRight,
     Bold,
+    CheckSquare,
     Code2,
     Heading1,
     Heading2,
@@ -14,10 +17,7 @@ import {
     Quote,
     Redo2,
     Strikethrough,
-    Undo2,
-    AlignCenter,
-    AlignRight,
-    AlignJustify
+    Undo2
 } from "lucide-react";
 import {FiImage} from "react-icons/fi";
 import {apiRequest} from "@/lib/api";
@@ -84,7 +84,7 @@ export default function MenuBar({editor, noteId}: Props) {
     };
 
     return (
-        <div className="flex flex-wrap gap-1 p-2">
+        <div className="flex flex-wrap gap-1 p-2 w-[90%]">
             {button(
                 () => editor.chain().focus().toggleBold().run(),
                 editor.isActive("bold"),
@@ -136,6 +136,12 @@ export default function MenuBar({editor, noteId}: Props) {
                     editor.chain().focus().toggleHeading({level: 2}).run(),
                 editor.isActive("heading", {level: 2}),
                 <Heading2 size={18}/>
+            )}
+
+            {button(
+                () => editor.chain().focus().toggleTaskList().run(),
+                editor.isActive("taskList"),
+                <CheckSquare size={18}/>
             )}
 
             {button(
