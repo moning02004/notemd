@@ -104,6 +104,7 @@ export default function Page() {
                            type="text"
                            placeholder="계정"
                            className="p-2 border outline-none rounded"
+                           autoFocus={true}
                            onKeyUp={isEnterLogin}
                     />
                     <input ref={passwordRef} type="password" placeholder="비밀번호"

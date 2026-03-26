@@ -30,13 +30,20 @@ export const Card = ({
 }) => {
     const cleanContent = DOMPurify.sanitize(content);
 
+    const texts = [
+        isPublic ? "공유됨" : "",
+        isProtected ? "보호됨" : ""
+    ]
     return (
         <div className={`flex-1 flex flex-col h-[17rem] mx-auto mb-8 group w-[90%]`}>
             <div className="relative bg-white flex-10 overflow-hidden p-3 hover:shadow-lg  hover:border-[#888888]  text-ellipsis rounded border  border-[#afafaf] whitespace-pre-line hover:bg-emerald-50
                             transition-all duration-200 ">
-                {isPublic && <div className="absolute left-3 top-0 bg-white"><Badge text="공유됨" isPublic={true}/></div>}
+                <div className="absolute left-3 top-0 bg-white">
+                    <Badge texts={texts.join(":")} isPublic={true}/>
+                </div>
+
                 <div className="cursor-pointer h-[100%]" onClick={onClick}>
-                    <div dangerouslySetInnerHTML={{ __html: cleanContent }} />
+                    <div dangerouslySetInnerHTML={{__html: cleanContent}}/>
                 </div>
                 {
                     noteMenu && <NoteMenu noteId={hashId} canDelete={!isProtected}/>

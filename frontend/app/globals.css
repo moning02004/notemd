@@ -1,6 +1,3 @@
-/*@import '../styles/_variables.scss';*/
-/*@import '../styles/_keyframe-animations.scss';*/
-
 @import "tailwindcss";
 
 :root {
@@ -93,20 +90,44 @@ body * {
 }
 
 .ProseMirror pre {
+    position: relative;
     background: var(--color-gray-800);
     border-radius: 0.5rem;
     color: var(--color-white);
     font-family: 'JetBrainsMono', monospace;
     margin: 1.5rem 0;
-    padding: 0.75rem 1rem;
+    padding: 1.25rem;
+    padding-top: 4rem;
 }
 
 .ProseMirror pre code {
     background: none;
     color: inherit;
     font-size: 0.9rem;
-    padding: 0;
+    padding-top: 2rem;
+
 }
+
+.ProseMirror pre::before {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    background-color: var(--color-gray-900);
+    border-bottom: 1px solid #30363d;
+    color: #efefef;
+    text-transform: uppercase;
+    font-weight: bold;
+    border-top-left-radius: 1rem;
+    border-top-right-radius: 1rem;
+}
+
+.ProseMirror pre::before {
+    content: attr(data-language);
+}
+
 
 .ProseMirror p code {
     background-color: var(--color-blue-50);
@@ -119,25 +140,27 @@ body * {
     min-height: 100%;
     padding: 1rem;
 }
+
 .ProseMirror p a {
     @apply cursor-pointer;
     color: var(--color-blue-600);
     text-decoration: underline;
 }
+
 .ProseMirror p:not(table p, blockquote p, li p) {
     margin: 0.25rem;
     padding: 0.25rem;
 }
 
 .ProseMirror p:not(table p):hover {
-    background-color: var(--color-cyan-100);
+    background-color: var(--color-gray-50);
 }
 
 .ProseMirror ul, .ProseMirror ol {
     margin-bottom: 0.25rem;
 }
 
-.ProseMirror ul li {
+.ProseMirror ul:not([data-type="taskList"]) li {
     list-style-type: initial;
     margin-left: 1rem;
 }
@@ -195,4 +218,138 @@ body * {
     color: #9ca3af;
     pointer-events: none;
     height: 0;
+}
+
+.ProseMirror img {
+    display: block;
+    height: auto;
+    margin: 1.5rem 0;
+    max-width: 100%;
+
+}
+
+.ProseMirror-selectednode > div {
+    outline: 3px solid var(--color-blue-500);
+}
+
+.ProseMirror [data-resize-handle] {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 2px;
+    z-index: 10;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* hover 효과 */
+.ProseMirror [data-resize-handle]:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+/* -------------------------
+   선택 시에만 표시
+------------------------- */
+.ProseMirror-selectednode [data-resize-handle],
+[data-resize-state="true"] [data-resize-handle] {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* -------------------------
+   Corner handles
+------------------------- */
+.ProseMirror [data-resize-handle='top-left'],
+.ProseMirror [data-resize-handle='top-right'],
+.ProseMirror [data-resize-handle='bottom-left'],
+.ProseMirror [data-resize-handle='bottom-right'] {
+    width: 8px;
+    height: 8px;
+    border-radius: 1rem;
+}
+
+.ProseMirror [data-resize-handle='top-left'] {
+    top: -4px;
+    left: -4px;
+    cursor: nwse-resize;
+}
+
+.ProseMirror [data-resize-handle='top-right'] {
+    top: -4px;
+    right: -4px;
+    cursor: nesw-resize;
+}
+
+.ProseMirror [data-resize-handle='bottom-left'] {
+    bottom: -4px;
+    left: -4px;
+    cursor: nesw-resize;
+}
+
+.ProseMirror [data-resize-handle='bottom-right'] {
+    bottom: -4px;
+    right: -4px;
+    cursor: nwse-resize;
+}
+
+/* -------------------------
+   Edge handles
+------------------------- */
+.ProseMirror [data-resize-handle='top'],
+.ProseMirror [data-resize-handle='bottom'] {
+    height: 6px;
+    left: 8px;
+    right: 8px;
+}
+
+.ProseMirror [data-resize-handle='top'] {
+    top: -3px;
+    cursor: ns-resize;
+}
+
+.ProseMirror [data-resize-handle='bottom'] {
+    bottom: -3px;
+    cursor: ns-resize;
+}
+
+.ProseMirror [data-resize-handle='left'],
+.ProseMirror [data-resize-handle='right'] {
+    width: 6px;
+    top: 8px;
+    bottom: 8px;
+}
+
+.ProseMirror [data-resize-handle='left'] {
+    left: -3px;
+    cursor: ew-resize;
+}
+
+.ProseMirror [data-resize-handle='right'] {
+    right: -3px;
+    cursor: ew-resize;
+}
+
+.ProseMirror [data-resize-state='true'] [data-resize-wrapper] {
+    outline: 1px solid rgba(0, 0, 0, 0.25);
+    border-radius: 0.125rem;
+}
+
+.ProseMirror [data-node="image"] {
+    justify-content: center;
+}
+
+ul[data-type="taskList"] {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+ul[data-type="taskList"] li {
+    display: flex;
+    gap: 8px;
+}
+
+ul[data-type="taskList"] li > label input[type="checkbox"] {
+    cursor: pointer;
+    margin: auto;
 }
