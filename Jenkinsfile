@@ -1,22 +1,43 @@
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'VERSION', defaultValue: '', description: 'Release 태그 (예: v1.0.0)')
+    }
     environment {
         FE_IMAGE = "yujeonghoon/notemd_frontend"
-        FE_VERSION = "${FE_VERSION}"
-
         BE_IMAGE = "yujeonghoon/notemd_backend"
-        BE_VERSION = "${BE_VERSION}"
     }
 
     stages {
         stage('Checkout') {
-            steps {
-                git branch: 'main',
-                    url: 'https://github.com/moning02004/notemd.git'
+        steps {
+            script {
+                // 태그 입력 확인
+                if (!params.VERSION) {
+                    error "VERSION이 입력되지 않았습니다."
+                }
+            }
+            git branch: 'main',
+                url: 'https://github.com/moning02004/notemd.git'
+
+            script {
+                // 태그 존재 여부 확인
+                def tagExists = sh(
+                    script: "git tag -l ${params.VERSION} | wc -l",
+                    returnStdout: true
+                ).trim()
+
+                if (tagExists == '0') {
+                    error "태그 '${params.VERSION}' 가 존재하지 않습니다."
+                }
+
+                // 해당 태그로 체크아웃
+                sh "git checkout tags/${params.VERSION}"
+                echo "✅ ${params.VERSION} 태그로 체크아웃 완료"
             }
         }
-
+    }
 //         stage('Build App') {
 //             steps {
 //                 sh 'echo "빌드 단계 (필요 시 추가)"'
@@ -31,17 +52,16 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                sh 'echo "docker build 단계"'
-                sh 'echo "docker $FE_VERSION, $BE_VERSION 빌드 준비"'
+                echo "docker build 단계"
 
-                sh 'cd frontend && docker build -t $FE_IMAGE:$FE_VERSION .'
-                sh 'cd backend && docker build -t $BE_IMAGE:$BE_VERSION .'
+                sh "cd frontend && docker build -t $FE_IMAGE:${params.VERSION} ."
+                sh "cd backend && docker build -t $BE_IMAGE:${params.VERSION} ."
             }
         }
 
         stage('Docker Login') {
             steps {
-                sh 'echo "docker 로그인 단계"'
+                echo "docker 로그인 단계"
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub',
                     usernameVariable: 'USER',
@@ -54,15 +74,15 @@ pipeline {
 
         stage('Docker Push') {
             steps {
-                sh 'echo "docker push 단계"'
-                sh 'docker push $FE_IMAGE:$FE_VERSION'
-                sh 'docker push $BE_IMAGE:$BE_VERSION'
+                echo "docker push 단계"
+                sh "docker push $FE_IMAGE:${params.VERSION}"
+                sh "docker push $BE_IMAGE:${params.VERSION}"
             }
         }
 
         stage('Deploy (Ansible)') {
             steps {
-                sh 'echo "ansible 배포 단계"'
+                echo "ansible 배포 단계"
 
 //                 sh "ansible-playbook deploy.yml --extra-vars 'tag=$TAG'"
             }
