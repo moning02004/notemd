@@ -139,12 +139,6 @@ export default function MenuBar({editor, noteId}: Props) {
             )}
 
             {button(
-                () => editor.chain().focus().toggleTaskList().run(),
-                editor.isActive("taskList"),
-                <CheckSquare size={18}/>
-            )}
-
-            {button(
                 () => editor.chain().focus().toggleBulletList().run(),
                 editor.isActive("bulletList"),
                 <List size={18}/>
