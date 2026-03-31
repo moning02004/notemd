@@ -3,6 +3,12 @@ from sqlalchemy import Column, String, Text, ForeignKey, Integer, Boolean
 from sqlalchemy.orm import relationship
 
 
+# 중간 테이블
+class NoteTag(BaseModel):
+    note_id = Column(Integer, ForeignKey("note.id"), nullable=False)
+    tag_id = Column(Integer, ForeignKey("tag.id"), nullable=False)
+
+
 class Note(BaseModel):
     user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
 
@@ -14,3 +20,11 @@ class Note(BaseModel):
 
     # relationships
     user = relationship("User", back_populates="notes")
+    tags = relationship("Tag", secondary="notetag", back_populates="notes")
+
+
+class Tag(BaseModel):
+    note_id = Column(Integer, ForeignKey("note.id"), nullable=False)
+    keyword = Column(String, nullable=False, unique=True)
+
+    notes = relationship("Note", secondary="notetag", back_populates="tags")
