@@ -17,7 +17,10 @@ logs:
 	docker-compose -f $(LOCAL_COMPOSE_FILE) logs -f
 
 # Docker Compose db migrate
+makemigrations:
+	docker exec -it notemd-backend python3 manage.py makemigrations
+
 migrate:
 	docker exec -it notemd-backend python3 manage.py migrate
 
-.PHONY: build up up-build  down logs migrate
+.PHONY: build up up-build  down logs migrate makemigrations
