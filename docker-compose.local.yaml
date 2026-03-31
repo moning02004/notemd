@@ -4,10 +4,14 @@ services:
   frontend:
     build:
       context: frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.local
       args:
         NEXT_PUBLIC_API_HOST: http://localhost:8002
     container_name: notemd-frontend
+    volumes:
+      - ./frontend:/app          # 소스 마운트
+      - /app/node_modules
+      - /app/.next
     restart: always
     ports:
       - "3000:3000"
@@ -18,6 +22,8 @@ services:
       dockerfile: Dockerfile
     container_name: notemd-backend
     restart: always
+    volumes:
+      - ./backend:/app           # 소스 마운트
     environment:
       SETTINGS_FILE: "local"
       DEBUG: "false"
