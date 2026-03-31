@@ -8,6 +8,10 @@ WORKDIR /app
 # pnpm 활성화
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
+# 빌드 타임 ARG 선언 및 ENV로 등록
+ARG NEXT_PUBLIC_API_HOST
+ENV NEXT_PUBLIC_API_HOST=$NEXT_PUBLIC_API_HOST
+
 # 의존성 캐싱을 위한 파일 먼저 복사
 COPY package.json pnpm-lock.yaml ./
 

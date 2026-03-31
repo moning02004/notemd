@@ -1,0 +1,48 @@
+version: "3"
+
+services:
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_HOST: http://localhost:8002
+    container_name: notemd-frontend
+    restart: always
+    ports:
+      - "3000:3000"
+
+  backend:
+    build:
+      context: backend
+      dockerfile: Dockerfile
+    container_name: notemd-backend
+    restart: always
+    environment:
+      SETTINGS_FILE: "local"
+      DEBUG: "false"
+      SECRET_KEY: "c4a4211e8ec70dcea5234660a2c269de280b456e9f8c9714007d7badcd2bbd66"
+
+      FRONTEND_URL: "http://localhost:3000"
+      DB_NAME: "notemd"
+      DB_USER: "admin"
+      DB_PASSWORD: "admin123!"
+    ports:
+      - "8002:8000"
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:16
+    container_name: notemd-db
+    restart: always
+    environment:
+      POSTGRES_DB: "notemd"
+      POSTGRES_USER: "admin"
+      POSTGRES_PASSWORD: "admin123!"
+      TZ: Asia/Seoul
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

@@ -1,4 +1,5 @@
 import importlib
+import logging
 import os
 
 from fastapi import FastAPI, Depends
@@ -33,9 +34,8 @@ app.add_middleware(
 )
 
 if settings.STORAGE["type"] == "local":
-    if not os.path.exists(settings.STORAGE["name"]):
-        os.makedirs(settings.STORAGE["name"])
-    app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+    os.makedirs(settings.STORAGE["name"], exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=settings.STORAGE["name"]), name="uploads")
 
 app.add_middleware(AuthTokenMiddleware)
 app.include_router(auth_router)

@@ -1,3 +1,5 @@
+import os
+
 from app.core.config.base import BaseAbstractSettings
 
 
@@ -12,5 +14,5 @@ class Settings(BaseAbstractSettings):
 
     # CORS settings
     CORS_ORIGINS = [
-        "http://localhost:3000",
+        os.environ["FRONTEND_URL"],
     ]

@@ -1,13 +1,12 @@
 import os
 
-from fastapi import APIRouter, Cookie, HTTPException, Depends
-from sqlalchemy.orm import Session
-from starlette.responses import Response
-
 from app.core.session import get_db
 from app.modules.user.application.service import verify_refresh_token, UserService
 from app.modules.user.infrastructure.repository import UserRepository
 from app.modules.user.interfaces.schemas import TokenObtainSchema, SignupSchema
+from fastapi import APIRouter, Cookie, HTTPException, Depends
+from sqlalchemy.orm import Session
+from starlette.responses import Response
 
 router = APIRouter(prefix="", tags=["Auth"])
 
@@ -27,7 +26,7 @@ def obtain_token(request: TokenObtainSchema,
     repository = UserRepository(db)
     service = UserService(repository)
     token_info, user_id = service.obtain_token(request)
-    frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000").split(".")
+    frontend_url = os.environ.get("FRONTEND_URL").split(".")
     domain = ".".join(frontend_url[-2:])
     domain = f".{domain}"
 
@@ -54,7 +53,7 @@ def refresh_token(response: Response, refreshtoken: str = Cookie(...)):
     service = UserService(None)
     token_info, user_id = service.refresh_token(refreshtoken)
 
-    frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000").split(".")
+    frontend_url = os.environ.get("FRONTEND_URL").split(".")
     domain = ".".join(frontend_url[-2:])
     domain = f".{domain}"
     response.set_cookie(
