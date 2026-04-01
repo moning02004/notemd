@@ -13,7 +13,7 @@ class QueryParams(BaseModel):
 
 def get_query_params(keyword: str = Query(None),
                      limit: int = Query(10),
-                     is_deleted:int = Query(0)) -> QueryParams:
+                     is_deleted: int = Query(0)) -> QueryParams:
     return QueryParams(keyword=keyword, limit=limit, is_deleted=is_deleted)
 
 
@@ -57,8 +57,13 @@ class NoteDetailSchema(BaseModel):
     user_id: int
     is_public: bool
     is_protected: bool
+    tags: list = []
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("tags")
+    def serialize_tags(self, value, _info):
+        return [x.keyword for x in value]
 
 
 class NoteUpdateRequest(BaseModel):
@@ -66,6 +71,7 @@ class NoteUpdateRequest(BaseModel):
     content: str = None
     is_public: bool = None
     is_protected: bool = None
+    tags: list[str] = None
 
 
 class DefaultNoteRequest(BaseModel):
