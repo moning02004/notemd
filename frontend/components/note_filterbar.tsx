@@ -2,7 +2,8 @@
 'use client'
 
 import {useRouter, useSearchParams} from 'next/navigation'
-import {Tag} from "@/types/note";
+import {NoteCard, Tag} from "@/types/note";
+import {apiRequest} from "@/lib/api";
 
 function sortTags(tags: Tag[]): Tag[] {
     const totalTag = tags.filter(t => t.keyword === '전체')
@@ -12,9 +13,10 @@ function sortTags(tags: Tag[]): Tag[] {
 
 interface Props {
     tags: Tag[]
+    reloadPage: (params) => void
 }
 
-export default function NoteFilterBar({tags}: Props) {
+export default function NoteFilterBar({tags, reloadPage}: Props) {
     const router = useRouter()
     const searchParams = useSearchParams()
 
@@ -23,14 +25,15 @@ export default function NoteFilterBar({tags}: Props) {
 
     const displayTags = sortTags([...tags])
 
-    const updateParam = (key: string, value: string) => {
+    const updateParam = async (key: string, value: string) => {
         const params = new URLSearchParams(searchParams.toString())
+
         if (key === 'tag' && value === '전체') {
             params.delete('tag')
         } else {
             params.set(key, value)
         }
-        router.push(`?${params.toString()}`, {scroll: false})
+        reloadPage(`?${params.toString()}`)
     }
 
     const tagButton = (tag: Tag) => (

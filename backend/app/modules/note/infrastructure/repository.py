@@ -8,13 +8,16 @@ from app.modules.tag.infrastructure.models import Tag
 class NoteRepository(Repository):
     DB_MODEL = Note
 
-    def list_by_user_id(self, user_id: int, is_deleted=False):
-        instances = self.db.query(self.DB_MODEL).filter(
+    def list_by_user_id(self, user_id: int, is_deleted=False, tag=None):
+        query = self.db.query(self.DB_MODEL).filter(
             self.DB_MODEL.user_id == user_id,
             self.DB_MODEL.is_deleted == is_deleted,
-        ).order_by(
-            desc(self.DB_MODEL.updated_at)).all()
-        return instances
+        )
+
+        if tag:
+            query = query.join(self.DB_MODEL.tags).filter(Tag.keyword == tag)
+
+        return query.order_by(desc(self.DB_MODEL.updated_at)).all()
 
     def create_note(self, note_entity) -> Note:
         new_note = self.DB_MODEL(user_id=note_entity.user_id,
@@ -51,7 +54,7 @@ class NoteRepository(Repository):
                 new_tags = [Tag(keyword=k) for k in tag_keywords if k not in existing_keywords]
                 self.db.add_all(new_tags)
                 self.db.flush()
-                instance.tags.extend(new_tags)
+                instance.tags = existing_tags + new_tags
 
             self.db.commit()
             self.db.refresh(instance)

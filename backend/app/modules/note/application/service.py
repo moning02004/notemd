@@ -1,3 +1,5 @@
+from typing import List
+
 from fastapi_clean_archi.core.commons.service import Service
 
 from app.modules.note.domain.entity import NoteEntity
@@ -9,8 +11,8 @@ class NoteService(Service):
         super().__init__(repository)
         self.storage = storage
 
-    def list_notes(self, user_id: int, is_deleted: bool):
-        notes = self.repository.list_by_user_id(user_id, is_deleted)
+    def list_notes(self, user_id: int, is_deleted: bool, tag: str | None = None) -> List[NoteEntity]:
+        notes = self.repository.list_by_user_id(user_id, is_deleted, tag)
         return notes
 
     def create_default_note(self, user_id: int, default_title: str, default_content: str):
