@@ -2,38 +2,26 @@
 'use client'
 
 import {useRouter, useSearchParams} from 'next/navigation'
-
-type Tag = {
-    label: string
-    count: number
-    lastUsedAt?: number
-}
+import {Tag} from "@/types/note";
 
 function sortTags(tags: Tag[]): Tag[] {
-    const others = tags.filter(t => t.label !== '전체')
-    const sorted = others.sort((a, b) => {
-        if (b.count !== a.count) return b.count - a.count
-        return (b.lastUsedAt ?? 0) - (a.lastUsedAt ?? 0)
-    })
-    return sorted
+    const totalTag = tags.filter(t => t.keyword === '전체')
+    const others = tags.filter(t => t.keyword !== '전체')
+    return totalTag.concat(others.sort((a, b) => b.count - a.count))
 }
 
 interface Props {
     tags: Tag[]
-    totalCount: number
 }
 
-export default function NoteFilterBar({tags, totalCount}: Props) {
+export default function NoteFilterBar({tags}: Props) {
     const router = useRouter()
     const searchParams = useSearchParams()
 
     const selectedTag = searchParams.get('tag') ?? '전체'
     const sort = searchParams.get('sort') ?? '최신순'
 
-    const displayTags = [
-        {label: '전체', count: totalCount},
-        ...sortTags([...tags]),
-    ]
+    const displayTags = sortTags([...tags])
 
     const updateParam = (key: string, value: string) => {
         const params = new URLSearchParams(searchParams.toString())
@@ -47,17 +35,17 @@ export default function NoteFilterBar({tags, totalCount}: Props) {
 
     const tagButton = (tag: Tag) => (
         <button
-            key={tag.label}
-            onClick={() => updateParam('tag', tag.label)}
+            key={tag.keyword}
+            onClick={() => updateParam('tag', tag.keyword)}
             className={`
-        inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-sm border whitespace-nowrap transition-all
-        ${selectedTag === tag.label
+        inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-sm border whitespace-nowrap transition-all cursor-pointer
+        ${selectedTag === tag.keyword
                 ? 'bg-gray-900 text-white border-gray-900'
                 : 'border-gray-200 text-gray-500 hover:border-gray-400 hover:text-gray-800'}
       `}
         >
             <span className="opacity-40 text-[11px]">#</span>
-            {tag.label}
+            {tag.keyword}
             <span className="opacity-50">{tag.count}</span>
         </button>
     )
@@ -70,7 +58,6 @@ export default function NoteFilterBar({tags, totalCount}: Props) {
         >
             <option>최신순</option>
             <option>등록일순</option>
-            <option>관련도순</option>
         </select>
     )
 

@@ -12,6 +12,7 @@ from app.core.middlewares.token import AuthTokenMiddleware
 from app.modules.note.interfaces.controller import router as note_router
 from app.modules.template.interfaces.controller import router as template_router
 from app.modules.user.interfaces.controller import router as auth_router
+from app.modules.tag.interfaces.controller import router as tag_router
 
 modules = os.listdir("app/modules")
 for module in modules:
@@ -41,3 +42,4 @@ app.add_middleware(AuthTokenMiddleware)
 app.include_router(auth_router)
 app.include_router(note_router)
 app.include_router(template_router)
+app.include_router(tag_router)

@@ -24,8 +24,13 @@ class NoteListSchema(BaseModel):
     is_protected: bool
     hash_id: str
     created_at: datetime
+    tags: list = []
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("tags")
+    def serialize_tags(self, value, _info):
+        return [x.keyword for x in value]
 
     @field_serializer('content')
     def serialize_content(self, value: str, _info):

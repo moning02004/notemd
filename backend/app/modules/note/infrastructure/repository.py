@@ -1,6 +1,8 @@
-from app.modules.note.infrastructure.models import Note, Tag
 from fastapi_clean_archi.core.commons.repository import Repository
 from sqlalchemy import desc
+
+from app.modules.note.infrastructure.models import Note
+from app.modules.tag.infrastructure.models import Tag
 
 
 class NoteRepository(Repository):
@@ -49,7 +51,7 @@ class NoteRepository(Repository):
                 new_tags = [Tag(keyword=k) for k in tag_keywords if k not in existing_keywords]
                 self.db.add_all(new_tags)
                 self.db.flush()
-                instance.tags.extend(existing_tags + new_tags)
+                instance.tags.extend(new_tags)
 
             self.db.commit()
             self.db.refresh(instance)
