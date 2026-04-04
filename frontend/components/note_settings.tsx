@@ -1,6 +1,7 @@
 import {FiCopy, FiX} from "react-icons/fi";
 import {apiRequest} from "@/lib/api";
 import toast from "react-hot-toast";
+import NoteTagInput from "@/components/note_tag_input";
 
 interface SettingsProps {
     noteId: string,
@@ -8,6 +9,9 @@ interface SettingsProps {
     setStatusType: (flag: string) => void;
     setIsPublic: (flag: boolean) => void;
     setIsProtected: (flag: boolean) => void;
+    setSelectedTags: (tag: string[]) => void;
+
+    selectedTags: string[];
     isProtected: boolean;
     isPublic: boolean;
     isOpenedSetting: boolean;
@@ -19,7 +23,9 @@ export const NoteSettings = ({
                                  setStatusType,
                                  setIsPublic,
                                  setIsProtected,
+                                 setSelectedTags,
 
+                                 selectedTags,
                                  isProtected,
                                  isPublic,
                                  isOpenedSetting
@@ -30,7 +36,7 @@ export const NoteSettings = ({
         })
     }
     return (
-        <div className={`w-[60vw] md:w-[25vw] bg-white fixed flex  flex-col right-0 top-0 h-screen border-l border-[#ededed] shadow-xl
+        <div className={`w-full md:w-[50vw] sm:w-[7vw] lg:w-[25vw] bg-white fixed flex  flex-col right-0 top-0 h-screen border-l border-[#ededed] shadow-xl
           transform transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] z-11
           ${isOpenedSetting ? "translate-x-0" : "translate-x-full"}`}>
             <div className="flex flex-col p-5 w-full">
@@ -85,6 +91,8 @@ export const NoteSettings = ({
                     </div>
                 </div>
             </div>
+
+            <NoteTagInput selectedTags={selectedTags} setSelectedTags={setSelectedTags}/>
             {
                 !isProtected &&
                 <div className="mt-auto flex flex-row justify-between p-5 border-b border-[#ededed]">

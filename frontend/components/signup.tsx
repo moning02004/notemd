@@ -47,7 +47,7 @@ export const SignupPage = ({
                 <h1 className="logo mb-4">note.md</h1>
 
                 <div className="flex flex-col gap-3">
-                    <input ref={usernameRef} type="text" placeholder="이메일"
+                    <input ref={usernameRef} type="text" placeholder="ID"
                            className="flex-5 p-2 border outline-none rounded"/>
 
                     <input ref={passwordRef} type="password" placeholder="비밀번호"

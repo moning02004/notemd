@@ -8,13 +8,17 @@ from pydantic import BaseModel, ConfigDict, field_serializer
 class QueryParams(BaseModel):
     keyword: str | None = Query(None, min_length=2)
     limit: int = Query(10, ge=1, le=100)
+    tag: str | None = Query(None)
+    sort: str | None = Query("desc")
     is_deleted: int = Query(0)
 
 
 def get_query_params(keyword: str = Query(None),
                      limit: int = Query(10),
-                     is_deleted:int = Query(0)) -> QueryParams:
-    return QueryParams(keyword=keyword, limit=limit, is_deleted=is_deleted)
+                     sort: str = Query("desc"),
+                     tag: str = Query(None),
+                     is_deleted: int = Query(0)) -> QueryParams:
+    return QueryParams(keyword=keyword, limit=limit, is_deleted=is_deleted, tag=tag, sort=sort)
 
 
 class NoteListSchema(BaseModel):
@@ -24,8 +28,13 @@ class NoteListSchema(BaseModel):
     is_protected: bool
     hash_id: str
     created_at: datetime
+    tags: list = []
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("tags")
+    def serialize_tags(self, value, _info):
+        return [x.keyword for x in value]
 
     @field_serializer('content')
     def serialize_content(self, value: str, _info):
@@ -57,8 +66,13 @@ class NoteDetailSchema(BaseModel):
     user_id: int
     is_public: bool
     is_protected: bool
+    tags: list = []
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer("tags")
+    def serialize_tags(self, value, _info):
+        return [x.keyword for x in value]
 
 
 class NoteUpdateRequest(BaseModel):
@@ -66,6 +80,7 @@ class NoteUpdateRequest(BaseModel):
     content: str = None
     is_public: bool = None
     is_protected: bool = None
+    tags: list[str] = None
 
 
 class DefaultNoteRequest(BaseModel):

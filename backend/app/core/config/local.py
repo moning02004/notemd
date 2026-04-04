@@ -1,6 +1,8 @@
+import os
+
 from app.core.config.base import BaseAbstractSettings
 
-
+os.environ.setdefault("FRONTEND_URL", "http://localhost:3000")
 class Settings(BaseAbstractSettings):
     SECRET_KEY: str = "abcabc"
 
@@ -12,5 +14,5 @@ class Settings(BaseAbstractSettings):
 
     # CORS settings
     CORS_ORIGINS = [
-        "http://localhost:3000",
+        os.environ["FRONTEND_URL"],
     ]

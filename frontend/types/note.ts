@@ -1,3 +1,8 @@
+export interface Tag {
+    keyword: string;
+    count: number
+}
+
 export interface NoteCard {
     hash_id: string,
     title: string;

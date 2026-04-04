@@ -14,6 +14,7 @@ interface NoteResponse {
     content: string | null
     is_public: boolean
     is_protected: boolean
+    tags: string[]
     user_id: number
 }
 
@@ -27,6 +28,7 @@ export default function Page() {
     const [isReadonly, setIsReadonly] = useState<boolean>(!token);
     const [isOwner, setIsOwner] = useState(false);
     const {noteId} = useParams() as { noteId: string };
+    const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
     const [title, setTitle] = useState<string | null>(null);
     const [content, setContent] = useState<string>("");
@@ -58,6 +60,7 @@ export default function Page() {
         const patchRequest = async (data: Partial<{
             is_public: boolean
             is_protected: boolean
+            tags: string[]
         }>) => {
             await apiRequest.patch(`/notes/${noteId}`, {
                 body: JSON.stringify(data)
@@ -68,8 +71,8 @@ export default function Page() {
             })
         }
 
-        patchRequest({is_public: isPublic, is_protected: isProtected});
-    }, [isPublic, isProtected]);
+        patchRequest({is_public: isPublic, is_protected: isProtected, tags: selectedTags});
+    }, [isPublic, isProtected, selectedTags]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -79,6 +82,7 @@ export default function Page() {
                     setContent(response.content || "")
                     setIsPublic(response.is_public)
                     setIsProtected(response.is_protected)
+                    setSelectedTags(response.tags)
                     setIsOwner(response.user_id === userId)
                 })
                 .catch(() => {
@@ -98,17 +102,17 @@ export default function Page() {
                      setIsReadonly(!token)
                      setLoadingStatus("loaded")
                  }}>
-                    <MarkdownEditor onClickMenu={() => setOpenedSetting(true)}
-                                    isReadonly={isProtected || isReadonly}
-                                    paramsNoteId={noteId}
+                <MarkdownEditor onClickMenu={() => setOpenedSetting(true)}
+                                isReadonly={isProtected || isReadonly}
+                                paramsNoteId={noteId}
 
-                                    isOwner={isOwner}
-                                    title={title}
-                                    content={content}
-                                    setTitle={setTitle}
-                                    setContent={setContent}
-                                    statusType={statusType}
-                    />
+                                isOwner={isOwner}
+                                title={title}
+                                content={content}
+                                setTitle={setTitle}
+                                setContent={setContent}
+                                statusType={statusType}
+                />
             </div>
 
             <NoteSettings noteId={noteId}
@@ -116,7 +120,9 @@ export default function Page() {
                           setOpenedSetting={setOpenedSetting}
                           setStatusType={setStatusType}
                           setIsProtected={setIsProtected}
+                          setSelectedTags={setSelectedTags}
 
+                          selectedTags={selectedTags}
                           isProtected={isProtected}
                           isPublic={isPublic}
                           isOpenedSetting={isOpenedSetting}/>
