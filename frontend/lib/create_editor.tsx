@@ -123,10 +123,6 @@ export function useEditorInstance({initialContent, setContent}: {
         immediatelyRender: false,
         shouldRerenderOnTransaction: false,
         extensions: [
-            TaskList,
-            TaskItem.configure({
-                nested: true,
-            }),
             StarterKit.configure({
                 codeBlock: false,
             }),
