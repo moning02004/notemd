@@ -19,14 +19,14 @@ export default function Page() {
     return (
         <main className="flex-1 overflow-auto w-[90%] mx-auto my-5">
             <div className="flex w-full hover:bg-gray-200 justify-between px-5 py-4 mb-3 border-b border-gray-200">
-                <div className="my-auto">스냅샷 자동 생성 주기</div>
-                <div className="my-auto">
-                    <select name="" id="" className="border rounded-md p-1 bg-white cursor-pointer">
-                        <option value="">처음 수정 시</option>
-                        <option value="">저장 시</option>
-                        <option value="">수동</option>
-                    </select>
-                </div>
+                {/*<div className="my-auto">스냅샷 자동 생성 주기</div>*/}
+                {/*<div className="my-auto">*/}
+                {/*    <select name="" id="" className="border rounded-md p-1 bg-white cursor-pointer">*/}
+                {/*        <option value="">열고 처음 수정 시</option>*/}
+                {/*        <option value="">수정 마다</option>*/}
+                {/*        <option value="">수동</option>*/}
+                {/*    </select>*/}
+                {/*</div>*/}
             </div>
             <button onClick={() => {
                 authLogout();

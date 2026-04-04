@@ -28,7 +28,9 @@ export default function NoteFilterBar({tags, reloadPage}: Props) {
     const updateParam = async (key: string, value: string) => {
         const params = new URLSearchParams(searchParams.toString())
 
-        if (key === 'tag' && value === '전체') {
+        if (key === 'sort' && value === 'desc') {
+            params.delete('sort')
+        } else if (key === 'tag' && value === '전체') {
             params.delete('tag')
         } else {
             params.set(key, value)
@@ -59,8 +61,8 @@ export default function NoteFilterBar({tags, reloadPage}: Props) {
             onChange={e => updateParam('sort', e.target.value)}
             className={`text-sm border border-gray-200 rounded-md px-2 py-1 outline-none bg-transparent text-gray-700 ${className ?? ''}`}
         >
-            <option>최신순</option>
-            <option>등록일순</option>
+            <option value="desc">최신순</option>
+            <option value="asc">등록일순</option>
         </select>
     )
 
