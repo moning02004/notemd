@@ -9,14 +9,16 @@ class QueryParams(BaseModel):
     keyword: str | None = Query(None, min_length=2)
     limit: int = Query(10, ge=1, le=100)
     tag: str | None = Query(None)
+    sort: str | None = Query("desc")
     is_deleted: int = Query(0)
 
 
 def get_query_params(keyword: str = Query(None),
                      limit: int = Query(10),
+                     sort: str = Query("desc"),
                      tag: str = Query(None),
                      is_deleted: int = Query(0)) -> QueryParams:
-    return QueryParams(keyword=keyword, limit=limit, is_deleted=is_deleted, tag=tag)
+    return QueryParams(keyword=keyword, limit=limit, is_deleted=is_deleted, tag=tag, sort=sort)
 
 
 class NoteListSchema(BaseModel):

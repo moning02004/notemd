@@ -1,5 +1,5 @@
 from fastapi_clean_archi.core.commons.repository import Repository
-from sqlalchemy import desc
+from sqlalchemy import desc, asc
 
 from app.modules.note.infrastructure.models import Note
 from app.modules.tag.infrastructure.models import Tag
@@ -8,16 +8,20 @@ from app.modules.tag.infrastructure.models import Tag
 class NoteRepository(Repository):
     DB_MODEL = Note
 
-    def list_by_user_id(self, user_id: int, is_deleted=False, tag=None):
-        query = self.db.query(self.DB_MODEL).filter(
+    def list_by_user_id(self, user_id: int, is_deleted=False, tag=None, sort=None):
+        queryset = self.db.query(self.DB_MODEL).filter(
             self.DB_MODEL.user_id == user_id,
             self.DB_MODEL.is_deleted == is_deleted,
         )
 
         if tag:
-            query = query.join(self.DB_MODEL.tags).filter(Tag.keyword == tag)
+            queryset = queryset.join(self.DB_MODEL.tags).filter(Tag.keyword == tag)
 
-        return query.order_by(desc(self.DB_MODEL.updated_at)).all()
+        if sort:
+            queryset = queryset.order_by(desc(self.DB_MODEL.updated_at)
+                                         if sort == "desc" else asc(self.DB_MODEL.created_at)).all()
+
+        return queryset
 
     def create_note(self, note_entity) -> Note:
         new_note = self.DB_MODEL(user_id=note_entity.user_id,

@@ -15,7 +15,10 @@ router = APIRouter(prefix="/notes", tags=["Notes"])
 def list_notes(user=Depends(get_current_user), db=Depends(get_db), query: QueryParams = Depends(get_query_params)):
     repository = NoteRepository(db)
     service = NoteService(repository)
-    notes = service.list_notes(user_id=user.pk, is_deleted=bool(query.is_deleted), tag=query.tag)
+    notes = service.list_notes(user_id=user.pk,
+                               is_deleted=bool(query.is_deleted),
+                               tag=query.tag,
+                               sort=query.sort)
     return notes
 
 
