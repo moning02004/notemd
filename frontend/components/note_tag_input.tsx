@@ -1,4 +1,4 @@
-import {useState, useRef, useEffect} from "react";
+import {useState, useRef, useEffect, SetStateAction, Dispatch} from "react";
 
 const ALL_TAGS = [
     {name: "업무", color: "#4F8EF7", count: 12},
@@ -13,7 +13,7 @@ const ALL_TAGS = [
 
 interface Props {
     selectedTags: string[];
-    setSelectedTags: (tags: string[]) => void;
+    setSelectedTags:  Dispatch<SetStateAction<string[]>>;
 }
 
 export default function NoteTagInput({selectedTags, setSelectedTags}: Props) {
@@ -27,7 +27,6 @@ export default function NoteTagInput({selectedTags, setSelectedTags}: Props) {
     );
 
     useEffect(() => {
-        setHighlightIndex(-1);
         setOpen(query.trim().length > 0);
     }, [query]);
 
@@ -38,6 +37,7 @@ export default function NoteTagInput({selectedTags, setSelectedTags}: Props) {
         setQuery("");
         setOpen(false);
         inputRef.current?.focus();
+        setHighlightIndex(-1);
     };
 
     const removeTag = (name: string) => {
