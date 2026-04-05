@@ -114,18 +114,20 @@ export default function Page() {
                                 statusType={statusType}
                 />
             </div>
+            {token &&
+                <NoteSettings noteId={noteId}
+                              setIsPublic={setIsPublic}
+                              setOpenedSetting={setOpenedSetting}
+                              setStatusType={setStatusType}
+                              setIsProtected={setIsProtected}
+                              setSelectedTags={setSelectedTags}
 
-            <NoteSettings noteId={noteId}
-                          setIsPublic={setIsPublic}
-                          setOpenedSetting={setOpenedSetting}
-                          setStatusType={setStatusType}
-                          setIsProtected={setIsProtected}
-                          setSelectedTags={setSelectedTags}
+                              selectedTags={selectedTags}
+                              isProtected={isProtected}
+                              isPublic={isPublic}
+                              isOpenedSetting={isOpenedSetting}/>
+            }
 
-                          selectedTags={selectedTags}
-                          isProtected={isProtected}
-                          isPublic={isPublic}
-                          isOpenedSetting={isOpenedSetting}/>
         </>
     );
 }

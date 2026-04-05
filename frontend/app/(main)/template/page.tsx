@@ -1,6 +1,5 @@
 "use client"
 
-import {Card} from "@/components/card";
 import {useMenuStore} from "@/store/menu";
 
 

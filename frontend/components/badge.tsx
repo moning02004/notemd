@@ -1,4 +1,4 @@
-export const Badge = ({texts, isPublic}: { texts: string, isPublic?: boolean }) => {
+export const Badge = ({texts, isNewLine}: { texts: string, isNewLine?: boolean }) => {
     const colorVariants = [
         {bg: "bg-blue-100", text: "text-gray-600"},
         {bg: "bg-green-200", text: "text-gray-600"},
@@ -14,7 +14,7 @@ export const Badge = ({texts, isPublic}: { texts: string, isPublic?: boolean }) 
         const {bg, text: textColor} = colorVariants[index]
 
         return (
-            <span className={`inline-flex items-center rounded-md px-2 text-xs font-medium 
+            <span className={`${isNewLine ? "flex" : "inline-flex"} items-center rounded-md px-2 text-xs font-medium 
                 inset-ring inset-ring-gray-500/10 ${bg} ${textColor}`}>
                 <div className="p-0.5 my-auto bg-black rounded-full"></div>
                 <div className="ml-1 my-auto">{text}</div>
