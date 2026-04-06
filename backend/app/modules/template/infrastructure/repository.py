@@ -14,11 +14,12 @@ class TemplateRepository(Repository):
 
     def create_template(self, entity) -> Template:
         instance = self.DB_MODEL(user_id=entity.user_id,
+                                 name=entity.name,
+                                 description=entity.description,
                                  title=entity.title,
                                  content=entity.content)
         self.db.add(instance)
         self.db.commit()
-        self.db.refresh(instance)
         return instance
 
     def get_by_hash_id_and_user_id(self, user_id: int, hash_id: str):

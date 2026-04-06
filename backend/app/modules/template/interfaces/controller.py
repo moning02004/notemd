@@ -17,12 +17,12 @@ def list_templates(user=Depends(get_current_user), db=Depends(get_db)):
     return templates
 
 
-@router.post("")
+@router.post("", response_model=TemplateDetailSchema)
 def create_template(request: TemplateCreateRequest, user=Depends(get_current_user), db=Depends(get_db)):
     repository = TemplateRepository(db)
     service = TemplateService(repository)
-    service.create_template(user_id=user.pk, request=request)
-    return {"message": "OK"}
+    template = service.create_template(user_id=user.pk, request=request)
+    return template
 
 
 @router.get("/{template_id}", response_model=TemplateDetailSchema)

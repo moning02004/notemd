@@ -122,6 +122,12 @@ export default function Page() {
                               setIsProtected={setIsProtected}
                               setSelectedTags={setSelectedTags}
 
+                              setTitle={setTitle}
+                              setContent={setContent}
+                              currentTitle={title}
+                              currentContent={content}
+                              afterApplyTemplate={() => setOpenedSetting(false)}
+
                               selectedTags={selectedTags}
                               isProtected={isProtected}
                               isPublic={isPublic}
