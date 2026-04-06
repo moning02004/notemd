@@ -32,6 +32,7 @@ type SaveForm = {
 
 export const TemplateManageModal = (
     {isOpen, onClose, currentTitle, currentContent, setTitle, setContent}: Props) => {
+
     const [templates, setTemplates] = useState<Template[]>([])
     const [previewId, setPreviewId] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -84,6 +85,8 @@ export const TemplateManageModal = (
     }
 
     const applyTemplate = (template: Template) => {
+        if (!confirm("모든 내용이 지워지고 템플릿의 내용으로 덮어써집니다. 계속하시겠습니까?")) return
+
         setTitle(template.title)
         setContent(template.content)
         toast.success(`"${template.name}" 템플릿이 적용되었습니다.`)
