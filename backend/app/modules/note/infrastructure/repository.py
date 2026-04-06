@@ -18,8 +18,11 @@ class NoteRepository(Repository):
             queryset = queryset.join(self.DB_MODEL.tags).filter(Tag.keyword == tag)
 
         if sort:
-            queryset = queryset.order_by(desc(self.DB_MODEL.updated_at)
-                                         if sort == "desc" else asc(self.DB_MODEL.created_at)).all()
+            queryset = queryset.order_by(
+                desc(self.DB_MODEL.updated_at) if sort == "-updated_at"
+                else asc(self.DB_MODEL.created_at) if sort == "created_at"
+                else desc(self.DB_MODEL.created_at)
+            ).all()
 
         return queryset
 

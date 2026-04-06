@@ -46,6 +46,7 @@ export function MarkdownEditor({
                                    statusType
                                }: EditorProps
 ) {
+    const titleRef = React.useRef<HTMLInputElement>(null);
     const router = useRouter();
     const status = (statusType == "loading") ? <LoadingSpinner/> :
         ((statusType == "complete") ? <Complete/> :
@@ -56,6 +57,13 @@ export function MarkdownEditor({
         initialContent: content,
         setContent: setContent
     })
+
+    useEffect(() => {
+        if (!titleRef.current) return;
+
+        titleRef.current.value = title
+        editor?.commands.setContent(content)
+    }, [editor, title, content]);
 
     useEffect(() => {
         editor?.setEditable(!isReadonly);
@@ -87,6 +95,7 @@ export function MarkdownEditor({
                     </div>
                 }
                 <input type="text"
+                       ref={titleRef}
                        onKeyUp={titleKeyup}
                        value={title || ''}
                        readOnly={isReadonly}

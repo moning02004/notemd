@@ -4,11 +4,12 @@ import {Badge} from "@/components/badge";
 import {DeletedMenu} from "@/components/deleted_menu";
 import DOMPurify from 'dompurify';
 
-export const Card = ({
+export const Note = ({
                          onClick,
                          hashId,
                          title,
                          content,
+                         ownerName,
                          isPublic,
                          isProtected,
                          created_at,
@@ -20,43 +21,39 @@ export const Card = ({
     hashId: string,
     title: string,
     content: string,
+    ownerName: string,
     isPublic?: boolean,
     isProtected?: boolean,
     created_at?: string,
-
     noteMenu?: boolean,
     templateMenu?: boolean,
     deletedMenu?: boolean,
 }) => {
     const cleanContent = DOMPurify.sanitize(content);
-
     const texts = [
         isPublic ? "공유됨" : "",
         isProtected ? "보호됨" : ""
     ]
+    const filteredTexts = texts.filter(x => x !== "")
+
     return (
-        <div className={`flex-1 flex flex-col h-[17rem] mx-auto mb-8 group w-[90%]`}>
-            <div className="relative bg-white flex-10 overflow-hidden p-3 hover:shadow-lg  hover:border-[#888888]  text-ellipsis rounded border  border-[#afafaf] whitespace-pre-line hover:bg-emerald-50
-                            transition-all duration-200 ">
+        <div className="flex-1 flex flex-col h-[14rem] mx-auto mb-8 group w-[90%]">
+            <div
+                className="relative bg-white flex-10 overflow-hidden p-3 hover:shadow-lg hover:border-[#888888] text-ellipsis rounded border border-[#afafaf] whitespace-pre-line hover:bg-emerald-50 transition-all duration-200">
                 <div className="absolute left-3 top-0 bg-white">
-                    <Badge texts={texts.join(":")} isPublic={true}/>
+                    <Badge texts={filteredTexts.join(":")}/>
                 </div>
 
-                <div className="cursor-pointer h-[100%]" onClick={onClick}>
-                    <div dangerouslySetInnerHTML={{__html: cleanContent}}/>
-                </div>
-                {
-                    noteMenu && <NoteMenu noteId={hashId} canDelete={!isProtected}/>
-                }
-                {
-                    templateMenu && <TemplateMenu/>
-                }
-                {
-                    deletedMenu && <DeletedMenu noteId={hashId}/>
-                }
+                <div className={`${filteredTexts.length && "pt-3"} text-sm cursor-pointer h-[100%]`}
+                     onClick={onClick}
+                     dangerouslySetInnerHTML={{__html: cleanContent}}/>
+
+                {noteMenu && <NoteMenu noteId={hashId} canDelete={!isProtected}/>}
+                {templateMenu && <TemplateMenu/>}
+                {deletedMenu && <DeletedMenu noteId={hashId}/>}
             </div>
             <div className="font-bold truncate w-full text-center cursor-default">{title}</div>
-            <small className="w-full pr-2 text-gray-500 text-center cursor-default">{created_at}</small>
+            <small className="w-full text-gray-500 text-center cursor-default">{created_at}</small>
         </div>
     )
 }

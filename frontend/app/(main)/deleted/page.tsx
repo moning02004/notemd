@@ -6,7 +6,7 @@ import {NoteCard} from "@/types/note";
 import {apiRequest} from "@/lib/api";
 import {useRouter} from "next/navigation";
 import {useMenuStore} from "@/store/menu";
-import {Card} from "@/components/card";
+import {Note} from "@/components/note";
 import {LoadingPage} from "@/components/loading";
 
 export default function Page() {
@@ -43,13 +43,14 @@ export default function Page() {
                         content-start`}>
                     {
                         notes.map((note) => (
-                            <Card key={note.hash_id}
+                            <Note key={note.hash_id}
                                   hashId={note.hash_id}
                                   title={note.title || "제목 없음"}
                                   content={note.content}
                                   isPublic={note.is_public}
                                   created_at={note.created_at}
                                   deletedMenu={true}
+                                  ownerName={""}
                             />
                         ))
                     }

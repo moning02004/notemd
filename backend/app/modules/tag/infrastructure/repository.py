@@ -13,11 +13,13 @@ class TagRepository(Repository):
     def list_tags(self) -> list:
         return self.db.query(self.DB_MODEL).all()
 
-    def list_tags_with_note_count(self) -> List:
+    def list_tags_with_note_count(self, total) -> List:
         tags = self.db.query(self.DB_MODEL).options(joinedload(self.DB_MODEL.notes)).all()
         for tag in tags:
             tag.count = len(getattr(tag, "notes", []))
 
-        all_tag = Tag(keyword="전체")
-        all_tag.count = self.db.query(Note).count()
-        return [all_tag] + tags
+        if total:
+            all_tag = Tag(keyword="전체")
+            all_tag.count = self.db.query(Note).count()
+            tags = [all_tag] + tags
+        return tags
