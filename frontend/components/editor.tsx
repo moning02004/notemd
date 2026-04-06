@@ -50,7 +50,7 @@ export function MarkdownEditor({
     const router = useRouter();
     const status = (statusType == "loading") ? <LoadingSpinner/> :
         ((statusType == "complete") ? <Complete/> :
-            ((statusType == "warning") ? <Warning /> :
+            ((statusType == "warning") ? <Warning/> :
                 ""));
 
     const editor = useEditorInstance({
@@ -59,11 +59,11 @@ export function MarkdownEditor({
     })
 
     useEffect(() => {
-        if (!titleRef.current) return;
+        if (!editor) return
+        if (editor.getHTML() === content) return
 
-        titleRef.current.value = title
-        editor?.commands.setContent(content)
-    }, [editor, title, content]);
+        editor.commands.setContent(content)
+    }, [content])
 
     useEffect(() => {
         editor?.setEditable(!isReadonly);
