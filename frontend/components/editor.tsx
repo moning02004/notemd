@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useEffect, useState} from "react";
+import React, {Dispatch, SetStateAction, useEffect, useState} from "react";
 import {FiArrowLeft, FiMenu} from "react-icons/fi";
 import {useRouter} from "next/navigation";
 
@@ -23,7 +23,7 @@ function Complete() {
 }
 
 interface EditorProps {
-    onClickMenu: () => void;
+    setOpenedSetting: Dispatch<SetStateAction<boolean>>;
     isReadonly: boolean;
     isOwner: boolean;
     title: string;
@@ -35,7 +35,7 @@ interface EditorProps {
 }
 
 export function MarkdownEditor({
-                                   onClickMenu,
+                                   setOpenedSetting,
                                    paramsNoteId,
                                    title,
                                    content,
@@ -108,7 +108,7 @@ export function MarkdownEditor({
                 {
                     isOwner &&
                     <div className="my-auto p-3 cursor-pointer"
-                         onClick={onClickMenu}>
+                         onClick={() => setOpenedSetting(true)}>
                         <FiMenu size={24}/>
                     </div>
                 }
@@ -127,7 +127,10 @@ export function MarkdownEditor({
             <div className="flex-20 bg-editor">
                 <EditorContent editor={editor}
                                className="h-[100%]"
-                               onClick={() => setTableMenuOpen(false)}/>
+                               onClick={() => {
+                                   setTableMenuOpen(false)
+                                   setOpenedSetting(false)
+                               }}/>
             </div>
         </div>
     );

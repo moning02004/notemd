@@ -102,7 +102,7 @@ export default function Page() {
                      setIsReadonly(!token)
                      setLoadingStatus("loaded")
                  }}>
-                <MarkdownEditor onClickMenu={() => setOpenedSetting(true)}
+                <MarkdownEditor setOpenedSetting={setOpenedSetting}
                                 isReadonly={isProtected || isReadonly}
                                 paramsNoteId={noteId}
 
