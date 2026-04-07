@@ -49,7 +49,7 @@ export default function Page() {
             }).catch(() => {
                 setStatusType("warning")
             })
-        }, 2000);
+        }, 300);
 
         return () => clearTimeout(timer);
     }, [title, content, noteId, token]);

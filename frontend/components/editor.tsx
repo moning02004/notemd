@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useEffect} from "react";
+import React, {useEffect, useState} from "react";
 import {FiArrowLeft, FiMenu} from "react-icons/fi";
 import {useRouter} from "next/navigation";
 
@@ -52,6 +52,7 @@ export function MarkdownEditor({
         ((statusType == "complete") ? <Complete/> :
             ((statusType == "warning") ? <Warning/> :
                 ""));
+    const [tableMenuOpen, setTableMenuOpen] = useState(false)
 
     const editor = useEditorInstance({
         initialContent: content,
@@ -116,13 +117,17 @@ export function MarkdownEditor({
                 !isReadonly &&
                 <div className="pr-3 bg-editor sticky top-0 z-10 flex border-b border-gray-300">
                     <div className="flex-1">
-                        <MenuBar editor={editor} noteId={paramsNoteId}/>
+                        <MenuBar editor={editor} noteId={paramsNoteId}
+                                 tableMenuOpen={tableMenuOpen}
+                                 setTableMenuOpen={setTableMenuOpen} />
                     </div>
                     <div className="my-auto text-right">{status}</div>
                 </div>
             }
             <div className="flex-20 bg-editor">
-                <EditorContent editor={editor} className="h-[100%]"/>
+                <EditorContent editor={editor}
+                               className="h-[100%]"
+                               onClick={() => setTableMenuOpen(false)}/>
             </div>
         </div>
     );
