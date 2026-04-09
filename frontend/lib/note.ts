@@ -2,19 +2,12 @@ import {apiRequest} from "@/lib/api";
 import type {AppRouterInstance} from "next/dist/shared/lib/app-router-context.shared-runtime";
 import {CreateNoteResponse} from "@/types/note";
 
-export const gotoNote = async ({id, router, title, content}: {
+export const gotoNote = async ({id, router}: {
     id: string | null,
     router: AppRouterInstance
-    title?: string
-    content?: string
 }) => {
     if (id === null) {
-        const res = await apiRequest.post<CreateNoteResponse>("/notes", {
-            body: JSON.stringify({
-                title: title || "",
-                content: content || ""
-            })
-        });
+        const res = await apiRequest.post<CreateNoteResponse>("/notes");
         id = res.hash_id
     }
 

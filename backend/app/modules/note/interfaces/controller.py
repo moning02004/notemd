@@ -23,12 +23,10 @@ def list_notes(user=Depends(get_current_user), db=Depends(get_db), query: QueryP
 
 
 @router.post("", response_model=NoteCreateSchema)
-def create_note(request: DefaultNoteRequest, user=Depends(get_current_user), db=Depends(get_db)):
+def create_note(user=Depends(get_current_user), db=Depends(get_db)):
     repository = NoteRepository(db)
     service = NoteService(repository)
-    note = service.create_default_note(user_id=user.pk,
-                                       default_title=request.title,
-                                       default_content=request.content)
+    note = service.create_default_note(user_id=user.pk)
     return note
 
 
