@@ -19,11 +19,11 @@ import go from 'highlight.js/lib/languages/go'
 import java from 'highlight.js/lib/languages/java'
 
 import 'highlight.js/styles/atom-one-dark.css'
-import {TaskItem, TaskList} from "@tiptap/extension-list";
 import Image from '@tiptap/extension-image'
 import StarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
 import {Dropcursor, Placeholder} from "@tiptap/extensions";
+import {Table, TableCell, TableHeader, TableRow} from "@tiptap/extension-table";
 
 export const CustomCodeBlock = CodeBlockLowlight.extend({
     addKeyboardShortcuts() {
@@ -75,6 +75,21 @@ export const CustomCodeBlock = CodeBlockLowlight.extend({
     },
 })
 
+const CustomTableCell = TableCell.extend({
+    addAttributes() {
+        return {
+            ...this.parent?.(),
+            backgroundColor: {
+                default: null,
+                renderHTML: (attrs) =>
+                    attrs.backgroundColor
+                        ? {style: `background-color: ${attrs.backgroundColor}`}
+                        : {},
+                parseHTML: (el) => el.style.backgroundColor || null,
+            },
+        };
+    },
+});
 
 export function useEditorInstance({initialContent, setContent}: {
     initialContent: string,
@@ -132,6 +147,11 @@ export function useEditorInstance({initialContent, setContent}: {
                     alwaysPreserveAspectRatio: true,
                 },
             }),
+
+            Table.configure({resizable: true}),
+            TableHeader,
+            CustomTableCell,
+            TableRow,
             TextAlign.configure({
                 types: ["heading", "paragraph"],
             }),

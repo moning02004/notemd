@@ -49,7 +49,7 @@ export default function Page() {
             }).catch(() => {
                 setStatusType("warning")
             })
-        }, 2000);
+        }, 300);
 
         return () => clearTimeout(timer);
     }, [title, content, noteId, token]);
@@ -102,7 +102,7 @@ export default function Page() {
                      setIsReadonly(!token)
                      setLoadingStatus("loaded")
                  }}>
-                <MarkdownEditor onClickMenu={() => setOpenedSetting(true)}
+                <MarkdownEditor setOpenedSetting={setOpenedSetting}
                                 isReadonly={isProtected || isReadonly}
                                 paramsNoteId={noteId}
 

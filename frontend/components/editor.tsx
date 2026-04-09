@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useEffect} from "react";
+import React, {Dispatch, SetStateAction, useEffect, useState} from "react";
 import {FiArrowLeft, FiMenu} from "react-icons/fi";
 import {useRouter} from "next/navigation";
 
@@ -23,7 +23,7 @@ function Complete() {
 }
 
 interface EditorProps {
-    onClickMenu: () => void;
+    setOpenedSetting: Dispatch<SetStateAction<boolean>>;
     isReadonly: boolean;
     isOwner: boolean;
     title: string;
@@ -35,7 +35,7 @@ interface EditorProps {
 }
 
 export function MarkdownEditor({
-                                   onClickMenu,
+                                   setOpenedSetting,
                                    paramsNoteId,
                                    title,
                                    content,
@@ -52,6 +52,7 @@ export function MarkdownEditor({
         ((statusType == "complete") ? <Complete/> :
             ((statusType == "warning") ? <Warning/> :
                 ""));
+    const [tableMenuOpen, setTableMenuOpen] = useState(false)
 
     const editor = useEditorInstance({
         initialContent: content,
@@ -107,7 +108,7 @@ export function MarkdownEditor({
                 {
                     isOwner &&
                     <div className="my-auto p-3 cursor-pointer"
-                         onClick={onClickMenu}>
+                         onClick={() => setOpenedSetting(true)}>
                         <FiMenu size={24}/>
                     </div>
                 }
@@ -116,13 +117,20 @@ export function MarkdownEditor({
                 !isReadonly &&
                 <div className="pr-3 bg-editor sticky top-0 z-10 flex border-b border-gray-300">
                     <div className="flex-1">
-                        <MenuBar editor={editor} noteId={paramsNoteId}/>
+                        <MenuBar editor={editor} noteId={paramsNoteId}
+                                 tableMenuOpen={tableMenuOpen}
+                                 setTableMenuOpen={setTableMenuOpen} />
                     </div>
                     <div className="my-auto text-right">{status}</div>
                 </div>
             }
             <div className="flex-20 bg-editor">
-                <EditorContent editor={editor} className="h-[100%]"/>
+                <EditorContent editor={editor}
+                               className="h-[100%]"
+                               onClick={() => {
+                                   setTableMenuOpen(false)
+                                   setOpenedSetting(false)
+                               }}/>
             </div>
         </div>
     );

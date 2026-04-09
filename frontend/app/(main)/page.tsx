@@ -51,7 +51,7 @@ function NoteListContent() {
         <>
             <NoteFilterBar tags={tags}/>
 
-            <div className="min-h-full pt-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5">
+            <div className="min-h-full pt-5 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-5">
                 {isLoading
                     ? <SkeletonCards/>
                     : notes.map(note => (

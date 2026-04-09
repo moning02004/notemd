@@ -15,11 +15,11 @@ class NoteService(Service):
         notes = self.repository.list_by_user_id(user_id, is_deleted, tag, sort)
         return notes
 
-    def create_default_note(self, user_id: int, default_title: str, default_content: str):
+    def create_default_note(self, user_id: int):
         default_note = NoteEntity(
             user_id=user_id,
-            title=default_title,
-            content=default_content
+            title="",
+            content=""
         )
         return self.repository.create_note(default_note)
 
