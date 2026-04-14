@@ -2,7 +2,9 @@ import {useEditor} from "@tiptap/react";
 
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import {createLowlight} from "lowlight";
+import Text from '@tiptap/extension-text'
 
+import Document from '@tiptap/extension-document'
 import javascript from 'highlight.js/lib/languages/javascript'
 import typescript from 'highlight.js/lib/languages/typescript'
 import python from 'highlight.js/lib/languages/python'
@@ -18,12 +20,35 @@ import nginx from 'highlight.js/lib/languages/nginx'
 import go from 'highlight.js/lib/languages/go'
 import java from 'highlight.js/lib/languages/java'
 
+import Blockquote from '@tiptap/extension-blockquote'
+import History from '@tiptap/extension-history'
+import BulletList from '@tiptap/extension-bullet-list'
+import OrderedList from '@tiptap/extension-ordered-list'
+import ListItem from '@tiptap/extension-list-item'
+import HardBreak from '@tiptap/extension-hard-break'
+import HorizontalRule from '@tiptap/extension-horizontal-rule'
+
+// 마크
+import Bold from '@tiptap/extension-bold'
+import Italic from '@tiptap/extension-italic'
+import Strike from '@tiptap/extension-strike'
+import Code from '@tiptap/extension-code'
+
+// 기능
+import Gapcursor from '@tiptap/extension-gapcursor'
+
 import 'highlight.js/styles/atom-one-dark.css'
 import Image from '@tiptap/extension-image'
-import StarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
 import {Dropcursor, Placeholder} from "@tiptap/extensions";
 import {Table, TableCell, TableHeader, TableRow} from "@tiptap/extension-table";
+import {TaskItem, TaskList} from "@tiptap/extension-list";
+import FileHandler from "@tiptap/extension-file-handler";
+import Paragraph from '@tiptap/extension-paragraph'
+import Heading from "@tiptap/extension-heading";
+import {apiRequest} from "@/lib/api";
+import {CreateNoteImageResponse} from "@/types/note";
+import {API_HOST} from "@/constants/api";
 
 export const CustomCodeBlock = CodeBlockLowlight.extend({
     addKeyboardShortcuts() {
@@ -91,9 +116,10 @@ const CustomTableCell = TableCell.extend({
     },
 });
 
-export function useEditorInstance({initialContent, setContent}: {
+export function useEditorInstance({initialContent, setContent, uploadFile}: {
     initialContent: string,
-    setContent: (value: string) => void
+    setContent: (value: string) => void,
+    uploadFile: (file: File) => Promise<string>
 }) {
 
     const lowlight = createLowlight()
@@ -138,9 +164,6 @@ export function useEditorInstance({initialContent, setContent}: {
         immediatelyRender: false,
         shouldRerenderOnTransaction: false,
         extensions: [
-            StarterKit.configure({
-                codeBlock: false,
-            }),
             Image.configure({
                 resize: {
                     enabled: true,
@@ -156,16 +179,68 @@ export function useEditorInstance({initialContent, setContent}: {
                 types: ["heading", "paragraph"],
             }),
             Dropcursor,
+            TaskItem.configure({nested: true}),
+            TaskList,
             Placeholder.configure({
                 placeholder: "내용을 입력하세요...",
             }),
             CustomCodeBlock.configure({
                 lowlight,
             }),
+
+            FileHandler.configure({
+                allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
+                onDrop: (currentEditor, files, pos) => {
+                    files.forEach(file => {
+                        const fileReader = new FileReader()
+
+                        fileReader.readAsDataURL(file)
+                        fileReader.onload = () => {
+                            currentEditor
+                                .chain()
+                                .insertContentAt(pos, {
+                                    type: 'image',
+                                    attrs: {
+                                        src: fileReader.result,
+                                    },
+                                })
+                                .focus()
+                                .run()
+                        }
+                    })
+                },
+                onPaste: (currentEditor, files, htmlContent) => {
+                    files.forEach(file => {
+                        if (htmlContent) return false
+
+                        const fileReader = new FileReader()
+                        uploadFile(file).then(url => {
+                            currentEditor.chain().focus().setImage({src: url}).run()
+                        })
+                    })
+                },
+            }),
+            Document,
+            Text,
+            Paragraph,
+            Heading,
+
+            Blockquote,
+            BulletList,
+            OrderedList,
+            ListItem,
+            HardBreak,
+            History,
+            HorizontalRule,
+            Bold,
+            Italic,
+            Strike,
+            Code,
+            Gapcursor,
         ],
         content: initialContent,
         onUpdate: ({editor}) => {
             setContent(editor.getHTML())
-        }
+        },
     });
 }

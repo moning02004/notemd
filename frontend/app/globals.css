@@ -354,12 +354,22 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
     margin: auto;
 }
 
-.ProseMirror table { width: 100%; }
-.ProseMirror table td, .ProseMirror table th { position: relative; }
+.ProseMirror table {
+    width: 100%;
+}
+
+.ProseMirror table td, .ProseMirror table th {
+    position: relative;
+}
+
 .ProseMirror table td::after, .ProseMirror table th::after {
-  content: ""; position: absolute;
-  top: 0; right: 0; width: 6px; height: 100%;
-  cursor: col-resize;
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 6px;
+    height: 100%;
+    cursor: col-resize;
 }
 
 .scrollbar-none::-webkit-scrollbar {

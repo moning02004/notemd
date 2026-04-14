@@ -7,22 +7,24 @@ import {GetAuthResponse} from "@/types/auth";
 import {SignupPage} from "@/components/signup";
 import {LoadingPage} from "@/components/loading";
 import {API_HOST} from "@/constants/api";
+import Cookies from "js-cookie";
 
 export default function Page() {
     const usernameRef = useRef<HTMLInputElement>(null)
     const passwordRef = useRef<HTMLInputElement>(null)
     const authLoginRef = useRef<HTMLInputElement>(null)
+
     const [errorMessage, setErrorMessage] = useState("")
     const {setAuth} = useAuthStore.getState();
     const [existsAccount, setExistsAccount] = useState<boolean | null>(null);
 
+    const isAutoLogin = Cookies.get('auto-login') === '1'
+    const existsRefreshToken = Cookies.get('refreshtoken') !== undefined
+
     useEffect(() => {
         const checkAutoLogin = async () => {
-            const autoLoginCookie = await cookieStore.get("auto_login")
-            const refreshTokenCookie = await cookieStore.get("refreshtoken")
-
-            if (autoLoginCookie?.value === "1") {
-                if (refreshTokenCookie?.value && refreshTokenCookie?.value !== "") {
+            if (isAutoLogin) {
+                if (existsRefreshToken) {
                     const refreshAuth = async () => {
                         const refreshRes = await fetch(`${API_HOST}/auth/refresh-token`, {
                             method: "POST",
@@ -37,8 +39,7 @@ export default function Page() {
                     }
                     refreshAuth()
                 } else {
-                    cookieStore.delete("auto_login")
-                    cookieStore.delete("refreshtoken")
+                    Cookies.remove('auto-login')
                     window.location.reload()
                 }
             } else {
@@ -78,9 +79,9 @@ export default function Page() {
         if (!data.access_token) return
 
         if (authLoginRef.current.checked) {
-            await cookieStore.set({name: "auto_login", value: "1", expires: Date.now() + 31536000000})
+            Cookies.set('auto-login', '1', {expires: 180})
         } else {
-            await cookieStore.delete("auto_login")
+            Cookies.remove('auto-login')
         }
         setAuth(data.access_token, data.user_id)
         window.location.href = "/"
@@ -114,7 +115,7 @@ export default function Page() {
 
                     <span>{errorMessage}</span>
                     <label htmlFor="auto_login" className="text-sm text-gray-600">
-                        <input ref={authLoginRef} type="checkbox" id="auto_login" className="mr-1"/>
+                        <input ref={authLoginRef} type="checkbox" id="auto_login" className="mr-1" />
                         <span>로그인 상태 유지</span>
                     </label>
                     <button type="button" onClick={login}
