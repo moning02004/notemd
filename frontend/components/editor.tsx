@@ -9,6 +9,10 @@ import {useEditorInstance} from "@/lib/create_editor";
 import MenuBar from "@/components/editor_menubar";
 import {IoIosCheckmarkCircleOutline} from "react-icons/io";
 import {Warning} from "@/components/icons";
+import {apiRequest} from "@/lib/api";
+import {CreateNoteImageResponse} from "@/types/note";
+import {API_HOST} from "@/constants/api";
+import toast from "react-hot-toast";
 
 function LoadingSpinner() {
     return (
@@ -56,7 +60,22 @@ export function MarkdownEditor({
 
     const editor = useEditorInstance({
         initialContent: content,
-        setContent: setContent
+        setContent: setContent,
+        uploadFile: async (file: File) => {
+            const formData = new FormData();
+            formData.append("file", file);
+            try {
+                const response = await apiRequest
+                    .post<CreateNoteImageResponse>(`/notes/${paramsNoteId}/images`, {body: formData}, null)
+                    .catch((err) => {
+                        throw err;
+                    });
+                return `${API_HOST}${response.url}`
+            } catch (err) {
+                toast.error("이미지 업로드에 실패했습니다.")
+                return ""
+            }
+        }
     })
 
     useEffect(() => {
@@ -119,7 +138,7 @@ export function MarkdownEditor({
                     <div className="flex-1">
                         <MenuBar editor={editor} noteId={paramsNoteId}
                                  tableMenuOpen={tableMenuOpen}
-                                 setTableMenuOpen={setTableMenuOpen} />
+                                 setTableMenuOpen={setTableMenuOpen}/>
                     </div>
                     <div className="my-auto text-right">{status}</div>
                 </div>
