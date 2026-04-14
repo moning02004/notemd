@@ -46,9 +46,6 @@ import {TaskItem, TaskList} from "@tiptap/extension-list";
 import FileHandler from "@tiptap/extension-file-handler";
 import Paragraph from '@tiptap/extension-paragraph'
 import Heading from "@tiptap/extension-heading";
-import {apiRequest} from "@/lib/api";
-import {CreateNoteImageResponse} from "@/types/note";
-import {API_HOST} from "@/constants/api";
 
 export const CustomCodeBlock = CodeBlockLowlight.extend({
     addKeyboardShortcuts() {
@@ -193,20 +190,9 @@ export function useEditorInstance({initialContent, setContent, uploadFile}: {
                 onDrop: (currentEditor, files, pos) => {
                     files.forEach(file => {
                         const fileReader = new FileReader()
-
-                        fileReader.readAsDataURL(file)
-                        fileReader.onload = () => {
-                            currentEditor
-                                .chain()
-                                .insertContentAt(pos, {
-                                    type: 'image',
-                                    attrs: {
-                                        src: fileReader.result,
-                                    },
-                                })
-                                .focus()
-                                .run()
-                        }
+                        uploadFile(file).then(url => {
+                            currentEditor.chain().focus().setImage({src: url}).run()
+                        })
                     })
                 },
                 onPaste: (currentEditor, files, htmlContent) => {
