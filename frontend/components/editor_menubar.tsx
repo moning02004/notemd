@@ -12,8 +12,6 @@ import {
     Heading1,
     Heading2,
     Italic,
-    List,
-    ListOrdered,
     Quote,
     Redo2,
     Strikethrough,
@@ -25,6 +23,7 @@ import {FiImage} from "react-icons/fi";
 import {apiRequest} from "@/lib/api";
 import {CreateNoteImageResponse} from "@/types/note";
 import {API_HOST} from "@/constants/api";
+import {GoListOrdered, GoListUnordered, GoTasklist} from "react-icons/go";
 
 interface Props {
     editor: Editor;
@@ -95,6 +94,12 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
 
     return (
         <div className="flex flex-wrap gap-1 p-2 w-[90%] relative">
+            {/* ── 실행 취소 / 다시 실행 ── */}
+            {button(() => editor.chain().focus().undo().run(), false, <Undo2 size={18}/>, "실행 취소")}
+            {button(() => editor.chain().focus().redo().run(), false, <Redo2 size={18}/>, "다시 실행")}
+
+            <div className="w-px h-6 bg-gray-300 mx-1 my-auto"/>
+
             {/* ── 텍스트 서식 ── */}
             {button(
                 () => editor.chain().focus().toggleBold().run(),
@@ -153,16 +158,28 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
                 "제목 2"
             )}
             {button(
-                () => editor.chain().focus().toggleBulletList().run(),
-                editor.isActive("bulletList"),
-                <List size={18}/>,
-                "글머리 기호"
+                () => editor.chain().focus().toggleHeading({level: 2}).run(),
+                editor.isActive("heading", {level: 2}),
+                <Heading2 size={18}/>,
+                "제목 3"
             )}
             {button(
                 () => editor.chain().focus().toggleOrderedList().run(),
                 editor.isActive("orderedList"),
-                <ListOrdered size={18}/>,
-                "번호 목록"
+                <GoListOrdered size={18}/>,
+                "순서 있는 목록"
+            )}
+            {button(
+                () => editor.chain().focus().toggleBulletList().run(),
+                editor.isActive("bulletList"),
+                <GoListUnordered size={18}/>,
+                "순서 없는 목록"
+            )}
+            {button(
+                () => editor.chain().focus().toggleTaskList().run(),
+                editor.isActive("taskList"),
+                <GoTasklist size={18}/>,
+                "체크리스트"
             )}
             {button(
                 () => editor.chain().focus().toggleCodeBlock().run(),
@@ -326,11 +343,6 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
                 )}
             </div>
 
-            <div className="w-px h-6 bg-gray-300 mx-1 my-auto"/>
-
-            {/* ── 실행 취소 / 다시 실행 ── */}
-            {button(() => editor.chain().focus().undo().run(), false, <Undo2 size={18}/>, "실행 취소")}
-            {button(() => editor.chain().focus().redo().run(), false, <Redo2 size={18}/>, "다시 실행")}
         </div>
     );
 }
