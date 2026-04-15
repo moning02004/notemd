@@ -21,39 +21,36 @@ export default function Page() {
     const isAutoLogin = Cookies.get('auto-login') === '1'
     const existsRefreshToken = Cookies.get('refreshtoken') !== undefined
 
+    const checkAccountExistence = async () => {
+        try {
+            const res = await apiRequest.get<{ exists: boolean }>("/check");
+            setExistsAccount(res.exists);
+        } catch (error) {
+            setExistsAccount(false);
+        }
+    };
     useEffect(() => {
         const checkAutoLogin = async () => {
-            if (isAutoLogin) {
-                if (existsRefreshToken) {
-                    const refreshAuth = async () => {
-                        const refreshRes = await fetch(`${API_HOST}/auth/refresh-token`, {
-                            method: "POST",
-                            credentials: "include",
-                        });
+            if (!isAutoLogin) {
+                await checkAccountExistence()
+                return
+            }
 
-                        if (refreshRes.ok) {
-                            const data = await refreshRes.json();
-                            setAuth(data.access_token, data.user_id);
-                            window.location.replace("/")
-                        }
-                    }
-                    refreshAuth()
-                } else {
-                    Cookies.remove('auto-login')
-                    window.location.reload()
-                }
+            const refreshRes = await fetch(`${API_HOST}/auth/refresh-token`, {
+                method: "POST",
+                credentials: "include",
+            });
+
+            if (refreshRes.ok) {
+                const data = await refreshRes.json();
+                setAuth(data.access_token, data.user_id);
+                window.location.replace("/")
             } else {
-                const checkAccountExistence = async () => {
-                    try {
-                        const res = await apiRequest.get<{ exists: boolean }>("/check");
-                        setExistsAccount(res.exists);
-                    } catch (error) {
-                        setExistsAccount(false);
-                    }
-                };
-                checkAccountExistence();
+                Cookies.remove('auto-login')
+                await checkAccountExistence()
             }
         }
+
         checkAutoLogin()
     }, []);
 
@@ -115,7 +112,7 @@ export default function Page() {
 
                     <span>{errorMessage}</span>
                     <label htmlFor="auto_login" className="text-sm text-gray-600">
-                        <input ref={authLoginRef} type="checkbox" id="auto_login" className="mr-1" />
+                        <input ref={authLoginRef} type="checkbox" id="auto_login" className="mr-1"/>
                         <span>로그인 상태 유지</span>
                     </label>
                     <button type="button" onClick={login}
