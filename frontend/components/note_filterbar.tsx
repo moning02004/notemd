@@ -14,7 +14,7 @@ function sortTags(tags: Tag[]): Tag[] {
 
 const SORT_OPTIONS = [
     { value: '-updated_at', label: '최근 수정순' },
-    { value: '-created_at', label: '등록순' },
+    { value: 'created_at', label: '등록순' },
 ]
 
 interface Props {
