@@ -162,10 +162,11 @@ export function useEditorInstance({initialContent, setContent, uploadFile}: {
         shouldRerenderOnTransaction: false,
         extensions: [
             Image.configure({
+                inline: true,
                 resize: {
                     enabled: true,
                     alwaysPreserveAspectRatio: true,
-                },
+                }
             }),
 
             Table.configure({resizable: true}),
