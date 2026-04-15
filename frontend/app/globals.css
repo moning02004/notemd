@@ -225,7 +225,6 @@ body * {
     height: auto;
     margin: 1.5rem 0;
     max-width: 100%;
-
 }
 
 .ProseMirror-selectednode > div {
@@ -332,10 +331,6 @@ body * {
 .ProseMirror [data-resize-state='true'] [data-resize-wrapper] {
     outline: 1px solid rgba(0, 0, 0, 0.25);
     border-radius: 0.125rem;
-}
-
-.ProseMirror [data-node="image"] {
-    justify-content: center;
 }
 
 ul[data-type="taskList"] {
