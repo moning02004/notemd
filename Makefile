@@ -12,6 +12,10 @@ up-build:
 down:
 	docker-compose -f $(LOCAL_COMPOSE_FILE) down
 
+# Docker Compose 중지
+downv:
+	docker-compose -f $(LOCAL_COMPOSE_FILE) down -v
+
 # 로그 확인
 logs:
 	docker-compose -f $(LOCAL_COMPOSE_FILE) logs -f

@@ -86,7 +86,7 @@ function SkeletonCards() {
     return (
         <>
             {Array.from({length: 8}).map((_, i) => (
-                <div key={i} className="mx-3 rounded w-[90%] h-[17rem] bg-gray-200 animate-pulse"/>
+                <div key={i} className="mx-3 rounded w-[90%] h-[7rem] md:h-[17rem] bg-gray-200 animate-pulse"/>
             ))}
         </>
     )

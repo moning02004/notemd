@@ -52,7 +52,7 @@ export const Note = ({
                 {templateMenu && <TemplateMenu/>}
                 {deletedMenu && <DeletedMenu noteId={hashId}/>}
             </div>
-            <div className="font-bold truncate w-full text-center cursor-default">{title}</div>
+            <div className="font-bold truncate w-full text-center cursor-default mt-1">{title}</div>
             <small className="w-full text-gray-500 text-center cursor-default">{created_at}</small>
         </div>
     )
