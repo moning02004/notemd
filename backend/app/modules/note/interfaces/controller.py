@@ -18,7 +18,8 @@ def list_notes(user=Depends(get_current_user), db=Depends(get_db), query: QueryP
     notes = service.list_notes(user_id=user.pk,
                                is_deleted=bool(query.is_deleted),
                                tag=query.tag,
-                               sort=query.sort)
+                               sort=query.sort,
+                               page=query.page)
     return notes
 
 

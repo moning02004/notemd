@@ -8,7 +8,7 @@ from app.modules.tag.infrastructure.models import Tag
 class NoteRepository(Repository):
     DB_MODEL = Note
 
-    def list_note_by_user_id(self, user_id: int, is_deleted=False, tag=None, sort=None):
+    def list_note_by_user_id(self, user_id: int, is_deleted=False, tag=None, sort=None, page=1):
         queryset = self.db.query(self.DB_MODEL).filter(
             self.DB_MODEL.user_id == user_id,
             self.DB_MODEL.is_deleted == is_deleted,
@@ -22,9 +22,11 @@ class NoteRepository(Repository):
                 desc(self.DB_MODEL.updated_at) if sort == "-updated_at"
                 else asc(self.DB_MODEL.created_at) if sort == "created_at"
                 else desc(self.DB_MODEL.created_at)
-            ).all()
+            )
 
-        return queryset
+        page_size = 20
+        offset = (page - 1) * page_size  # page=1 이면 0부터 시작
+        return queryset.offset(offset).limit(page_size).all()
 
     def create_note(self, note_entity) -> Note:
         new_note = self.DB_MODEL(user_id=note_entity.user_id,

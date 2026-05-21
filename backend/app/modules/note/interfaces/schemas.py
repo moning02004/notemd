@@ -7,18 +7,18 @@ from pydantic import BaseModel, ConfigDict, field_serializer
 
 class QueryParams(BaseModel):
     keyword: str | None = Query(None, min_length=2)
-    limit: int = Query(10, ge=1, le=100)
     tag: str | None = Query(None)
     sort: str | None = Query("-updated_at")
     is_deleted: int = Query(0)
+    page: int = Query(1, ge=1)
 
 
 def get_query_params(keyword: str = Query(None),
-                     limit: int = Query(10),
                      sort: str = Query("-updated_at"),
                      tag: str = Query(None),
-                     is_deleted: int = Query(0)) -> QueryParams:
-    return QueryParams(keyword=keyword, limit=limit, is_deleted=is_deleted, tag=tag, sort=sort)
+                     is_deleted: int = Query(0),
+                     page: int = Query(1)) -> QueryParams:
+    return QueryParams(keyword=keyword, page=page, is_deleted=is_deleted, tag=tag, sort=sort)
 
 
 class NoteListSchema(BaseModel):
