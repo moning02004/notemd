@@ -1,4 +1,5 @@
 LOCAL_COMPOSE_FILE = docker-compose.local.yaml
+LOG_SERVICE ?=
 
 # Docker Compose 실행
 up:
@@ -18,7 +19,7 @@ downv:
 
 # 로그 확인
 logs:
-	docker-compose -f $(LOCAL_COMPOSE_FILE) logs -f
+	docker-compose -f $(LOCAL_COMPOSE_FILE) logs $(LOG_SERVICE) -f
 
 # Docker Compose db migrate
 makemigrations:

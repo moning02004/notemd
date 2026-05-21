@@ -1,10 +1,10 @@
 from typing import List
 
 from fastapi_clean_archi.core.commons.repository import Repository
-from sqlalchemy.orm import joinedload
+from sqlalchemy import func, and_
 
 from app.modules.note.infrastructure.models import Note
-from app.modules.tag.infrastructure.models import Tag
+from app.modules.tag.infrastructure.models import Tag, notetag
 
 
 class TagRepository(Repository):
@@ -14,17 +14,31 @@ class TagRepository(Repository):
         return self.db.query(self.DB_MODEL).all()
 
     def list_tags_with_note_count(self, total) -> List:
-        filtered_tags = list()
+        # 태그별 non-deleted 노트 수를 서브쿼리로 직접 집계
+        note_count_subq = (
+            self.db.query(
+                notetag.c.tag_id,
+                func.count(Note.pk).label("note_count")
+            )
+            .join(Note, and_(Note.pk == notetag.c.note_id, Note.is_deleted == False))
+            .group_by(notetag.c.tag_id)
+            .subquery()
+        )
 
-        tags = self.db.query(self.DB_MODEL).options(joinedload(self.DB_MODEL.notes)).all()
-        for tag in tags:
-            note_count = len(getattr(tag, "notes", []))
-            if note_count:
-                tag.count = note_count
-                filtered_tags.append(tag)
+        results = (
+            self.db.query(self.DB_MODEL, note_count_subq.c.note_count)
+            .join(note_count_subq, note_count_subq.c.tag_id == self.DB_MODEL.pk)
+            .all()
+        )
+
+        filtered_tags = []
+        for tag, count in results:
+            tag.count = count
+            filtered_tags.append(tag)
 
         if total:
             all_tag = Tag(keyword="전체")
-            all_tag.count = self.db.query(Note).count()
+            all_tag.count = self.db.query(Note).filter(Note.is_deleted == False).count()
             filtered_tags = [all_tag] + filtered_tags
+
         return filtered_tags

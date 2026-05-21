@@ -8,7 +8,7 @@ from app.modules.tag.infrastructure.models import Tag
 class NoteRepository(Repository):
     DB_MODEL = Note
 
-    def list_by_user_id(self, user_id: int, is_deleted=False, tag=None, sort=None):
+    def list_note_by_user_id(self, user_id: int, is_deleted=False, tag=None, sort=None):
         queryset = self.db.query(self.DB_MODEL).filter(
             self.DB_MODEL.user_id == user_id,
             self.DB_MODEL.is_deleted == is_deleted,
