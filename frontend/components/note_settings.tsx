@@ -1,4 +1,4 @@
-import {FiCopy, FiX, FiLayout} from "react-icons/fi";
+import {FiCopy, FiLayout, FiX} from "react-icons/fi";
 import {apiRequest} from "@/lib/api";
 import toast from "react-hot-toast";
 import NoteTagInput from "@/components/note_tag_input";
@@ -48,6 +48,7 @@ export const NoteSettings = ({
 
     const deleteNote = async () => {
         await apiRequest.delete(`/notes/${noteId}`).then(() => {
+            toast.success("노트가 삭제되었습니다.")
             window.location.href = "/"
         })
     }
@@ -55,8 +56,8 @@ export const NoteSettings = ({
     return (
         <>
             <div className={`w-full md:w-[50vw] sm:w-[7vw] lg:w-[25vw] bg-white fixed flex flex-col right-0 top-0 h-screen border-l border-[#ededed] shadow-xl
-              transform transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] z-11
-              ${isOpenedSetting ? "translate-x-0" : "translate-x-full"}`}>
+                transform transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] z-11
+                ${isOpenedSetting ? "translate-x-0" : "translate-x-full"}`}>
                 <div className="flex flex-col p-5 w-full">
                     <div className="flex flex-row justify-between mb-5">
                         <h5 className="font-bold">노트 설정</h5>
@@ -65,6 +66,17 @@ export const NoteSettings = ({
                             <FiX size={22}/>
                         </button>
                     </div>
+                </div>
+
+                {/* 템플릿 관리 */}
+                <div className="p-5 border-y border-[#ededed]">
+                    <button
+                        onClick={() => setTemplateModalOpen(true)}
+                        className="w-full flex cursor-pointer items-center justify-center gap-2 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                        <FiLayout size={16}/>
+                        템플릿 관리
+                    </button>
                 </div>
 
                 {/* 외부 공개 */}
@@ -115,16 +127,8 @@ export const NoteSettings = ({
                 {/* 태그 */}
                 <NoteTagInput selectedTags={selectedTags} setSelectedTags={setSelectedTags}/>
 
-                {/* 템플릿 관리 */}
-                <div className="p-5 border-b border-[#ededed]">
-                    <button
-                        onClick={() => setTemplateModalOpen(true)}
-                        className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                    >
-                        <FiLayout size={16}/>
-                        템플릿 관리
-                    </button>
-                </div>
+                {/* 회원 공개 */}
+                {/*<NoteTagInput selectedTags={selectedTags} setSelectedTags={setSelectedTags}/>*/}
 
                 {/* 삭제 */}
                 {!isProtected && (
@@ -143,8 +147,8 @@ export const NoteSettings = ({
                 isOpen={templateModalOpen}
                 onClose={() => {
                     setTemplateModalOpen(false)
-                    afterApplyTemplate()
                 }}
+                afterApplyTemplate={afterApplyTemplate}
                 currentTitle={currentTitle}
                 currentContent={currentContent}
 

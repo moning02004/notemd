@@ -21,6 +21,7 @@ interface Props {
 
     setTitle: Dispatch<SetStateAction<string>>;
     setContent: Dispatch<SetStateAction<string>>;
+    afterApplyTemplate: () => void;
 }
 
 type SaveForm = {
@@ -31,7 +32,7 @@ type SaveForm = {
 }
 
 export const TemplateManageModal = (
-    {isOpen, onClose, currentTitle, currentContent, setTitle, setContent}: Props) => {
+    {isOpen, onClose, currentTitle, currentContent, setTitle, setContent, afterApplyTemplate}: Props) => {
 
     const [templates, setTemplates] = useState<Template[]>([])
     const [previewId, setPreviewId] = useState(null)
@@ -91,6 +92,7 @@ export const TemplateManageModal = (
         setContent(template.content)
         toast.success(`"${template.name}" 템플릿이 적용되었습니다.`)
         onClose()
+        afterApplyTemplate()
     }
 
     const previewTemplate = templates.find(t => t.hash_id === previewId)

@@ -1,15 +1,12 @@
 import {LuEllipsisVertical} from "react-icons/lu";
 import {Drawer} from "vaul";
 import {apiRequest} from "@/lib/api";
+import toast from "react-hot-toast";
 
 export const NoteMenu = ({noteId, canDelete}: { noteId: string, canDelete: boolean }) => {
     const deleteNote = () => {
-        if (!confirm("정말로 이 노트를 삭제하시겠습니까?")) {
-            return;
-        }
-
         apiRequest.delete(`/notes/${noteId}`).then(() => {
-            alert("노트가 삭제되었습니다.");
+            toast.success("노트가 삭제되었습니다.")
             window.location.reload()
         })
     }
@@ -37,8 +34,7 @@ export const NoteMenu = ({noteId, canDelete}: { noteId: string, canDelete: boole
                         </button>
                         {canDelete && <button
                             className="w-full p-2 text-left hover:bg-[#efefef] cursor-pointer rounded border-b border-[#ededed] text-red-600"
-                            onClick={deleteNote}
-                        >삭제
+                            onClick={deleteNote}>삭제
                         </button>}
                         <Drawer.Close
                             className="w-full p-2 hover:bg-[#efefef] rounded cursor-pointer text-left">취소</Drawer.Close>
