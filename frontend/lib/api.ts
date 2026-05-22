@@ -4,7 +4,10 @@ import {authLogout} from "@/lib/auth";
 
 type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 
-async function request<T = unknown>(endPoint: string, method: HttpMethod, options: RequestInit = {}, contentType?: string | null): Promise<T> {
+async function request<T = unknown>(endPoint: string,
+                                    method: HttpMethod,
+                                    options: RequestInit = {},
+                                    contentType?: string | null): Promise<T> {
     const {token, setAuth} = useAuthStore.getState();
 
     const headers = {
@@ -14,6 +17,7 @@ async function request<T = unknown>(endPoint: string, method: HttpMethod, option
             "Content-Type": "application/json",
         }),
     };
+    console.log(headers)
     let res = await fetch(`${API_HOST}${endPoint}`, {
         ...options,
         method,

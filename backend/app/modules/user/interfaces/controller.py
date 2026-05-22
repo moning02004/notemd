@@ -72,7 +72,7 @@ def refresh_token(response: Response, refreshtoken: str = Cookie(...)):
 
 
 @router.delete("/auth/token")
-def delete_refresh_token(response: Response, refreshtoken: str = Cookie(...)):
+def delete_refresh_token(response: Response, refreshtoken: str = Cookie(default=None)):
     response.delete_cookie(
         key="refreshtoken",
     )
