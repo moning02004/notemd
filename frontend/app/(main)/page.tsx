@@ -1,55 +1,55 @@
+// page.tsx
 "use client"
 
-import {Suspense, useEffect, useState} from "react";
-import {useRouter, useSearchParams} from "next/navigation";
-import {FiPlus} from "react-icons/fi";
-import {useAuthStore} from "@/store/auth";
-import {NoteCard, Tag} from "@/types/note";
-import {apiRequest} from "@/lib/api";
-import {gotoNote} from "@/lib/note";
-import {Note} from "@/components/note";
-import {LoadingPage} from "@/components/loading";
-import NoteFilterBar from "@/components/note_filterbar";
+import {Suspense, useEffect, useRef} from "react"
+import {useRouter, useSearchParams} from "next/navigation"
+import {FiPlus} from "react-icons/fi"
+import {useAuthStore} from "@/store/auth"
+import {gotoNote} from "@/lib/note"
+import {Note} from "@/components/note"
+import {LoadingPage} from "@/components/loading"
+import NoteFilterBar from "@/components/note_filterbar"
+import {useInfiniteNotes} from "@/hooks/useNotes"
+import {useTags} from "@/hooks/useTags"
 
 function NoteListContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const {token} = useAuthStore.getState()
 
-    const [notes, setNotes] = useState<NoteCard[]>([])
-    const [tags, setTags] = useState<Tag[]>([])
-    const [isLoading, setIsLoading] = useState(true)
+    const {data: tagsData} = useTags()
+    const {
+        data,
+        isLoading,
+        isFetchingNextPage,
+        hasNextPage,
+        fetchNextPage,
+    } = useInfiniteNotes(searchParams.toString())
+
+    const sentinelRef = useRef<HTMLDivElement>(null)
+    useEffect(() => {
+        const el = sentinelRef.current
+        if (!el) return
+
+        const observer = new IntersectionObserver(
+            ([entry]) => { if (entry.isIntersecting && hasNextPage) fetchNextPage() },
+            {threshold: 0.1}
+        )
+        observer.observe(el)
+        return () => observer.disconnect()
+    }, [hasNextPage, fetchNextPage])
 
     useEffect(() => {
-        if (!token) {
-            router.replace("/login")
-            return
-        }
-        fetchTagData()
-    }, [])
-
-    useEffect(() => {
-        if (!token) return
-        fetchNoteData(searchParams.toString() ? `?${searchParams.toString()}` : "")
-    }, [searchParams])
-
-    const fetchNoteData = async (params = "") => {
-        setIsLoading(true)
-        const data = await apiRequest.get<NoteCard[]>(`/notes${params}`)
-        setNotes(data)
-        setIsLoading(false)
-    }
-
-    const fetchTagData = async () => {
-        const data = await apiRequest.get<Tag[]>("/tags")
-        setTags(data)
-    }
+        if (!token) router.replace("/login")
+    }, [token])
 
     if (!token) return <LoadingPage/>
 
+    const notes = data?.pages.flat() ?? []
+
     return (
         <>
-            <NoteFilterBar tags={tags}/>
+            <NoteFilterBar tags={tagsData ?? []}/>
 
             <div className="min-h-full pt-5 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-5">
                 {isLoading
@@ -71,6 +71,10 @@ function NoteListContent() {
                 }
             </div>
 
+            <div ref={sentinelRef} className="py-4 flex justify-center">
+                {isFetchingNextPage && <SkeletonCards count={4}/>}
+            </div>
+
             <button
                 onClick={() => gotoNote({id: null, router})}
                 className="fixed right-0 bottom-[9vh] m-6 p-4 bg-white border rounded-full shadow-lg
@@ -82,10 +86,10 @@ function NoteListContent() {
     )
 }
 
-function SkeletonCards() {
+function SkeletonCards({count = 8}: {count?: number}) {
     return (
         <>
-            {Array.from({length: 8}).map((_, i) => (
+            {Array.from({length: count}).map((_, i) => (
                 <div key={i} className="mx-3 rounded w-[90%] h-[7rem] md:h-[17rem] bg-gray-200 animate-pulse"/>
             ))}
         </>
