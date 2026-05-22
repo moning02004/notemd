@@ -39,10 +39,6 @@ function NoteListContent() {
         return () => observer.disconnect()
     }, [hasNextPage, fetchNextPage])
 
-    useEffect(() => {
-        if (!token) router.replace("/login")
-    }, [token])
-
     if (!token) return <LoadingPage/>
 
     const notes = data?.pages.flat() ?? []

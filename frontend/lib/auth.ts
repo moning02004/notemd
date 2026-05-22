@@ -6,5 +6,5 @@ export const authLogout = async () => {
 
     apiRequest.delete("/auth/token")
     logout()
-    window.location.replace("/")
+    window.location.replace("/login")
 }

@@ -20,27 +20,33 @@ async function request<T = unknown>(endPoint: string, method: HttpMethod, option
         headers,
         credentials: "include",
     });
-    let responseData = await res.json().catch(() => null);
 
+    let responseData = await res.json().catch(() => null);
     if (res.status === 401) {
         const refreshRes = await fetch(`${API_HOST}/auth/refresh-token`, {
             method: "POST",
             credentials: "include",
-        });
+            headers: {"Content-Type": "application/json"},
+        })
 
         if (refreshRes.ok) {
             const data = await refreshRes.json();
             setAuth(data.access_token, data.user_id);
 
             headers.Authorization = `Bearer ${data.access_token}`;
-            res = await fetch(endPoint, {...options, method, headers});
+            res = await fetch(`${API_HOST}${endPoint}`, {
+                ...options,
+                method,
+                headers,
+                credentials: "include",
+            });
             responseData = await res.json().catch(() => null);
         } else {
             authLogout();
             throw new Error("세션이 만료되었습니다. 다시 로그인해주세요.");
         }
     } else if (res.status.toString().startsWith("4")) {
-        throw new Error("에러가 발생했습니다.");
+        throw new Error("에러가 발생했습니다.")
     }
 
     return responseData as T;
