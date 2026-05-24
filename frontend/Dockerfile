@@ -8,10 +8,10 @@ WORKDIR /app
 ARG NEXT_PUBLIC_API_HOST
 ENV NEXT_PUBLIC_API_HOST=$NEXT_PUBLIC_API_HOST
 
-COPY package.json package-lock.json ./
+COPY package.json ./
 
 RUN --mount=type=cache,id=npm-cache,target=/root/.npm \
-    npm ci
+    npm install
 
 COPY . .
 
