@@ -13,7 +13,9 @@ export default function MainLayout({children}: {
 
     if (!token) return (
         <div className="bg-white h-screen">
-            {children}
+            <Providers>
+                {children}
+            </Providers>
         </div>
     )
 
