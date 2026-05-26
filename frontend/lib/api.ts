@@ -17,7 +17,7 @@ async function request<T = unknown>(endPoint: string,
             "Content-Type": "application/json",
         }),
     };
-    console.log(headers)
+
     let res = await fetch(`${API_HOST}${endPoint}`, {
         ...options,
         method,
