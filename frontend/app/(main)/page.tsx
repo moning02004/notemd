@@ -2,7 +2,7 @@
 "use client"
 
 import {Suspense, useEffect, useRef} from "react"
-import {useRouter, useSearchParams} from "next/navigation"
+import {redirect, useRouter, useSearchParams} from "next/navigation"
 import {FiPlus} from "react-icons/fi"
 import {useAuthStore} from "@/store/auth"
 import {gotoNote} from "@/lib/note"
@@ -15,7 +15,6 @@ import {useTags} from "@/hooks/useTags"
 function NoteListContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const {token} = useAuthStore.getState()
 
     const {data: tagsData} = useTags()
     const {
@@ -32,14 +31,15 @@ function NoteListContent() {
         if (!el) return
 
         const observer = new IntersectionObserver(
-            ([entry]) => { if (entry.isIntersecting && hasNextPage) fetchNextPage() },
+            ([entry]) => {
+                if (entry.isIntersecting && hasNextPage) fetchNextPage()
+            },
             {threshold: 0.1}
         )
         observer.observe(el)
         return () => observer.disconnect()
     }, [hasNextPage, fetchNextPage])
 
-    if (!token) return <LoadingPage/>
 
     const notes = data?.pages.flat() ?? []
 
@@ -82,7 +82,7 @@ function NoteListContent() {
     )
 }
 
-function SkeletonCards({count = 8}: {count?: number}) {
+function SkeletonCards({count = 8}: { count?: number }) {
     return (
         <>
             {Array.from({length: count}).map((_, i) => (
@@ -93,6 +93,17 @@ function SkeletonCards({count = 8}: {count?: number}) {
 }
 
 export default function Page() {
+    const router = useRouter()
+    const token = useAuthStore((state) => state.token) // 상태 변화 구독
+
+    useEffect(() => {
+        if (!token) {
+            router.replace("/login")
+        }
+    }, [token])
+
+    if (!token) return <LoadingPage />
+
     return (
         <Suspense fallback={<LoadingPage/>}>
             <NoteListContent/>
