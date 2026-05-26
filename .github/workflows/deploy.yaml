@@ -35,3 +35,5 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/notemd_frontend:${{ github.event.release.tag_name }}
             ${{ secrets.DOCKERHUB_USERNAME }}/notemd_frontend:latest
+          build-args: |
+            NEXT_PUBLIC_API_HOST=${{ secrets.NEXT_PUBLIC_API_HOST }}
