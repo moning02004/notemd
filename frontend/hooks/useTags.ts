@@ -1,4 +1,3 @@
-// hooks/useTags.ts
 import {useQuery} from "@tanstack/react-query"
 import {apiRequest} from "@/lib/api"
 import {Tag} from "@/types/note"
