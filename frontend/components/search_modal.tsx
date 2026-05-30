@@ -30,8 +30,7 @@ export const SearchModal = (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/30" onClick={onClose}/>
 
-            <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 flex flex-col h-[80vh]">
-                {/* 헤더 */}
+            <div className="relative bg-white md:rounded-xl shadow-2xl w-full max-w-2xl md:mx-4 flex flex-col md:h-[90vh] h-[100vh]">
                 <div className="flex items-center justify-between py-4 border-b border-gray-100">
                     <button onClick={onClose} className="md:hidden block p-3 hover:bg-gray-100 rounded-md transition-colors">
                         <FiArrowLeft size={20}/>
