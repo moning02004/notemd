@@ -1,4 +1,4 @@
-import {useEditor} from "@tiptap/react";
+import {NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, useEditor} from "@tiptap/react";
 
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import {createLowlight} from "lowlight";
@@ -46,13 +46,38 @@ import {TaskItem, TaskList} from "@tiptap/extension-list";
 import FileHandler from "@tiptap/extension-file-handler";
 import Paragraph from '@tiptap/extension-paragraph'
 import Heading from "@tiptap/extension-heading";
+import {useState} from "react";
 
+// 버튼 컴포넌트
+const CodeBlockComponent = ({node}) => {
+    const [copied, setCopied] = useState(false)
+    const language = node.attrs.language || 'text'
+
+    const handleCopy = () => {
+        const code = node.textContent
+        navigator.clipboard.writeText(code).then(() => {
+            setCopied(true)
+            setTimeout(() => setCopied(false), 1000)
+        })
+    }
+
+    return (
+        <NodeViewWrapper>
+            <pre data-language={language}>
+                <button className="copy-code-btn" onClick={handleCopy} contentEditable={false}>
+                    {copied ? 'Copied!' : 'Copy'}
+                </button>
+                <NodeViewContent className={`language-${language}`}/>
+            </pre>
+        </NodeViewWrapper>
+    )
+}
 export const CustomCodeBlock = CodeBlockLowlight.extend({
     addKeyboardShortcuts() {
         return {
             Tab: ({editor}) => {
                 if (editor.isActive('codeBlock')) {
-                    editor.commands.insertContent('    ') // 공백 2칸
+                    editor.commands.insertContent('    ')
                     return true
                 }
                 return false
@@ -61,13 +86,11 @@ export const CustomCodeBlock = CodeBlockLowlight.extend({
             'Shift-Tab': ({editor}) => {
                 if (editor.isActive('codeBlock')) {
                     const {state, dispatch} = editor.view
-                    const {from, to} = state.selection
+                    const {from} = state.selection
 
                     const text = state.doc.textBetween(from - 4, from)
                     if (text === '    ') {
-                        dispatch(
-                            state.tr.delete(from - 2, from)
-                        )
+                        dispatch(state.tr.delete(from - 4, from))
                     }
 
                     return true
@@ -77,23 +100,8 @@ export const CustomCodeBlock = CodeBlockLowlight.extend({
         }
     },
 
-    renderHTML({node, HTMLAttributes}) {
-        const language = node.attrs.language || 'text'
-
-        return [
-            'pre',
-            {
-                'data-language': language,
-            },
-            [
-                'code',
-                {
-                    ...HTMLAttributes,
-                    class: `language-${language}`,
-                },
-                0,
-            ],
-        ]
+    addNodeView() {
+        return ReactNodeViewRenderer(CodeBlockComponent)
     },
 })
 
