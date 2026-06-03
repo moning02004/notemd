@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, field_serializer
 
 
 class QueryParams(BaseModel):
-    keyword: str | None = Query(None, min_length=2)
+    keyword: str | None = Query(None, min_length=1)
     tag: str | None = Query(None)
     sort: str | None = Query("-updated_at")
     is_deleted: int = Query(0)
