@@ -23,8 +23,8 @@ def list_notes(user=Depends(get_current_user), db=Depends(get_db), query: QueryP
                                    sort=query.sort,
                                    page=query.page)
     else:
-        notes = search_service.search_notes(query=query.keyword, repository=repository)
-        print(notes)
+        note_hash_ids = search_service.search_notes(query=query.keyword, user_hash=user.hash_id)
+        notes = service.list_notes_by_hash_ids(user_id=user.pk, hash_ids=note_hash_ids)
     return notes
 
 
@@ -41,6 +41,7 @@ def get_note(note_id: str, user=Depends(get_user_or_none), db=Depends(get_db)):
     repository = NoteRepository(db)
     service = NoteService(repository)
     note = service.get_note_by_hash_id(user_id=user and user.pk, note_id=note_id)
+    search_service.index_or_pass(note)
     if note is None:
         raise HTTPException(status_code=404, detail="노트를 찾을 수 없습니다.")
     return note
