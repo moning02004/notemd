@@ -1,6 +1,7 @@
 import importlib
 import logging
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,6 +10,7 @@ from starlette.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.middlewares.token import AuthTokenMiddleware
+from app.core.search.index import ensure_index
 from app.modules.note.interfaces.controller import router as note_router
 from app.modules.template.interfaces.controller import router as template_router
 from app.modules.user.interfaces.controller import router as auth_router
@@ -21,9 +23,19 @@ for module in modules:
     except ModuleNotFoundError:
         continue
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # print("123123123")
+    ensure_index()
+    yield
+
+
 auth_header = APIKeyHeader(name="Authorization", auto_error=False)
+
 app = FastAPI(
-    dependencies=[Depends(auth_header)]
+    dependencies=[Depends(auth_header)],
+    lifespan=lifespan
 )
 
 app.add_middleware(

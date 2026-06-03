@@ -56,24 +56,13 @@ class NoteService(Service):
         }
 
     def soft_delete_note(self, user_id: int, note_id: str):
-        note = self.repository.get_by_hash_id_and_user_id(user_id=user_id, hash_id=note_id)
-        if note:
-            note.is_deleted = True
-            self.repository.db.commit()
-            self.repository.db.refresh(note)
+        note = self.repository.soft_delete_note(user_id=user_id, hash_id=note_id)
         return note
 
     def hard_delete_note(self, user_id: int, note_id: str):
-        note = self.repository.get_by_hash_id_and_user_id(user_id=user_id, hash_id=note_id)
-        if note:
-            self.repository.db.delete(note)
-            self.repository.db.commit()
+        note = self.repository.hard_delete_note(user_id=user_id, hash_id=note_id)
         return note
 
     def restore_note(self, user_id: int, note_id: str):
-        note = self.repository.get_by_hash_id_and_user_id(user_id=user_id, hash_id=note_id)
-        if note and note.is_deleted:
-            note.is_deleted = False
-            self.repository.db.commit()
-            self.repository.db.refresh(note)
+        note = self.repository.restore_note(user_id=user_id, hash_id=note_id)
         return note
