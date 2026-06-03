@@ -15,6 +15,10 @@ class NoteService(Service):
         notes = self.repository.list_note_by_user_id(user_id, is_deleted, tag, sort, page)
         return notes
 
+    def list_notes_by_hash_ids(self, user_id: int, hash_ids: list) -> List[NoteEntity]:
+        notes = self.repository.get_by_hash_ids_and_user_id(user_id, hash_ids=hash_ids)
+        return notes
+
     def create_default_note(self, user_id: int):
         default_note = NoteEntity(
             user_id=user_id,

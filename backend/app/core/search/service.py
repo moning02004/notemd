@@ -1,7 +1,9 @@
 import os
+import re
 
 from opensearchpy import NotFoundError
 from app.core.search.client import get_opensearch_client
+from app.modules.note.infrastructure.models import Note
 
 
 # ── 삽입 (신규 노트) ───────────────────────────────────
@@ -32,14 +34,32 @@ def delete_note(note_hash: str):
         pass  # 이미 없으면 무시
 
 
+def index_or_pass(note: Note):
+    if get_opensearch_client().exists(index=os.environ["OPENSEARCH_INDEX_NAME"],
+                                      id=note.hash_id):
+        return
+
+    create_note_for_search(
+        note_hash=note.hash_id,
+        data={
+            "note_hash": note.hash_id,
+            "user_hash": note.user.hash_id,
+            "title": note.title,
+            "content": re.sub(r'<[^>]+>', '', note.content),
+            "is_deleted": note.is_deleted,
+            "created_at": note.created_at,
+            "updated_at": note.updated_at,
+        }
+    )
+
+
 # ── 검색 ──────────────────────────────────────────────
 def search_notes(
         query: str,
-        user_id: int,
-        note_repository: str | None = None,
+        user_hash: str,
         page: int = 1,
         size: int = 20,
-) -> dict:
+) -> list:
     body = {
         "query": {
             "bool": {
@@ -48,11 +68,13 @@ def search_notes(
                         "multi_match": {
                             "query": query,
                             "fields": ["full_text"],
+                            "analyzer": "korean_ngram"
                         }
                     }
                 ],
                 "filter": [
-                    {"term": {"is_deleted": False}}
+                    {"term": {"is_deleted": False}},
+                    {"term": {"user_hash": user_hash}}
                 ],
             }
         },
@@ -64,7 +86,7 @@ def search_notes(
         # },
         "from": (page - 1) * size,
         "size": size,
-        "sort": [{"_score": "desc"}, {"id": "acs"}],
+        "sort": [{"_score": "desc"}, {"updated_at": "desc"}],
     }
 
     result = get_opensearch_client().search(index=os.environ["OPENSEARCH_INDEX_NAME"], body=body)
