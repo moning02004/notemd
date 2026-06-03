@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 
+from app.core.search import service as search_service
 from app.core.session import get_db
 from app.core.storages import get_storage
 from app.modules.note.application.service import NoteService
 from app.modules.note.infrastructure.repository import NoteRepository
 from app.modules.note.interfaces.schemas import NoteListSchema, NoteCreateSchema, \
-    NoteDetailSchema, NoteUpdateRequest, DefaultNoteRequest, QueryParams, get_query_params
+    NoteDetailSchema, NoteUpdateRequest, QueryParams, get_query_params
 from app.modules.user.application.service import get_current_user, get_user_or_none
 
 router = APIRouter(prefix="/notes", tags=["Notes"])
@@ -15,11 +16,15 @@ router = APIRouter(prefix="/notes", tags=["Notes"])
 def list_notes(user=Depends(get_current_user), db=Depends(get_db), query: QueryParams = Depends(get_query_params)):
     repository = NoteRepository(db)
     service = NoteService(repository)
-    notes = service.list_notes(user_id=user.pk,
-                               is_deleted=bool(query.is_deleted),
-                               tag=query.tag,
-                               sort=query.sort,
-                               page=query.page)
+    if query.keyword is None:
+        notes = service.list_notes(user_id=user.pk,
+                                   is_deleted=bool(query.is_deleted),
+                                   tag=query.tag,
+                                   sort=query.sort,
+                                   page=query.page)
+    else:
+        notes = search_service.search_notes(query=query.keyword, repository=repository)
+        print(notes)
     return notes
 
 

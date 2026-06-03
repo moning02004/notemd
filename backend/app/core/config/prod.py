@@ -6,6 +6,11 @@ from app.core.config.base import BaseAbstractSettings
 class Settings(BaseAbstractSettings):
     SECRET_KEY: str = os.environ["SECRET_KEY"]
 
+    OPENSEARCH_HOST: str = os.environ["OPENSEARCH_HOST"],
+    OPENSEARCH_PORT: int = os.environ["OPENSEARCH_PORT"],
+    OPENSEARCH_USER: str = os.environ["OPENSEARCH_USER"],
+    OPENSEARCH_PASSWORD: str = os.environ["OPENSEARCH_PASSWORD"]
+
     # Database settings
     DATABASE = {
         "driver": "postgresql",
