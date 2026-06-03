@@ -2,6 +2,8 @@ import {useEffect, useRef, useState} from "react";
 import {FiArrowLeft, FiX} from "react-icons/fi";
 import {apiRequest} from "@/lib/api";
 import DOMPurify from "dompurify";
+import {gotoNote} from "@/lib/note";
+import {useRouter} from "next/navigation";
 
 interface NoteResponse {
     hash_id: string | null
@@ -32,6 +34,8 @@ const SkeletonItem = () => (
 );
 
 export const SearchModal = ({isOpen, onClose}: Props) => {
+    const router = useRouter();
+
     const keywordRef = useRef(null)
     const [keyword, setKeyword] = useState("")
     const [results, setResults] = useState<NoteResponse[]>([])
@@ -89,7 +93,7 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
                     <div className="w-full py-2 border-b mx-3 relative group">
                         <input
                             ref={keywordRef}
-                            onKeyUp={(e) => setKeyword(e.currentTarget.value)}
+                            onKeyUp={(e) => setKeyword(e.currentTarget.value.trim())}
                             className="w-full outline-0 "
                             placeholder="검색"
                             autoFocus={true}
@@ -117,6 +121,7 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
                             <div
                                 key={note.hash_id}
                                 className="hover:bg-gray-100 w-full border-b border-gray-200 p-3 cursor-pointer"
+                                onClick={() => gotoNote({id: note.hash_id, router})}
                             >
                                 <div className="flex flex-row">
                                     <div className="border-r border-gray-200 flex-1 pr-2">
