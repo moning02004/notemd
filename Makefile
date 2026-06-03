@@ -1,9 +1,13 @@
 LOCAL_COMPOSE_FILE = docker-compose.local.yaml
 LOG_SERVICE ?=
+SERVICE ?=
 
 # Docker Compose 실행
 up:
-	docker-compose -f $(LOCAL_COMPOSE_FILE) up -d
+	docker-compose -f $(LOCAL_COMPOSE_FILE) up -d --remove-orphans
+
+upa:
+	docker-compose -f $(LOCAL_COMPOSE_FILE) up $(SERVICE)
 
 # Docker Compose 실행
 up-build:
@@ -28,4 +32,12 @@ makemigrations:
 migrate:
 	docker exec -it notemd-backend python3 manage.py migrate
 
-.PHONY: build up up-build  down logs migrate makemigrations
+ps:
+	docker-compose -f $(LOCAL_COMPOSE_FILE) ps -a
+
+
+restart:
+	docker-compose -f $(LOCAL_COMPOSE_FILE) restart backend
+
+
+.PHONY: build upd up up-build  down logs migrate makemigrations ps
