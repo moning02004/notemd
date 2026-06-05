@@ -1,22 +1,39 @@
+import re
+from dataclasses import asdict
 from typing import List
 
 from fastapi_clean_archi.core.commons.service import Service
 
-from app.modules.note.domain.entity import NoteEntity
+from app.modules.note.domain.entity import NoteEntity, NoteDocument
 
 
 class NoteService(Service):
 
-    def __init__(self, repository, storage=None):
+    def __init__(self, repository, search_service=None, storage=None):
         super().__init__(repository)
         self.storage = storage
+        self.search_service = search_service
 
-    def list_notes(self, user_id: int, is_deleted: bool, page: int, tag: str | None = None, sort: str | None = None) -> List[NoteEntity]:
-        notes = self.repository.list_note_by_user_id(user_id, is_deleted, tag, sort, page)
-        return notes
+    def indexing_note(self, note):
+        note_document = NoteDocument(
+            id=note.hash_id,
+            title=note.title,
+            content=re.sub(r"<[^>]+>", "", note.content or ""),
+            tags=[x.keyword for x in note.tags],
+            user_hash=note.user.hash_id,
+            created_at=note.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            updated_at=note.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
+        )
+        self.search_service.add_to_index(asdict(note_document))
 
-    def list_notes_by_hash_ids(self, user_id: int, hash_ids: list) -> List[NoteEntity]:
-        notes = self.repository.get_by_hash_ids_and_user_id(user_id, hash_ids=hash_ids)
+    def list_notes(self, user_hash: str, keyword: str, is_deleted: bool, page: int, tag: str | None = None,
+                   sort: str | None = None) -> \
+            List[NoteEntity]:
+        if keyword is None:
+            notes = self.repository.list_note_by_user_hash(user_hash, is_deleted, tag, sort, page)
+        else:
+            note_hashes = self.search_service.find_documents(keyword, user_hash, sort, page)
+            notes = self.repository.get_by_hash_ids_and_user_id(user_hash, note_hashes)
         return notes
 
     def create_default_note(self, user_id: int):
@@ -25,48 +42,52 @@ class NoteService(Service):
             title="",
             content=""
         )
-        return self.repository.create_note(default_note)
-
-    def get_note_by_hash_id(self, user_id: int | None, note_id: str):
-        note = self.repository.get_by_hash_id(hash_id=note_id)
-        if note is None:
-            return None
-
-        if not note.is_public and user_id is None:
-            return None
-
-        if not note.is_public and user_id is None:
-            return None
-
-        if user_id and note.user_id != user_id:
-            return None
-
+        note = self.repository.create_note(default_note)
+        self.indexing_note(note)
         return note
 
-    def update_note(self, user_id: int, note_id: str, request):
-        return self.repository.update_note(user_id=user_id, hash_id=note_id, request=request)
+    def get_note_by_hash_id(self, user_id: int | None, note_hash: str):
+        note = self.repository.get_by_hash_id(hash_id=note_hash)
 
-    async def create_note_image(self, user_id, note_id: str, file):
-        note = self.repository.get_by_hash_id(hash_id=note_id)
+        if note is None:
+            return None
+        if not note.is_public and user_id is None:
+            return None
+        if not note.is_public and user_id is None:
+            return None
+        if user_id and note.user_id != user_id:
+            return None
+        return note
+
+    def update_note(self, user_id: int, note_hash: str, request):
+        note = self.repository.update_note(user_id=user_id, hash_id=note_hash, request=request)
+        self.indexing_note(note)
+        return note
+
+    def soft_delete_note(self, user_id: int, note_hash: str):
+        note = self.repository.soft_delete_note(user_id=user_id, hash_id=note_hash)
+        self.indexing_note(note)
+        return note
+
+    def hard_delete_note(self, user_id: int, note_hash: str):
+        note = self.repository.hard_delete_note(user_id=user_id, hash_id=note_hash)
+        self.search_service.delete_from_index(doc_id=note_hash)
+        return note
+
+    def restore_note(self, user_id: int, note_hash: str):
+        note = self.repository.restore_note(user_id=user_id, hash_id=note_hash)
+        self.indexing_note(note)
+        return note
+
+    async def create_note_image(self, user_id, note_hash: str, file):
+        note = self.repository.get_by_hash_id(hash_id=note_hash)
         if note is None:
             raise ValueError("노트를 찾을 수 없습니다.")
 
         if note.user_id != user_id:
             raise ValueError("노트를 찾을 수 없습니다.")
 
-        filepath = await self.storage.save(file, note_id=note_id)
+        filepath = await self.storage.save(file, note_hash=note_hash)
         return {
             "url": filepath
         }
-
-    def soft_delete_note(self, user_id: int, note_id: str):
-        note = self.repository.soft_delete_note(user_id=user_id, hash_id=note_id)
-        return note
-
-    def hard_delete_note(self, user_id: int, note_id: str):
-        note = self.repository.hard_delete_note(user_id=user_id, hash_id=note_id)
-        return note
-
-    def restore_note(self, user_id: int, note_id: str):
-        note = self.repository.restore_note(user_id=user_id, hash_id=note_id)
-        return note

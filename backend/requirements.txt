@@ -11,4 +11,4 @@ uvicorn[standard]>=0.27.1
 celery[redis]==5.3.6
 flower==2.0.1
 redis==5.0.1
-opensearch-py
+meilisearch
