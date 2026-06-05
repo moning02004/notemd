@@ -14,6 +14,10 @@ class BaseAbstractSettings(AbstractSettings):
     # Application settings
     DEBUG: bool = os.environ.get("DEBUG", "true").lower() == "true"
 
+    MEILISEARCH_URL = os.environ.get("MEILISEARCH_URL")
+    MEILISEARCH_MASTER_KEY = os.environ.get("MEILISEARCH_MASTER_KEY", "")
+    MEILISEARCH_INDEX_UID = os.environ.get("MEILISEARCH_INDEX_UID")
+
     # storage
     STORAGE = {
         "type": "local",

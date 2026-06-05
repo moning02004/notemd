@@ -6,11 +6,6 @@ os.environ.setdefault("FRONTEND_URL", "http://localhost:3000")
 class Settings(BaseAbstractSettings):
     SECRET_KEY: str = "abcabc"
 
-    OPENSEARCH_HOST: str = os.environ["OPENSEARCH_HOST"],
-    OPENSEARCH_PORT: int = os.environ["OPENSEARCH_PORT"],
-    OPENSEARCH_USER: str = os.environ["OPENSEARCH_USER"],
-    OPENSEARCH_PASSWORD: str = os.environ["OPENSEARCH_PASSWORD"]
-
     # Database settings
     DATABASE = {
         "driver": "postgresql",

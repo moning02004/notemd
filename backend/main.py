@@ -1,5 +1,4 @@
 import importlib
-import logging
 import os
 from contextlib import asynccontextmanager
 
@@ -10,11 +9,11 @@ from starlette.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.middlewares.token import AuthTokenMiddleware
-from app.core.search.index import ensure_index
 from app.modules.note.interfaces.controller import router as note_router
+from app.modules.search.infrastructure.repository import SearchRepository
+from app.modules.tag.interfaces.controller import router as tag_router
 from app.modules.template.interfaces.controller import router as template_router
 from app.modules.user.interfaces.controller import router as auth_router
-from app.modules.tag.interfaces.controller import router as tag_router
 
 modules = os.listdir("app/modules")
 for module in modules:
@@ -26,8 +25,7 @@ for module in modules:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # print("123123123")
-    ensure_index()
+    SearchRepository().ensure_index()
     yield
 
 

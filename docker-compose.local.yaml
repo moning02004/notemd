@@ -37,16 +37,14 @@ services:
       DB_USER: "admin"
       DB_PASSWORD: "admin123!"
 
-      OPENSEARCH_HOST: "opensearch"
-      OPENSEARCH_PORT: 9200
-      OPENSEARCH_USER: "admin"
-      OPENSEARCH_PASSWORD: "NoteMdSearch!2026#Alpha"
-      OPENSEARCH_INDEX_NAME: "notemd_1"
+      MEILISEARCH_URL: "http://meilisearch:7700"
+      MEILISEARCH_MASTER_KEY: 6547723aae4112da0be104ad3ec45cf2057cd6baa3c63dc4a0ad9dbb3e9ff45b
+      MEILISEARCH_INDEX_UID: "notes"
     ports:
       - "8002:8000"
     depends_on:
       - postgres
-      - opensearch
+      - meilisearch
     networks:
       - notemd-network
 
@@ -64,49 +62,28 @@ services:
     networks:
       - notemd-network
 
-  opensearch:
-    build:
-      context: backend
-      dockerfile: Dockerfile.opensearch
-    container_name: notemd-opensearch
-    restart: always
-    environment:
-      - discovery.type=single-node
-      - bootstrap.memory_lock=true
-      - plugins.security.ssl.http.enabled=false
-      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
-      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=NoteMdSearch!2026#Alpha
-    volumes:
-      - opensearch_data:/usr/share/opensearch/data
+  meilisearch:
+    image: getmeili/meilisearch:v1.45
     ports:
-      - "9200:9200"
+      - "7700:7700"
+    environment:
+      MEILI_MASTER_KEY: 6547723aae4112da0be104ad3ec45cf2057cd6baa3c63dc4a0ad9dbb3e9ff45b
+      MEILI_ENV: production          # development 이면 master key 없어도 됨
+      MEILI_DB_PATH: /meili_data
+    volumes:
+      - meili_data:/meili_data
     healthcheck:
-      test: ["CMD-SHELL", "curl -u admin:NoteMdSearch!2026#Alpha -f http://localhost:9200 || exit 1"]
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
       interval: 10s
       timeout: 5s
-      retries: 10
-    networks:
-      - notemd-network
-
-  opensearch-dashboards:
-    image: opensearchproject/opensearch-dashboards:2.13.0
-    container_name: notemd-opensearch-dashboards
-    restart: always
-    environment:
-      - OPENSEARCH_HOSTS=["http://opensearch:9200"]
-      - OPENSEARCH_USERNAME=admin
-      - OPENSEARCH_PASSWORD=NoteMdSearch!2026#Alpha
-    ports:
-      - "5601:5601"
-    depends_on:
-      opensearch:
-        condition: service_healthy
+      retries: 5
+    restart: unless-stopped
     networks:
       - notemd-network
 
 volumes:
   postgres_data:
-  opensearch_data:
+  meili_data:
 
 networks:
   notemd-network:
