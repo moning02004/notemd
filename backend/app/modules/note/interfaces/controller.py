@@ -39,7 +39,8 @@ def create_note(user=Depends(get_current_user), db=Depends(get_db)):
 @router.get("/{note_hash}", response_model=NoteDetailSchema | None)
 def get_note(note_hash: str, user=Depends(get_user_or_none), db=Depends(get_db)):
     repository = NoteRepository(db)
-    service = NoteService(repository)
+    search_service = SearchService(SearchRepository())
+    service = NoteService(repository, search_service)
     note = service.get_note_by_hash_id(user_id=user and user.pk, note_hash=note_hash)
     if note is None:
         raise HTTPException(status_code=404, detail="노트를 찾을 수 없습니다.")

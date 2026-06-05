@@ -57,6 +57,7 @@ class NoteService(Service):
             return None
         if user_id and note.user_id != user_id:
             return None
+        self.indexing_note(note)
         return note
 
     def update_note(self, user_id: int, note_hash: str, request):
