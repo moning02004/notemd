@@ -14,11 +14,12 @@ import {useInfiniteNotes} from "@/hooks/useNotes"
 import {useTags} from "@/hooks/useTags"
 import {apiRequest} from "@/lib/api";
 import toast from "react-hot-toast";
+import {useNotesStore} from "@/store/notes";
 
 function NoteListContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const [notes, setNotes] = useState([])
+    const {notes, setNotes, clearNotes} = useNotesStore()
 
     const {
         selectMode,
@@ -71,7 +72,7 @@ function NoteListContent() {
             })
         }).then((note_hashes: Array<string>) => {
             toast.success("노트가 삭제되었습니다.")
-            setNotes(prev => prev.filter(note => !note_hashes.includes(note.hash_id)))
+            setNotes(notes.filter(note => !note_hashes.includes(note.hash_id)))
             exitSelectMode()
         })
     }

@@ -2,13 +2,20 @@ import {LuEllipsisVertical} from "react-icons/lu";
 import {Drawer} from "vaul";
 import {apiRequest} from "@/lib/api";
 import toast from "react-hot-toast";
+import {useNotesStore} from "@/store/notes";
 
-export const NoteMenu = ({noteId, canDelete}: { noteId: string, canDelete: boolean }) => {
-    const deleteNote = () => {
-        apiRequest.delete(`/notes/${noteId}`).then(() => {
-            toast.success("노트가 삭제되었습니다.")
-            window.location.reload()
-        })
+export const NoteMenu = ({noteId, canDelete}: {
+    noteId: string,
+    canDelete: boolean
+}) => {
+    const {notes, setNotes} = useNotesStore();
+
+    const deleteNote = (e) => {
+        apiRequest.delete(`/notes/${noteId}`)
+            .then((note_hashes: Array<string>) => {
+                toast.success("노트가 삭제되었습니다.")
+                setNotes(notes.filter(note => !note_hashes.includes(note.hash_id)))
+            })
     }
 
     return (
