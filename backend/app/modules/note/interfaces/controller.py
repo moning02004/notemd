@@ -70,7 +70,9 @@ async def create_note_image(note_hash: str, file: UploadFile = File(...),
 @router.delete("/{note_hash}")
 def delete_note(note_hash: str, user=Depends(get_current_user), db=Depends(get_db)):
     repository = NoteRepository(db)
-    service = NoteService(repository)
+    search_service = SearchService(SearchRepository())
+
+    service = NoteService(repository, search_service)
     note = service.soft_delete_note(user_id=user.pk, note_hash=note_hash)
     return note
 
@@ -78,7 +80,9 @@ def delete_note(note_hash: str, user=Depends(get_current_user), db=Depends(get_d
 @router.delete("/{note_hash}/permanently")
 def permanency_delete_note(note_hash: str, user=Depends(get_current_user), db=Depends(get_db)):
     repository = NoteRepository(db)
-    service = NoteService(repository)
+    search_service = SearchService(SearchRepository())
+
+    service = NoteService(repository, search_service)
     note = service.hard_delete_note(user_id=user.pk, note_hash=note_hash)
     return note
 
@@ -86,6 +90,8 @@ def permanency_delete_note(note_hash: str, user=Depends(get_current_user), db=De
 @router.patch("/{note_hash}/restore")
 def restore_note(note_hash: str, user=Depends(get_current_user), db=Depends(get_db)):
     repository = NoteRepository(db)
-    service = NoteService(repository)
+    search_service = SearchService(SearchRepository())
+
+    service = NoteService(repository, search_service)
     note = service.restore_note(user_id=user.pk, note_hash=note_hash)
     return note
