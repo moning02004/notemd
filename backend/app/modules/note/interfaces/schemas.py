@@ -1,5 +1,6 @@
 import re
 from datetime import datetime
+from typing import List
 
 from fastapi import Query
 from pydantic import BaseModel, ConfigDict, field_serializer
@@ -81,6 +82,10 @@ class NoteUpdateRequest(BaseModel):
     is_public: bool = None
     is_protected: bool = None
     tags: list[str] = None
+
+
+class NoteBulkDeleteRequest(BaseModel):
+    note_hashes: List[str]
 
 
 class DefaultNoteRequest(BaseModel):

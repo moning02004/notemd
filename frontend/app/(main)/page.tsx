@@ -1,20 +1,31 @@
-// page.tsx
 "use client"
 
-import {Suspense, useEffect, useRef} from "react"
-import {redirect, useRouter, useSearchParams} from "next/navigation"
+import {Suspense, useEffect, useRef, useState} from "react"
+import {useRouter, useSearchParams} from "next/navigation"
 import {FiPlus} from "react-icons/fi"
 import {useAuthStore} from "@/store/auth"
+import {useNoteSelectStore} from "@/store/noteSelect"
 import {gotoNote} from "@/lib/note"
 import {Note} from "@/components/note"
 import {LoadingPage} from "@/components/loading"
 import NoteFilterBar from "@/components/note_filterbar"
+import SelectActionBar from "@/components/select_action_bar"
 import {useInfiniteNotes} from "@/hooks/useNotes"
 import {useTags} from "@/hooks/useTags"
+import {apiRequest} from "@/lib/api";
+import toast from "react-hot-toast";
 
 function NoteListContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
+    const [notes, setNotes] = useState([])
+
+    const {
+        selectMode,
+        selectedIds,
+        exitSelectMode,
+        toggleSelect,
+    } = useNoteSelectStore()
 
     const {data: tagsData} = useTags()
     const {
@@ -40,20 +51,49 @@ function NoteListContent() {
         return () => observer.disconnect()
     }, [hasNextPage, fetchNextPage])
 
+    useEffect(() => {
+        if (data) {
+            const allNotes = data.pages.flat()
+            setNotes(allNotes)
+        }
+    }, [data]);
 
-    const notes = data?.pages.flat() ?? []
+    // ── 배치 액션 ────────────────────────────────────────────
+    function handleDownloadSelected() {
+        // TODO: 선택 노트 다운로드 API
+        console.log("download", [...selectedIds])
+    }
+
+    function handleDeleteSelected() {
+        apiRequest.delete("/notes", {
+            body: JSON.stringify({
+                note_hashes: [...selectedIds],
+            })
+        }).then((note_hashes: Array<string>) => {
+            toast.success("노트가 삭제되었습니다.")
+            setNotes(prev => prev.filter(note => !note_hashes.includes(note.hash_id)))
+            exitSelectMode()
+        })
+    }
+
+    function handleShareSelected() {
+        // TODO: 선택 노트 공유/공개 설정
+        console.log("share", [...selectedIds])
+    }
 
     return (
         <>
             <NoteFilterBar tags={tagsData ?? []}/>
 
-            <div className="min-h-full pt-5 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-5">
+            <div
+                className={`min-h-full pt-5 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-5 ${selectMode ? "pb-20" : ""}`}>
                 {isLoading
                     ? <SkeletonCards/>
                     : notes.map(note => (
                         <Note
                             key={note.hash_id}
                             hashId={note.hash_id}
+                            data-note-id={note.hash_id}
                             onClick={() => gotoNote({id: note.hash_id, router})}
                             title={note.title || "제목 없음"}
                             content={note.content}
@@ -61,7 +101,10 @@ function NoteListContent() {
                             isPublic={note.is_public}
                             isProtected={note.is_protected}
                             created_at={note.created_at}
-                            noteMenu
+                            noteMenu={!selectMode}
+                            selectable={selectMode}
+                            selected={selectedIds.has(note.hash_id)}
+                            onSelect={toggleSelect}
                         />
                     ))
                 }
@@ -71,13 +114,23 @@ function NoteListContent() {
                 {isFetchingNextPage && <SkeletonCards count={4}/>}
             </div>
 
-            <button
-                onClick={() => gotoNote({id: null, router})}
-                className="fixed right-0 bottom-[9vh] m-6 p-4 bg-white border rounded-full shadow-lg
-                           hover:bg-gray-100 hover:shadow-xl transition-all duration-200"
-            >
-                <FiPlus size={22}/>
-            </button>
+            {selectMode ? (
+                <SelectActionBar
+                    selectedCount={selectedIds.size}
+                    onDownload={handleDownloadSelected}
+                    onDelete={handleDeleteSelected}
+                    onShare={handleShareSelected}
+                />
+            ) : (
+                <button
+                    onClick={() => gotoNote({id: null, router})}
+                    className="fixed right-0 bottom-[9vh] m-6 p-4 bg-white border rounded-full shadow-lg
+                               hover:bg-gray-100 hover:shadow-xl transition-all duration-200"
+                    aria-label="새 노트 작성"
+                >
+                    <FiPlus size={22}/>
+                </button>
+            )}
         </>
     )
 }
@@ -94,15 +147,13 @@ function SkeletonCards({count = 8}: { count?: number }) {
 
 export default function Page() {
     const router = useRouter()
-    const token = useAuthStore((state) => state.token) // 상태 변화 구독
+    const token = useAuthStore((state) => state.token)
 
     useEffect(() => {
-        if (!token) {
-            router.replace("/login")
-        }
+        if (!token) router.replace("/login")
     }, [token])
 
-    if (!token) return <LoadingPage />
+    if (!token) return <LoadingPage/>
 
     return (
         <Suspense fallback={<LoadingPage/>}>

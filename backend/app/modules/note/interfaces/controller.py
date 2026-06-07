@@ -5,7 +5,7 @@ from app.core.storages import get_storage
 from app.modules.note.application.service import NoteService
 from app.modules.note.infrastructure.repository import NoteRepository
 from app.modules.note.interfaces.schemas import NoteListSchema, NoteCreateSchema, \
-    NoteDetailSchema, NoteUpdateRequest, QueryParams, get_query_params
+    NoteDetailSchema, NoteUpdateRequest, QueryParams, get_query_params, NoteBulkDeleteRequest
 from app.modules.search.application.service import SearchService
 from app.modules.search.infrastructure.repository import SearchRepository
 from app.modules.user.application.service import get_current_user, get_user_or_none
@@ -73,8 +73,18 @@ def delete_note(note_hash: str, user=Depends(get_current_user), db=Depends(get_d
     search_service = SearchService(SearchRepository())
 
     service = NoteService(repository, search_service)
-    note = service.soft_delete_note(user_id=user.pk, note_hash=note_hash)
-    return note
+    note_hashes = service.soft_delete_note(user_id=user.pk, note_hashes=[note_hash])
+    return note_hashes
+
+
+@router.delete("")
+def bulk_delete_note(request: NoteBulkDeleteRequest, user=Depends(get_current_user), db=Depends(get_db)):
+    repository = NoteRepository(db)
+    search_service = SearchService(SearchRepository())
+
+    service = NoteService(repository, search_service)
+    note_hashes = service.soft_delete_note(user_id=user.pk, note_hashes=request.note_hashes)
+    return note_hashes
 
 
 @router.delete("/{note_hash}/permanently")

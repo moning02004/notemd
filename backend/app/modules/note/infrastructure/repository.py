@@ -84,14 +84,15 @@ class NoteRepository(Repository):
         ).all()
         return instances
 
-    def soft_delete_note(self, user_id: int, hash_id: str):
-        note = self.db.query(self.DB_MODEL).filter(self.DB_MODEL.user_id == user_id,
-                                                   self.DB_MODEL.hash_id == hash_id).first()
-        if note and not note.is_deleted:
-            note.is_deleted = True
-            self.db.commit()
-            self.db.refresh(note)
-        return note
+    def soft_delete_note(self, user_id: int, note_hashes: str):
+        notes = self.db.query(self.DB_MODEL).filter(self.DB_MODEL.user_id == user_id,
+                                                   self.DB_MODEL.hash_id.in_(note_hashes)).all()
+        for note in notes:
+            if note and not note.is_deleted:
+                note.is_deleted = True
+        self.db.commit()
+        [self.db.refresh(note) for note in notes]
+        return notes
 
     def hard_delete_note(self, user_id: int, hash_id: str):
         note = self.get_by_hash_id_and_user_id(user_id=user_id, hash_id=hash_id)

@@ -65,10 +65,10 @@ class NoteService(Service):
         self.indexing_note(note)
         return note
 
-    def soft_delete_note(self, user_id: int, note_hash: str):
-        note = self.repository.soft_delete_note(user_id=user_id, hash_id=note_hash)
-        self.indexing_note(note)
-        return note
+    def soft_delete_note(self, user_id: int, note_hashes: list):
+        notes = self.repository.soft_delete_note(user_id=user_id, note_hashes=note_hashes)
+        [self.indexing_note(note) for note in notes]
+        return [x.hash_id for x in notes]
 
     def hard_delete_note(self, user_id: int, note_hash: str):
         note = self.repository.hard_delete_note(user_id=user_id, hash_id=note_hash)
