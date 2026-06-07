@@ -8,6 +8,7 @@ import {BsThreeDotsVertical} from "react-icons/bs"
 import {SearchModal} from "@/components/search_modal"
 import {useEffect, useRef, useState} from "react"
 import {useNoteSelectStore} from "@/store/noteSelect"
+import TopbarMenu from "@/components/topbar_menu";
 
 export function Topbar() {
     const pathname = usePathname()
@@ -29,11 +30,13 @@ export function Topbar() {
     // 외부 클릭 시 메뉴 닫기
     useEffect(() => {
         if (!menuOpen) return
+
         function handler(e: MouseEvent) {
             if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
                 setMenuOpen(false)
             }
         }
+
         document.addEventListener("mousedown", handler)
         return () => document.removeEventListener("mousedown", handler)
     }, [menuOpen])
@@ -48,7 +51,33 @@ export function Topbar() {
 
     function handleFileUpload() {
         setMenuOpen(false)
-        // TODO: 파일 선택 → 노트 변환
+
+        const input = document.createElement("input")
+        input.type = "file"
+        input.accept = ".pdf,.md,.txt,application/json"
+        input.multiple = true
+
+        input.addEventListener("change", async () => {
+            const files = Array.from(input.files ?? [])
+            if (files.length === 0) return
+
+            const formData = new FormData()
+            files.forEach((file) => formData.append("files", file))
+
+            try {
+                const res = await fetch("/api/notes/upload", {
+                    method: "POST",
+                    body: formData,
+                })
+                if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
+                console.log("업로드 성공", await res.json())
+            } catch (err) {
+                console.error(err)
+                alert("파일 업로드에 실패했습니다.")
+            }
+        })
+
+        input.click()
     }
 
     function handleDownloadAll() {
@@ -78,7 +107,7 @@ export function Topbar() {
                             // 여기선 store의 selectAll 시그니처만 맞춰둠
                             // → page.tsx의 allNoteIds를 store에서 읽어 처리
                             console.log(Array.from(document.querySelectorAll("[data-note-id]"))
-                                    .map(el => el.getAttribute("data-note-id")!))
+                                .map(el => el.getAttribute("data-note-id")!))
                             useNoteSelectStore.getState().selectAll(
                                 Array.from(document.querySelectorAll("[data-note-id]"))
                                     .map(el => el.getAttribute("data-note-id")!)
@@ -94,7 +123,7 @@ export function Topbar() {
                     <h3 className="m-0!">{topTitle}</h3>
 
                     <div className="ml-auto flex items-center gap-1">
-                        {/* 검색 버튼 (노트 페이지만) */}
+
                         {isNotePage && (
                             <button
                                 className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors cursor-pointer"
@@ -107,38 +136,15 @@ export function Topbar() {
 
                         {/* ⋮ 메뉴 (노트 페이지만) */}
                         {isNotePage && (
-                            <div ref={menuRef} className="relative">
-                                <button
-                                    onClick={toggleMenu}
-                                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors cursor-pointer"
-                                    aria-label="더보기 메뉴"
-                                >
-                                    <BsThreeDotsVertical size={18}/>
-                                </button>
-
-                                {menuOpen && (
-                                    <div className="absolute right-0 top-9 z-50 min-w-[190px] bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                                        <MenuItem
-                                            icon={<FiUpload size={15}/>}
-                                            label="파일로 노트 만들기"
-                                            sub="PDF, 이미지 등"
-                                            onClick={handleFileUpload}
-                                        />
-                                        <div className="h-px bg-gray-100 mx-3"/>
-                                        <MenuItem
-                                            icon={<FiDownload size={15}/>}
-                                            label="전체 다운로드"
-                                            onClick={handleDownloadAll}
-                                        />
-                                        <div className="h-px bg-gray-100 mx-3"/>
-                                        <MenuItem
-                                            icon={<FiCheckSquare size={15}/>}
-                                            label="선택 모드"
-                                            onClick={() => { setMenuOpen(false); enterSelectMode() }}
-                                        />
-                                    </div>
-                                )}
-                            </div>
+                            <TopbarMenu onFileUpload={handleFileUpload}
+                                        onDownloadAll={handleDownloadAll}
+                                        onSelectMode={() => {
+                                            setMenuOpen(false);
+                                            enterSelectMode()
+                                        }}
+                                        open={menuOpen}
+                                        onToggle={toggleMenu}
+                                        onClose={() => setMenuOpen(false)}/>
                         )}
                     </div>
                 </>

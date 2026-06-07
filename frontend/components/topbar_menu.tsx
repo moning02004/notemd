@@ -36,8 +36,8 @@ export default function TopbarMenu({
     const items = [
         {
             icon: <FiUpload size={15}/>,
-            label: "파일로 노트 만들기",
-            sub: "PDF, 이미지 등",
+            label: "파일 업로드",
+            sub: "txt, PDF, 이미지 등",
             onClick: () => { onClose(); onFileUpload() },
         },
         {
@@ -56,7 +56,7 @@ export default function TopbarMenu({
         <div ref={menuRef} className="relative">
             <button
                 onClick={onToggle}
-                className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors duration-150 text-gray-600"
+                className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors duration-150 text-gray-600 cursor-pointer"
                 aria-label="메뉴 열기"
             >
                 <BsThreeDotsVertical size={18}/>
@@ -69,7 +69,7 @@ export default function TopbarMenu({
                             {i > 0 && <div className="h-px bg-gray-100 mx-3"/>}
                             <button
                                 onClick={item.onClick}
-                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-gray-50 transition-colors duration-100"
+                                className="w-full flex cursor-pointer items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-gray-50 transition-colors duration-100"
                             >
                                 <span className="text-gray-500 shrink-0">{item.icon}</span>
                                 <span className="flex flex-col">
