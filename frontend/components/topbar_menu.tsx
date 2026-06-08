@@ -37,7 +37,7 @@ export default function TopbarMenu({
         {
             icon: <FiUpload size={15}/>,
             label: "파일 업로드",
-            sub: "txt, PDF, 이미지 등",
+            sub: "업로드 후 자동으로 노트로 변환되며 확인이 필요합니다.",
             onClick: () => { onClose(); onFileUpload() },
         },
         {
@@ -63,7 +63,7 @@ export default function TopbarMenu({
             </button>
 
             {open && (
-                <div className="absolute right-0 top-9 z-50 min-w-[180px] bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                <div className="absolute right-0 top-9 z-50 min-w-[15rem] bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
                     {items.map((item, i) => (
                         <div key={i}>
                             {i > 0 && <div className="h-px bg-gray-100 mx-3"/>}
