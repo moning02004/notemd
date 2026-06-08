@@ -2,14 +2,16 @@ import re
 from datetime import datetime
 from typing import List
 
-from fastapi import Query
+from fastapi import Query, UploadFile, File
 from pydantic import BaseModel, ConfigDict, field_serializer
+from dataclasses import dataclass
 
 
-class QueryParams(BaseModel):
-    keyword: str | None = Query(None, min_length=1)
-    tag: str | None = Query(None)
+@dataclass
+class QueryParams:
+    keyword: str | None = Query(None)
     sort: str | None = Query("-updated_at")
+    tag: str | None = Query(None)
     is_deleted: int = Query(0)
     page: int = Query(1, ge=1)
 

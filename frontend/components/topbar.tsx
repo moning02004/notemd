@@ -9,6 +9,7 @@ import {SearchModal} from "@/components/search_modal"
 import {useEffect, useRef, useState} from "react"
 import {useNoteSelectStore} from "@/store/noteSelect"
 import TopbarMenu from "@/components/topbar_menu";
+import {apiRequest} from "@/lib/api";
 
 export function Topbar() {
     const pathname = usePathname()
@@ -54,7 +55,7 @@ export function Topbar() {
 
         const input = document.createElement("input")
         input.type = "file"
-        input.accept = ".pdf,.md,.txt,application/json"
+        input.accept = ".txt,.md"
         input.multiple = true
 
         input.addEventListener("change", async () => {
@@ -65,15 +66,10 @@ export function Topbar() {
             files.forEach((file) => formData.append("files", file))
 
             try {
-                const res = await fetch("/api/notes/upload", {
-                    method: "POST",
-                    body: formData,
-                })
-                if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
-                console.log("업로드 성공", await res.json())
+                const res = await apiRequest.post("/notes/files", {body: formData,}, null)
+                console.log(res)
             } catch (err) {
                 console.error(err)
-                alert("파일 업로드에 실패했습니다.")
             }
         })
 

@@ -1,7 +1,10 @@
 import re
 from dataclasses import asdict
+from datetime import datetime
 from typing import List
 
+import fitz
+from markdown import markdown
 from fastapi_clean_archi.core.commons.service import Service
 
 from app.modules.note.domain.entity import NoteEntity, NoteDocument
@@ -92,3 +95,34 @@ class NoteService(Service):
         return {
             "url": filepath
         }
+
+    async def create_note_from_files(self, user_id, files):
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        for file in files:
+            title = f"[{current_date}_업로드] {file.filename}"
+            content = await file.read()
+            filetype = file.headers["content-type"].split("/")[-1]
+
+            if filetype == "pdf":
+                doc = fitz.open(stream=content, filetype="pdf")
+                texts = [page.get_text() for page in doc]
+                content = "\n\n---\n\n".join(texts)
+                content = re.sub(r"\n{1}", "\n\n", content)
+            else:
+                content = content.decode("utf-8")
+                file_format = file.filename.split(".")[-1]
+                if file_format in ["sh", "py", "js", "java", "c", "cpp", "go", "rb",
+                                   "html", "css", "json", "xml", "yaml", "yml",
+                                   "ini", "conf", "cfg", "toml"]:
+                    content = ["- \n", "<pre>", content, "</pre>"]
+                    content = "\n".join(content)
+
+            note_entity = NoteEntity(
+                user_id=user_id,
+                title=title,
+                content=markdown(content)
+            )
+            note = self.repository.create_note(note_entity)
+            self.indexing_note(note)
+
+        return ["filepath"]
