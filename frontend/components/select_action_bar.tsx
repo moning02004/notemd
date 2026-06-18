@@ -26,12 +26,6 @@ export default function SelectActionBar({
                 disabled={disabled}
             />
             <ActionBtn
-                icon={<FiShare2 size={16}/>}
-                label="공유"
-                onClick={onShare}
-                disabled={disabled}
-            />
-            <ActionBtn
                 icon={<FiTrash2 size={16}/>}
                 label="삭제"
                 onClick={onDelete}
