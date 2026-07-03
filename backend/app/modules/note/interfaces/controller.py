@@ -1,11 +1,14 @@
+from urllib.parse import quote
+
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from starlette.responses import Response
 
 from app.core.session import get_db
 from app.core.storages import get_storage
 from app.modules.note.application.service import NoteService
 from app.modules.note.infrastructure.repository import NoteRepository
 from app.modules.note.interfaces.schemas import NoteListSchema, NoteCreateSchema, \
-    NoteDetailSchema, NoteUpdateRequest, QueryParams, NoteBulkDeleteRequest
+    NoteDetailSchema, NoteUpdateRequest, QueryParams, NoteHashesRequest
 from app.modules.search.application.service import SearchService
 from app.modules.search.infrastructure.repository import SearchRepository
 from app.modules.user.application.service import get_current_user, get_user_or_none
@@ -88,7 +91,7 @@ def delete_note(note_hash: str, user=Depends(get_current_user), db=Depends(get_d
 
 
 @router.delete("")
-def bulk_delete_note(request: NoteBulkDeleteRequest, user=Depends(get_current_user), db=Depends(get_db)):
+def bulk_delete_note(request: NoteHashesRequest, user=Depends(get_current_user), db=Depends(get_db)):
     repository = NoteRepository(db)
     search_service = SearchService(SearchRepository())
 
@@ -115,3 +118,24 @@ def restore_note(note_hash: str, user=Depends(get_current_user), db=Depends(get_
     service = NoteService(repository, search_service)
     note = service.restore_note(user_id=user.pk, note_hash=note_hash)
     return note
+
+
+@router.post("/download")
+async def download_note(request: NoteHashesRequest, user=Depends(get_current_user), db=Depends(get_db)):
+    repository = NoteRepository(db)
+    service = NoteService(repository)
+
+    result = await service.download_note(user_hash=user.hash_id, note_hashes=request.note_hashes)
+
+    encoded_filename = quote(result.filename)
+    return Response(
+        content=result.content,
+        media_type=result.media_type,
+        headers={
+            "Content-Disposition": (
+                f"attachment; filename=\"{encoded_filename}\"; "
+                f"filename*=UTF-8''{encoded_filename}"
+            )
+        },
+    )
+

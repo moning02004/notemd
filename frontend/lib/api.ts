@@ -3,20 +3,22 @@ import {API_HOST} from "@/constants/api";
 import {authLogout} from "@/lib/auth";
 
 type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
-
+type RequestExtraOptions = {
+    isMime?: boolean,
+    isDownloadFile: boolean
+}
 async function request<T = unknown>(endPoint: string,
                                     method: HttpMethod,
                                     options: RequestInit = {},
-                                    contentType?: string | null): Promise<T> {
+                                    extraOptions: RequestExtraOptions = {isDownloadFile: false, isMime: false}): Promise<T> {
     const {token, setAuth} = useAuthStore.getState();
 
     const headers = {
         ...(options.headers || {}),
         ...(token && {Authorization: `Bearer ${token}`}),
-        ...(contentType !== null && {
-            "Content-Type": "application/json",
-        }),
+        ...(!extraOptions.isMime && {"Content-Type": "application/json"}),
     };
+    console.log(headers)
 
     let res = await fetch(`${API_HOST}${endPoint}`, {
         ...options,
@@ -25,7 +27,7 @@ async function request<T = unknown>(endPoint: string,
         credentials: "include",
     });
 
-    let responseData = await res.json().catch(() => null);
+
     if (res.status === 401) {
         const refreshRes = await fetch(`${API_HOST}/auth/refresh-token`, {
             method: "POST",
@@ -44,21 +46,21 @@ async function request<T = unknown>(endPoint: string,
                 headers,
                 credentials: "include",
             });
-            responseData = await res.json().catch(() => null);
         } else {
-            authLogout();
+            await authLogout();
             throw new Error("세션이 만료되었습니다. 다시 로그인해주세요.");
         }
     } else if (res.status.toString().startsWith("4")) {
         throw new Error("에러가 발생했습니다.")
     }
 
-    return responseData as T;
+    if (!extraOptions.isDownloadFile) return await res.json().catch(() => null) as T
+    return res as T;
 }
 
 export const apiRequest = {
-    get: <T = unknown>(endPoint: string, options?: RequestInit, contentType?: string | null) => request<T>(endPoint, "GET", options, contentType),
-    post: <T = unknown>(endPoint: string, options?: RequestInit, contentType?: string | null) => request<T>(endPoint, "POST", options, contentType),
-    patch: <T = unknown>(endPoint: string, options?: RequestInit, contentType?: string | null) => request<T>(endPoint, "PATCH", options, contentType),
-    delete: <T = unknown>(endPoint: string, options?: RequestInit, contentType?: string | null) => request<T>(endPoint, "DELETE", options, contentType),
+    get: <T = unknown>(endPoint: string, options?: RequestInit, extraOptions?: RequestExtraOptions) => request<T>(endPoint, "GET", options, extraOptions),
+    post: <T = unknown>(endPoint: string, options?: RequestInit, extraOptions?: RequestExtraOptions) => request<T>(endPoint, "POST", options, extraOptions),
+    patch: <T = unknown>(endPoint: string, options?: RequestInit, extraOptions?: RequestExtraOptions) => request<T>(endPoint, "PATCH", options, extraOptions),
+    delete: <T = unknown>(endPoint: string, options?: RequestInit, extraOptions?: RequestExtraOptions) => request<T>(endPoint, "DELETE", options, extraOptions),
 };

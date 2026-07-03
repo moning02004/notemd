@@ -18,3 +18,10 @@ class NoteDocument:
     user_hash: str | None
     created_at: int | None
     updated_at: int | None
+
+
+@dataclass
+class DownloadResult:
+    content: bytes
+    media_type: str
+    filename: str

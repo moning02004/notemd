@@ -1,13 +1,15 @@
+import io
 import re
+import zipfile
 from dataclasses import asdict
 from datetime import datetime
 from typing import List
 
 import fitz
-from markdown import markdown
 from fastapi_clean_archi.core.commons.service import Service
+from markdown import markdown
 
-from app.modules.note.domain.entity import NoteEntity, NoteDocument
+from app.modules.note.domain.entity import NoteEntity, NoteDocument, DownloadResult
 
 
 class NoteService(Service):
@@ -107,7 +109,7 @@ class NoteService(Service):
                 doc = fitz.open(stream=content, filetype="pdf")
                 texts = [page.get_text() for page in doc]
                 content = "\n\n---\n\n".join(texts)
-                content = re.sub(r"\n{1}", "\n\n", content)
+                content = re.sub(r"\n$", "\n\n", content)
             else:
                 content = content.decode("utf-8")
                 file_format = file.filename.split(".")[-1]
@@ -126,3 +128,50 @@ class NoteService(Service):
             self.indexing_note(note)
 
         return ["filepath"]
+
+    async def download_note(self, user_hash: str, note_hashes: list):
+        notes = self.repository.get_by_hash_ids_and_user_id(user_hash=user_hash, note_hashes=note_hashes)
+
+        if not notes:
+            raise ValueError("No notes found")  # 또는 커스텀 예외
+
+        if len(notes) == 1:
+            note = notes[0]
+            return DownloadResult(
+                content=note.content.encode("utf-8"),
+                media_type="text/markdown",
+                filename=self._safe_filename(note.title) + ".md",
+            )
+
+        # 둘 이상 -> zip
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+            used_names = set()
+            for note in notes:
+                filename = self._unique_filename(note.title, used_names)
+                zf.writestr(filename, note.content)
+
+        buffer.seek(0)
+        return DownloadResult(
+            content=buffer.getvalue(),
+            media_type="application/zip",
+            filename="notes.zip",
+        )
+
+    @staticmethod
+    def _safe_filename(title: str) -> str:
+        # 파일명에 쓸 수 없는 문자 제거 (간단 버전)
+        invalid_chars = '/\\:*?"<>|'
+        cleaned = "".join(c for c in title if c not in invalid_chars).strip()
+        return cleaned or "untitled"
+
+    @classmethod
+    def _unique_filename(cls, title: str, used_names: set) -> str:
+        base = cls._safe_filename(title)
+        filename = f"{base}.md"
+        i = 1
+        while filename in used_names:
+            filename = f"{base}_{i}.md"
+            i += 1
+        used_names.add(filename)
+        return filename

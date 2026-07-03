@@ -1,6 +1,6 @@
 "use client"
 
-import {Suspense, useEffect, useRef, useState} from "react"
+import {Suspense, useEffect, useRef} from "react"
 import {useRouter, useSearchParams} from "next/navigation"
 import {FiPlus} from "react-icons/fi"
 import {useAuthStore} from "@/store/auth"
@@ -60,9 +60,49 @@ function NoteListContent() {
     }, [data]);
 
     // ── 배치 액션 ────────────────────────────────────────────
-    function handleDownloadSelected() {
-        // TODO: 선택 노트 다운로드 API
-        console.log("download", [...selectedIds])
+    async function handleDownloadSelected() {
+        const res = await apiRequest.post<Response>("/notes/download",
+            {body: JSON.stringify({note_hashes: [...selectedIds]})},
+            {isDownloadFile: true}
+        );
+        console.log(res)
+        if (!res.ok) {
+            throw new Error(`다운로드 실패: ${res.status}`);
+        }
+
+        // Content-Disposition 헤더에서 파일명 추출
+        const disposition = res.headers.get("Content-Disposition");
+        const filename = extractFilename(disposition) ?? "download";
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        window.URL.revokeObjectURL(url);
+    }
+
+    function extractFilename(disposition) {
+        if (!disposition) return null;
+
+        // filename*=UTF-8''xxx 우선 파싱
+        const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/);
+        if (utf8Match) {
+            return decodeURIComponent(utf8Match[1]);
+        }
+
+        // 일반 filename="xxx" 파싱
+        const basicMatch = disposition.match(/filename="?([^"]+)"?/);
+        if (basicMatch) {
+            return basicMatch[1];
+        }
+
+        return null;
     }
 
     function handleDeleteSelected() {

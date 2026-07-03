@@ -36,18 +36,18 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+if settings.STORAGE["type"] == "local":
+    os.makedirs(settings.STORAGE["name"], exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=settings.STORAGE["name"]), name="uploads")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
 )
-
-if settings.STORAGE["type"] == "local":
-    os.makedirs(settings.STORAGE["name"], exist_ok=True)
-    app.mount("/uploads", StaticFiles(directory=settings.STORAGE["name"]), name="uploads")
-
 app.add_middleware(AuthTokenMiddleware)
 app.include_router(auth_router)
 app.include_router(note_router)

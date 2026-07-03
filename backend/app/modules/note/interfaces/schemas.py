@@ -86,7 +86,7 @@ class NoteUpdateRequest(BaseModel):
     tags: list[str] = None
 
 
-class NoteBulkDeleteRequest(BaseModel):
+class NoteHashesRequest(BaseModel):
     note_hashes: List[str]
 
 
