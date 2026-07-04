@@ -41,11 +41,6 @@ export default function TopbarMenu({
             onClick: () => { onClose(); onFileUpload() },
         },
         {
-            icon: <FiDownload size={15}/>,
-            label: "전체 다운로드",
-            onClick: () => { onClose(); onDownloadAll() },
-        },
-        {
             icon: <FiCheckSquare size={15}/>,
             label: "선택 모드",
             onClick: () => { onClose(); onSelectMode() },

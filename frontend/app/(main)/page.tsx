@@ -65,7 +65,6 @@ function NoteListContent() {
             {body: JSON.stringify({note_hashes: [...selectedIds]})},
             {isDownloadFile: true}
         );
-        console.log(res)
         if (!res.ok) {
             throw new Error(`다운로드 실패: ${res.status}`);
         }

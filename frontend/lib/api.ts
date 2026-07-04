@@ -5,12 +5,16 @@ import {authLogout} from "@/lib/auth";
 type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 type RequestExtraOptions = {
     isMime?: boolean,
-    isDownloadFile: boolean
+    isDownloadFile?: boolean
 }
+
 async function request<T = unknown>(endPoint: string,
                                     method: HttpMethod,
                                     options: RequestInit = {},
-                                    extraOptions: RequestExtraOptions = {isDownloadFile: false, isMime: false}): Promise<T> {
+                                    extraOptions: RequestExtraOptions = {
+                                        isMime: false,
+                                        isDownloadFile: false
+                                    }): Promise<T> {
     const {token, setAuth} = useAuthStore.getState();
 
     const headers = {
@@ -18,7 +22,6 @@ async function request<T = unknown>(endPoint: string,
         ...(token && {Authorization: `Bearer ${token}`}),
         ...(!extraOptions.isMime && {"Content-Type": "application/json"}),
     };
-    console.log(headers)
 
     let res = await fetch(`${API_HOST}${endPoint}`, {
         ...options,

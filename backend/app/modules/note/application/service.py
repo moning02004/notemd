@@ -4,6 +4,7 @@ import zipfile
 from dataclasses import asdict
 from datetime import datetime
 from typing import List
+from markdownify import markdownify
 
 import fitz
 from fastapi_clean_archi.core.commons.service import Service
@@ -109,20 +110,15 @@ class NoteService(Service):
                 doc = fitz.open(stream=content, filetype="pdf")
                 texts = [page.get_text() for page in doc]
                 content = "\n\n---\n\n".join(texts)
-                content = re.sub(r"\n$", "\n\n", content)
+                content = re.sub(r"\n", "\n\n", content)
             else:
                 content = content.decode("utf-8")
-                file_format = file.filename.split(".")[-1]
-                if file_format in ["sh", "py", "js", "java", "c", "cpp", "go", "rb",
-                                   "html", "css", "json", "xml", "yaml", "yml",
-                                   "ini", "conf", "cfg", "toml"]:
-                    content = ["- \n", "<pre>", content, "</pre>"]
-                    content = "\n".join(content)
+                content = self._replace_outside_codeblock(content)
 
             note_entity = NoteEntity(
                 user_id=user_id,
                 title=title,
-                content=markdown(content)
+                content=markdown(content, extensions=['fenced_code'])
             )
             note = self.repository.create_note(note_entity)
             self.indexing_note(note)
@@ -138,9 +134,9 @@ class NoteService(Service):
         if len(notes) == 1:
             note = notes[0]
             return DownloadResult(
-                content=note.content.encode("utf-8"),
+                content=markdownify(note.content).encode("utf-8"),
                 media_type="text/markdown",
-                filename=self._safe_filename(note.title) + ".md",
+                filename=self._safe_filename(note.title),
             )
 
         # 둘 이상 -> zip
@@ -162,8 +158,9 @@ class NoteService(Service):
     def _safe_filename(title: str) -> str:
         # 파일명에 쓸 수 없는 문자 제거 (간단 버전)
         invalid_chars = '/\\:*?"<>|'
-        cleaned = "".join(c for c in title if c not in invalid_chars).strip()
-        return cleaned or "untitled"
+        cleaned = "".join(c for c in title if c not in invalid_chars).strip() or "제목없음"
+        cleaned = cleaned.endswith(".md") and cleaned[:-3]
+        return f"{cleaned}.md"
 
     @classmethod
     def _unique_filename(cls, title: str, used_names: set) -> str:
@@ -175,3 +172,14 @@ class NoteService(Service):
             i += 1
         used_names.add(filename)
         return filename
+
+    @classmethod
+    def _replace_outside_codeblock(cls, content):
+        # ```로 감싸진 코드블록을 기준으로 분리 (홀수 인덱스가 코드블록)
+        parts = re.split(r'(```.*?```)', content, flags=re.DOTALL)
+
+        for i in range(len(parts)):
+            if i % 2 == 0:  # 코드블록이 아닌 부분만 치환
+                parts[i] = parts[i].replace("\n\n\n", "\n\n&nbsp;\n\n")
+
+        return "".join(parts)

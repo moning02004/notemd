@@ -126,8 +126,8 @@ async def download_note(request: NoteHashesRequest, user=Depends(get_current_use
     service = NoteService(repository)
 
     result = await service.download_note(user_hash=user.hash_id, note_hashes=request.note_hashes)
-
     encoded_filename = quote(result.filename)
+
     return Response(
         content=result.content,
         media_type=result.media_type,

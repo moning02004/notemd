@@ -66,8 +66,10 @@ export function Topbar() {
             files.forEach((file) => formData.append("files", file))
 
             try {
-                const res = await apiRequest.post("/notes/files", {body: formData,}, null)
-                console.log(res)
+                const res = await apiRequest.post("/notes/files",
+                    {body: formData},
+                    {isMime: true}
+                )
             } catch (err) {
                 console.error(err)
             }
@@ -99,11 +101,6 @@ export function Topbar() {
                     </span>
                     <button
                         onClick={() => {
-                            // page.tsx에서 notes 목록을 store에 넣어두고 selectAll 호출
-                            // 여기선 store의 selectAll 시그니처만 맞춰둠
-                            // → page.tsx의 allNoteIds를 store에서 읽어 처리
-                            console.log(Array.from(document.querySelectorAll("[data-note-id]"))
-                                .map(el => el.getAttribute("data-note-id")!))
                             useNoteSelectStore.getState().selectAll(
                                 Array.from(document.querySelectorAll("[data-note-id]"))
                                     .map(el => el.getAttribute("data-note-id")!)
