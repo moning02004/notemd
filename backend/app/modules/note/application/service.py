@@ -164,7 +164,8 @@ class NoteService(Service):
         # 파일명에 쓸 수 없는 문자 제거 (간단 버전)
         invalid_chars = '/\\:*?"<>|'
         cleaned = "".join(c for c in title if c not in invalid_chars).strip() or "제목없음"
-        cleaned = cleaned.endswith(".md") and cleaned[:-3]
+        if cleaned.endswith(".md"):
+            cleaned = cleaned[:-3]
         return f"{cleaned}.md"
 
     @classmethod
