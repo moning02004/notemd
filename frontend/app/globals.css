@@ -393,3 +393,7 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
 .ProseMirror .copy-code-btn:hover {
     color: #afafaf;
 }
+
+.ProseMirror ul[data-type="taskList"] li div {
+    width: 100%;
+}
