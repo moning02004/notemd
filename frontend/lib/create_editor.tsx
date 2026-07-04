@@ -97,6 +97,37 @@ export const CustomCodeBlock = CodeBlockLowlight.extend({
                 }
                 return false
             },
+
+            ArrowUp: ({editor}) => {
+                const {selection} = editor.state
+                const {$anchor, empty} = selection
+
+                // 코드블록 안에 있고, 커서가 첫 줄일 때만 처리
+                if (!empty || $anchor.parent.type.name !== this.name) {
+                    return false
+                }
+
+                // 코드블록의 첫 줄인지 확인 (여러 줄일 수 있으므로 줄바꿈 이전인지 체크)
+                const textBefore = $anchor.parent.textBetween(0, $anchor.parentOffset)
+                if (textBefore.includes('\n')) {
+                    return false // 코드블록 내부에서 위로 이동 가능하면 기본 동작 유지
+                }
+
+                const codeBlockPos = $anchor.before($anchor.depth)
+                const $before = editor.state.doc.resolve(codeBlockPos)
+                const nodeBefore = $before.nodeBefore
+
+                // 문서 맨 앞이거나, 바로 앞이 코드블록인 경우 빈 문단 삽입
+                if (codeBlockPos === 0 || (nodeBefore && nodeBefore.type.name === this.name)) {
+                    return editor
+                        .chain()
+                        .insertContentAt(codeBlockPos, {type: 'paragraph'})
+                        .focus(codeBlockPos)
+                        .run()
+                }
+
+                return false
+            },
         }
     },
 

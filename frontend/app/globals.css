@@ -383,13 +383,7 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
     padding: 0.75rem 0.5rem;
     cursor: pointer;
     font-weight: 700;
-    opacity: 0;
     text-transform: uppercase;
-    transition: opacity 0.15s;
-}
-
-.ProseMirror pre:hover .copy-code-btn {
-    opacity: 1;
 }
 
 .ProseMirror .copy-code-btn:hover {
