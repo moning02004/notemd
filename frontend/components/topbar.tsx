@@ -70,6 +70,7 @@ export function Topbar() {
                     {body: formData},
                     {isMime: true}
                 )
+                window.location.reload()
             } catch (err) {
                 console.error(err)
             }
