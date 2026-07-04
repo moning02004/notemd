@@ -113,6 +113,11 @@ class NoteService(Service):
                 content = re.sub(r"\n", "\n\n", content)
             else:
                 content = content.decode("utf-8")
+                file_format = file.filename.split(".")[-1]
+                if file_format in ["sh", "py", "js", "java", "c", "cpp", "go", "rb",
+                                   "html", "css", "json", "xml", "yaml", "yml",
+                                   "ini", "conf", "cfg", "toml"]:
+                    content = f"```{file_format}\n{content}\n```"
                 content = self._replace_outside_codeblock(content)
 
             note_entity = NoteEntity(
