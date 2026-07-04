@@ -3,6 +3,7 @@ import {Drawer} from "vaul";
 import {apiRequest} from "@/lib/api";
 import toast from "react-hot-toast";
 import {useNotesStore} from "@/store/notes";
+import {downloadNoteRequest} from "@/lib/note";
 
 export const NoteMenu = ({noteId, canDelete}: {
     noteId: string,
@@ -16,6 +17,9 @@ export const NoteMenu = ({noteId, canDelete}: {
                 toast.success("노트가 삭제되었습니다.")
                 setNotes(notes.filter(note => !note_hashes.includes(note.hash_id)))
             })
+    }
+    const downloadNote = async (e) => {
+        await downloadNoteRequest([noteId])
     }
 
     return (
@@ -38,6 +42,10 @@ export const NoteMenu = ({noteId, canDelete}: {
                     <div className="flex flex-col p-4 space-y-2">
                         <button
                             className="w-full p-2 text-left hover:bg-[#efefef] cursor-pointer rounded border-b border-[#ededed]">수정
+                        </button>
+                        <button
+                            className="w-full p-2 text-left hover:bg-[#efefef] cursor-pointer rounded border-b border-[#ededed]"
+                            onClick={downloadNote}>다운로드
                         </button>
                         {canDelete && <button
                             className="w-full p-2 text-left hover:bg-[#efefef] cursor-pointer rounded border-b border-[#ededed] text-red-600"
