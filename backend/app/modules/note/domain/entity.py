@@ -29,7 +29,7 @@ class DownloadResult:
 
 @dataclass
 class SnapshotEntity:
-    name: str
+    hash_id: str
     description: str
 
     title: str
@@ -41,7 +41,7 @@ class SnapshotEntity:
     @classmethod
     def from_orm(cls, snapshot):
         return cls(
-            name=snapshot.name,
+            hash_id=snapshot.hash_id,
             description=snapshot.description,
             title=snapshot.title,
             content=snapshot.content,
