@@ -3,6 +3,7 @@ from typing import List
 from fastapi_clean_archi.core.commons.repository import Repository
 from sqlalchemy import desc, asc
 
+from app.modules.note.domain.entity import SnapshotEntity
 from app.modules.note.infrastructure.models import Note
 from app.modules.tag.infrastructure.models import Tag
 from app.modules.user.infrastructure.models import User
@@ -40,7 +41,7 @@ class NoteRepository(Repository):
         self.db.add(new_note)
         self.db.flush()
 
-        snapshot = NoteSnapshot(note_id=new_note.id, title=note_entity.title, content=note_entity.content)
+        snapshot = NoteSnapshot(note_id=new_note.pk, title=note_entity.title, content=note_entity.content)
         self.db.add(snapshot)
         self.db.commit()
         self.db.refresh(new_note)
@@ -114,3 +115,16 @@ class NoteRepository(Repository):
             self.db.commit()
             self.db.refresh(note)
         return note
+
+    def find_note_snapshots(self, note_hash: str):
+        queryset = self.db.query(NoteSnapshot).join(NoteSnapshot.note).filter(
+            Note.hash_id == note_hash,
+        ).all()
+        return [SnapshotEntity.from_orm(snapshot) for snapshot in queryset]
+
+    def add_note_snapshot(self, note_id: int, title: str, content: str):
+        snapshot = NoteSnapshot(note_id=note_id, title=title, content=content)
+        self.db.add(snapshot)
+        self.db.commit()
+        self.db.refresh(snapshot)
+        return snapshot

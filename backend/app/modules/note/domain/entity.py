@@ -25,3 +25,26 @@ class DownloadResult:
     content: bytes
     media_type: str
     filename: str
+
+
+@dataclass
+class SnapshotEntity:
+    name: str
+    description: str
+
+    title: str
+    content: str
+
+    created_at: int | None
+    updated_at: int | None
+
+    @classmethod
+    def from_orm(cls, snapshot):
+        return cls(
+            name=snapshot.name,
+            description=snapshot.description,
+            title=snapshot.title,
+            content=snapshot.content,
+            created_at=snapshot.created_at,
+            updated_at=snapshot.updated_at,
+        )

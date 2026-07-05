@@ -11,6 +11,7 @@ from fastapi_clean_archi.core.commons.service import Service
 from markdown import markdown
 
 from app.modules.note.domain.entity import NoteEntity, NoteDocument, DownloadResult
+from app.modules.note.infrastructure.models import Note, NoteSnapshot
 
 
 class NoteService(Service):
@@ -31,6 +32,14 @@ class NoteService(Service):
             updated_at=note.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
         )
         self.search_service.add_to_index(asdict(note_document))
+
+    def _get_owned_note(self, user_id, note_hash: str) -> Note:
+        note = self.repository.get_by_hash_id(hash_id=note_hash)  # await 없음
+        if note is None:
+            raise ValueError("노트를 찾을 수 없습니다.")
+        if note.user_id != user_id:
+            raise ValueError("노트를 찾을 수 없습니다.")
+        return note
 
     def list_notes(self, user_hash: str, keyword: str, is_deleted: bool, page: int, tag: str | None = None,
                    sort: str | None = None) -> \
@@ -87,12 +96,7 @@ class NoteService(Service):
         return note
 
     async def create_note_image(self, user_id, note_hash: str, file):
-        note = self.repository.get_by_hash_id(hash_id=note_hash)
-        if note is None:
-            raise ValueError("노트를 찾을 수 없습니다.")
-
-        if note.user_id != user_id:
-            raise ValueError("노트를 찾을 수 없습니다.")
+        note = self._get_owned_note(user_id, note_hash)
 
         filepath = await self.storage.save(file, note_hash=note_hash)
         return {
@@ -189,3 +193,13 @@ class NoteService(Service):
                 parts[i] = parts[i].replace("\n\n\n", "\n\n&nbsp;\n\n")
 
         return "".join(parts)
+
+    def get_note_snapshots(self, user_id, note_hash):
+        note = self._get_owned_note(user_id, note_hash)
+        snapshots = self.repository.find_note_snapshots(note_hash=note.hash_id)
+        return snapshots
+
+    def create_note_snapshot(self, user_id, note_hash, name, description) -> NoteSnapshot:
+        note = self._get_owned_note(user_id, note_hash)
+        snapshot = self.repository.add_note_snapshot(note=note, name=name, description=description)
+        return snapshot
