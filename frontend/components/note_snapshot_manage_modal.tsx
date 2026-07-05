@@ -53,7 +53,7 @@ export const NoteSnapshotManageModal = (
 
     const saveNoteSnapshot = async () => {
         if (!saveForm.description.trim()) {
-            toast.error("템플릿 이름을 입력해주세요.")
+            toast.error("스냅샷 설명을 입력해주세요.")
             return
         }
 
@@ -64,6 +64,8 @@ export const NoteSnapshotManageModal = (
 
         setSaveForm({description: ""})
         setShowSaveForm(false)
+        setPreviewId(data.hash_id)
+
         setNoteSnapshot(prev => [...prev, {
             hash_id: data.hash_id,
             description: data.description,
@@ -126,7 +128,7 @@ export const NoteSnapshotManageModal = (
                                             key={noteSnapshot.hash_id}
                                             onClick={() => setPreviewId(noteSnapshot.hash_id)}
                                             className={`flex items-center justify-between px-4 py-3 cursor-pointer transition-colors
-                                                ${previewId === noteSnapshot.hash_id ? 'bg-gray-50' : 'hover:bg-gray-50'}`}
+                                                ${previewId === noteSnapshot.hash_id ? 'bg-gray-200' : 'hover:bg-gray-50'}`}
                                         >
                                             <div className="flex-1 truncate mr-2">
                                                 <p className="text-sm font-medium text-gray-800 truncate">{noteSnapshot.description}</p>
@@ -158,7 +160,7 @@ export const NoteSnapshotManageModal = (
                                         type="text"
                                         value={saveForm.description}
                                         onChange={e => setSaveForm(prev => ({...prev, description: e.target.value}))}
-                                        placeholder="설명 (선택)"
+                                        placeholder="설명"
                                         className="text-sm border border-gray-200 rounded-md px-2 py-1.5 outline-none focus:border-gray-400"
                                     />
                                     <div className="flex gap-2">
@@ -184,7 +186,7 @@ export const NoteSnapshotManageModal = (
                                     }}
                                     className="w-full text-sm py-1.5 border border-dashed border-gray-300 rounded-md text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors"
                                 >
-                                    + 현재 내용을 템플릿으로 저장
+                                    + 스냅샷 저장
                                 </button>
                             )}
                         </div>
@@ -195,9 +197,12 @@ export const NoteSnapshotManageModal = (
                         {previewNoteSnapshot ? (
                             <>
                                 <div className="px-4 py-3 border-b border-gray-100">
+                                    <p className="text-xs text-gray-400 mb-1">제목</p>
                                     <p className="text-sm font-semibold text-gray-800">{previewNoteSnapshot.title}</p>
                                 </div>
                                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                                    <p className="text-xs text-gray-400 mb-1">내용</p>
+
                                     <div
                                         className="text-sm text-gray-700 prose prose-sm max-w-none"
                                         dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(previewNoteSnapshot.content)}}

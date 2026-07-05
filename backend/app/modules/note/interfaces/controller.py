@@ -150,7 +150,7 @@ def get_note_snapshots(note_hash: str, user=Depends(get_current_user), db=Depend
     return note
 
 
-@router.post("/{note_hash}/snapshots")
+@router.post("/{note_hash}/snapshots", response_model=NoteSnapshotSchema)
 def create_note_snapshot(note_hash: str, request: SnapshotRequest, user=Depends(get_current_user), db=Depends(get_db)):
     repository = NoteRepository(db)
     service = NoteService(repository)
