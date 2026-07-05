@@ -93,3 +93,8 @@ class NoteHashesRequest(BaseModel):
 class DefaultNoteRequest(BaseModel):
     title: str
     content: str
+
+
+class SnapshotRequest(BaseModel):
+    name: str = None
+    description: str = None

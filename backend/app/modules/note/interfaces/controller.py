@@ -1,3 +1,4 @@
+from tracemalloc import Snapshot
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
@@ -8,7 +9,7 @@ from app.core.storages import get_storage
 from app.modules.note.application.service import NoteService
 from app.modules.note.infrastructure.repository import NoteRepository
 from app.modules.note.interfaces.schemas import NoteListSchema, NoteCreateSchema, \
-    NoteDetailSchema, NoteUpdateRequest, QueryParams, NoteHashesRequest
+    NoteDetailSchema, NoteUpdateRequest, QueryParams, NoteHashesRequest, SnapshotRequest
 from app.modules.search.application.service import SearchService
 from app.modules.search.infrastructure.repository import SearchRepository
 from app.modules.user.application.service import get_current_user, get_user_or_none
@@ -39,10 +40,40 @@ def create_note(user=Depends(get_current_user), db=Depends(get_db)):
     return note
 
 
+@router.delete("")
+def bulk_delete_note(request: NoteHashesRequest, user=Depends(get_current_user), db=Depends(get_db)):
+    repository = NoteRepository(db)
+    search_service = SearchService(SearchRepository())
+
+    service = NoteService(repository, search_service)
+    note_hashes = service.soft_delete_note(user_id=user.pk, note_hashes=request.note_hashes)
+    return note_hashes
+
+
+@router.post("/download")
+async def download_note(request: NoteHashesRequest, user=Depends(get_current_user), db=Depends(get_db)):
+    repository = NoteRepository(db)
+    service = NoteService(repository)
+
+    result = await service.download_note(user_hash=user.hash_id, note_hashes=request.note_hashes)
+    encoded_filename = quote(result.filename)
+
+    return Response(
+        content=result.content,
+        media_type=result.media_type,
+        headers={
+            "Content-Disposition": (
+                f"attachment; filename=\"{encoded_filename}\"; "
+                f"filename*=UTF-8''{encoded_filename}"
+            )
+        },
+    )
+
+
 @router.post("/files")  # , response_model=list[NoteListSchema])
 async def upload_files_and_create_note(files: list[UploadFile] = File(...),
-                                 user=Depends(get_current_user),
-                                 db=Depends(get_db)):
+                                       user=Depends(get_current_user),
+                                       db=Depends(get_db)):
     repository = NoteRepository(db)
     search_service = SearchService(SearchRepository())
     service = NoteService(repository, search_service=search_service)
@@ -90,16 +121,6 @@ def delete_note(note_hash: str, user=Depends(get_current_user), db=Depends(get_d
     return note_hashes
 
 
-@router.delete("")
-def bulk_delete_note(request: NoteHashesRequest, user=Depends(get_current_user), db=Depends(get_db)):
-    repository = NoteRepository(db)
-    search_service = SearchService(SearchRepository())
-
-    service = NoteService(repository, search_service)
-    note_hashes = service.soft_delete_note(user_id=user.pk, note_hashes=request.note_hashes)
-    return note_hashes
-
-
 @router.delete("/{note_hash}/permanently")
 def permanency_delete_note(note_hash: str, user=Depends(get_current_user), db=Depends(get_db)):
     repository = NoteRepository(db)
@@ -120,22 +141,21 @@ def restore_note(note_hash: str, user=Depends(get_current_user), db=Depends(get_
     return note
 
 
-@router.post("/download")
-async def download_note(request: NoteHashesRequest, user=Depends(get_current_user), db=Depends(get_db)):
+@router.get("/{note_hash}/snapshots")
+def get_note_snapshots(note_hash: str, user=Depends(get_current_user), db=Depends(get_db)):
     repository = NoteRepository(db)
     service = NoteService(repository)
+    note = service.get_note_snapshots(user_id=user.pk,
+                                   note_hash=note_hash)
+    return note
 
-    result = await service.download_note(user_hash=user.hash_id, note_hashes=request.note_hashes)
-    encoded_filename = quote(result.filename)
 
-    return Response(
-        content=result.content,
-        media_type=result.media_type,
-        headers={
-            "Content-Disposition": (
-                f"attachment; filename=\"{encoded_filename}\"; "
-                f"filename*=UTF-8''{encoded_filename}"
-            )
-        },
-    )
-
+@router.post("/{note_hash}/snapshots")
+def create_note_snapshot(note_hash: str, request: SnapshotRequest, user=Depends(get_current_user), db=Depends(get_db)):
+    repository = NoteRepository(db)
+    service = NoteService(repository)
+    note = service.create_note_snapshot(user_id=user.pk,
+                                   note_hash=note_hash,
+                                   name=request.name,
+                                   description=request.description)
+    return note
