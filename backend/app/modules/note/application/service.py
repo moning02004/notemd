@@ -207,9 +207,9 @@ class NoteService(Service):
 
     def create_note_snapshot(self, user_id, note_hash, name, description) -> NoteSnapshot:
         note = self._get_owned_note(user_id, note_hash)
-        snapshot = self.repository.add_note_snapshot(note=note, name=name, description=description)
+        snapshot = self.repository.add_note_snapshot(description=description, note=note)
         return snapshot
 
     def delete_note_snapshot(self, user_id, note_snapshot_hash):
         note_snapshot = self._get_owned_snapshot(user_id, note_snapshot_hash)
-        self.repository.delete_note_snapshot(note_snapshot)
+        self.repository.remove_note_snapshot(note_snapshot)

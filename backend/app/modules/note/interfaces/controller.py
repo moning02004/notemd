@@ -1,3 +1,4 @@
+from typing import List
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
@@ -8,7 +9,7 @@ from app.core.storages import get_storage
 from app.modules.note.application.service import NoteService
 from app.modules.note.infrastructure.repository import NoteRepository
 from app.modules.note.interfaces.schemas import NoteListSchema, NoteCreateSchema, \
-    NoteDetailSchema, NoteUpdateRequest, QueryParams, NoteHashesRequest, SnapshotRequest
+    NoteDetailSchema, NoteUpdateRequest, QueryParams, NoteHashesRequest, SnapshotRequest, NoteSnapshotSchema
 from app.modules.search.application.service import SearchService
 from app.modules.search.infrastructure.repository import SearchRepository
 from app.modules.user.application.service import get_current_user, get_user_or_none
@@ -140,7 +141,7 @@ def restore_note(note_hash: str, user=Depends(get_current_user), db=Depends(get_
     return note
 
 
-@router.get("/{note_hash}/snapshots")
+@router.get("/{note_hash}/snapshots", response_model=List[NoteSnapshotSchema])
 def get_note_snapshots(note_hash: str, user=Depends(get_current_user), db=Depends(get_db)):
     repository = NoteRepository(db)
     service = NoteService(repository)

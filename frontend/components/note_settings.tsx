@@ -4,6 +4,8 @@ import toast from "react-hot-toast";
 import NoteTagInput from "@/components/note_tag_input";
 import {TemplateManageModal} from "@/components/template/manage_modal";
 import {Dispatch, SetStateAction, useState} from "react";
+import {FaHistory} from "react-icons/fa";
+import {NoteSnapshotManageModal} from "@/components/note_snapshot_manage_modal";
 
 interface SettingsProps {
     noteId: string,
@@ -45,6 +47,7 @@ export const NoteSettings = ({
                                  setContent,
                              }: SettingsProps) => {
     const [templateModalOpen, setTemplateModalOpen] = useState(false)
+    const [noteSnapshotModalOpen, setNoteSnapshotModalOpen] = useState(false)
 
     const deleteNote = async () => {
         await apiRequest.delete(`/notes/${noteId}`).then(() => {
@@ -127,6 +130,17 @@ export const NoteSettings = ({
                 {/* 태그 */}
                 <NoteTagInput selectedTags={selectedTags} setSelectedTags={setSelectedTags}/>
 
+                {/* 템플릿 관리 */}
+                <div className="p-5 border-b border-[#ededed]">
+                    <button
+                        onClick={() => setNoteSnapshotModalOpen(true)}
+                        className="w-full flex cursor-pointer items-center justify-center gap-2 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                        <FaHistory size={16}/>
+                        스냅샷 목록
+                    </button>
+                </div>
+
                 {/* 회원 공개 */}
                 {/*<NoteTagInput selectedTags={selectedTags} setSelectedTags={setSelectedTags}/>*/}
 
@@ -152,6 +166,19 @@ export const NoteSettings = ({
                 currentTitle={currentTitle}
                 currentContent={currentContent}
 
+                setTitle={setTitle}
+                setContent={setContent}
+            />
+
+            <NoteSnapshotManageModal
+                noteHash={noteId}
+                isOpen={noteSnapshotModalOpen}
+                onClose={() => {
+                    setNoteSnapshotModalOpen(false)
+                }}
+                afterApplyTemplate={afterApplyTemplate}
+                currentTitle={currentTitle}
+                currentContent={currentContent}
                 setTitle={setTitle}
                 setContent={setContent}
             />

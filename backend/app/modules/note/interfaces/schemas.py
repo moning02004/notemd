@@ -98,3 +98,30 @@ class DefaultNoteRequest(BaseModel):
 class SnapshotRequest(BaseModel):
     name: str = None
     description: str = None
+
+
+class NoteSnapshotSchema(BaseModel):
+    hash_id: str
+    description: str | None
+    title: str
+    content: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+    @field_serializer('created_at')
+    def serialize_created_at(self, value: datetime, _info):
+        return value.strftime("%Y-%m-%d %H:%M")
+
+    @field_serializer('content')
+    def serialize_content(self, value: str, _info):
+        value = re.sub(r'\n{2,}', '\n', value)
+        values = value.split("\n")
+        for index in range(len(values)):
+            if values[index] == "<br />":
+                values[index] = "\n"
+            elif "<br />" in values[index]:
+                values[index] = values[index].replace("<br />", "--")
+
+        value = re.sub(r'\n{3,}', '\n\n', "\n".join(values))
+        return value.strip()

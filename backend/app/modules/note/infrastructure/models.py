@@ -20,7 +20,6 @@ class Note(BaseModel):
 
 class NoteSnapshot(BaseModel):
     note_id = Column(Integer, ForeignKey("note.id"), nullable=False)
-    name = Column(String)
     description = Column(String)
 
     title = Column(String)

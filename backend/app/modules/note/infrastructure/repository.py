@@ -38,10 +38,6 @@ class NoteRepository(Repository):
                                  title=note_entity.title,
                                  content=note_entity.content)
         self.db.add(new_note)
-        self.db.flush()
-
-        snapshot = NoteSnapshot(note_id=new_note.pk, title=note_entity.title, content=note_entity.content)
-        self.db.add(snapshot)
         self.db.commit()
         self.db.refresh(new_note)
         return new_note
@@ -128,8 +124,11 @@ class NoteRepository(Repository):
         ).all()
         return [SnapshotEntity.from_orm(snapshot) for snapshot in queryset]
 
-    def add_note_snapshot(self, note_id: int, title: str, content: str):
-        snapshot = NoteSnapshot(note_id=note_id, title=title, content=content)
+    def add_note_snapshot(self, description:str, note: Note):
+        snapshot = NoteSnapshot(note_id=note.pk,
+                                description=description,
+                                title=note.title,
+                                content=note.content)
         self.db.add(snapshot)
         self.db.commit()
         self.db.refresh(snapshot)
