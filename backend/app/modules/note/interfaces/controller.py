@@ -1,4 +1,3 @@
-from tracemalloc import Snapshot
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
@@ -146,7 +145,7 @@ def get_note_snapshots(note_hash: str, user=Depends(get_current_user), db=Depend
     repository = NoteRepository(db)
     service = NoteService(repository)
     note = service.get_note_snapshots(user_id=user.pk,
-                                   note_hash=note_hash)
+                                      note_hash=note_hash)
     return note
 
 
@@ -155,7 +154,15 @@ def create_note_snapshot(note_hash: str, request: SnapshotRequest, user=Depends(
     repository = NoteRepository(db)
     service = NoteService(repository)
     note = service.create_note_snapshot(user_id=user.pk,
-                                   note_hash=note_hash,
-                                   name=request.name,
-                                   description=request.description)
+                                        note_hash=note_hash,
+                                        name=request.name,
+                                        description=request.description)
     return note
+
+
+@router.delete("/{note_hash}/snapshots/{note_snapshot_hash}", status_code=204)
+def create_note_snapshot(note_snapshot_hash: str, user=Depends(get_current_user), db=Depends(get_db)):
+    repository = NoteRepository(db)
+    service = NoteService(repository)
+    service.delete_note_snapshot(user_id=user.pk, note_snapshot_hash=note_snapshot_hash)
+    return

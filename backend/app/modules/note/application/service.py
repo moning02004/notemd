@@ -4,11 +4,11 @@ import zipfile
 from dataclasses import asdict
 from datetime import datetime
 from typing import List
-from markdownify import markdownify
 
 import fitz
 from fastapi_clean_archi.core.commons.service import Service
 from markdown import markdown
+from markdownify import markdownify
 
 from app.modules.note.domain.entity import NoteEntity, NoteDocument, DownloadResult
 from app.modules.note.infrastructure.models import Note, NoteSnapshot
@@ -34,12 +34,18 @@ class NoteService(Service):
         self.search_service.add_to_index(asdict(note_document))
 
     def _get_owned_note(self, user_id, note_hash: str) -> Note:
-        note = self.repository.get_by_hash_id(hash_id=note_hash)  # await 없음
+        note = self.repository.get_by_hash_id(hash_id=note_hash)
         if note is None:
             raise ValueError("노트를 찾을 수 없습니다.")
         if note.user_id != user_id:
             raise ValueError("노트를 찾을 수 없습니다.")
         return note
+
+    def _get_owned_snapshot(self, user_id, note_snapshot_hash: str) -> Note:
+        note_snapshot = self.repository.get_note_snapshot_by_hash_id(user_id=user_id, hash_id=note_snapshot_hash)
+        if note_snapshot is None:
+            raise ValueError("노트를 찾을 수 없습니다.")
+        return note_snapshot
 
     def list_notes(self, user_hash: str, keyword: str, is_deleted: bool, page: int, tag: str | None = None,
                    sort: str | None = None) -> \
@@ -203,3 +209,7 @@ class NoteService(Service):
         note = self._get_owned_note(user_id, note_hash)
         snapshot = self.repository.add_note_snapshot(note=note, name=name, description=description)
         return snapshot
+
+    def delete_note_snapshot(self, user_id, note_snapshot_hash):
+        note_snapshot = self._get_owned_snapshot(user_id, note_snapshot_hash)
+        self.repository.delete_note_snapshot(note_snapshot)
