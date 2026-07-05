@@ -5,10 +5,9 @@ from sqlalchemy import desc, asc
 
 from app.modules.note.domain.entity import SnapshotEntity
 from app.modules.note.infrastructure.models import Note
+from app.modules.note.infrastructure.models import NoteSnapshot
 from app.modules.tag.infrastructure.models import Tag
 from app.modules.user.infrastructure.models import User
-
-from app.modules.note.infrastructure.models import NoteSnapshot
 
 
 class NoteRepository(Repository):
@@ -79,6 +78,13 @@ class NoteRepository(Repository):
             self.db.refresh(instance)
         return instance
 
+    def get_note_snapshot_by_hash_id(self, user_id, hash_id: str):
+        instance = self.db.query(NoteSnapshot).join(NoteSnapshot.note).filter(
+            Note.pk == NoteSnapshot.note_id,
+            Note.user_id == user_id,
+            NoteSnapshot.hash_id == hash_id).first()
+        return instance
+
     def get_by_hash_id_and_user_id(self, user_id: int, hash_id: str):
         instance = self.db.query(self.DB_MODEL).filter(self.DB_MODEL.user_id == user_id,
                                                        self.DB_MODEL.hash_id == hash_id).first()
@@ -93,7 +99,7 @@ class NoteRepository(Repository):
 
     def soft_delete_note(self, user_id: int, note_hashes: str):
         notes = self.db.query(self.DB_MODEL).filter(self.DB_MODEL.user_id == user_id,
-                                                   self.DB_MODEL.hash_id.in_(note_hashes)).all()
+                                                    self.DB_MODEL.hash_id.in_(note_hashes)).all()
         for note in notes:
             if note and not note.is_deleted:
                 note.is_deleted = True
@@ -128,3 +134,7 @@ class NoteRepository(Repository):
         self.db.commit()
         self.db.refresh(snapshot)
         return snapshot
+
+    def remove_note_snapshot(self, note_snapshot: NoteSnapshot):
+        self.db.delete(note_snapshot)
+        self.db.commit()
