@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List
 
 from fastapi_clean_archi.core.commons.repository import Repository
@@ -125,8 +126,9 @@ class NoteRepository(Repository):
         return [SnapshotEntity.from_orm(snapshot) for snapshot in queryset]
 
     def add_note_snapshot(self, description:str, note: Note):
+        timestamp = int(datetime.now().timestamp() * 1000)
         snapshot = NoteSnapshot(note_id=note.pk,
-                                description=description,
+                                description=description or f"auto_{timestamp}",
                                 title=note.title,
                                 content=note.content)
         self.db.add(snapshot)
