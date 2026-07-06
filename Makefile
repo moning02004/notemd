@@ -11,7 +11,9 @@ upa:
 
 # Docker Compose 실행
 up-build:
-	docker-compose -f $(LOCAL_COMPOSE_FILE) up -d --build
+	docker compose -f $(LOCAL_COMPOSE_FILE) build --build-arg NEXT_PUBLIC_API_URL=http://localhost:8002 frontend
+	docker compose -f $(LOCAL_COMPOSE_FILE) build backend
+	docker compose -f $(LOCAL_COMPOSE_FILE) up -d
 
 # Docker Compose 중지
 down:

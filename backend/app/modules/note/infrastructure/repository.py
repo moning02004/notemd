@@ -121,7 +121,7 @@ class NoteRepository(Repository):
     def find_note_snapshots(self, note_hash: str):
         queryset = self.db.query(NoteSnapshot).join(NoteSnapshot.note).filter(
             Note.hash_id == note_hash,
-        ).all()
+        ).order_by(desc(NoteSnapshot.created_at)).all()
         return [SnapshotEntity.from_orm(snapshot) for snapshot in queryset]
 
     def add_note_snapshot(self, description:str, note: Note):
