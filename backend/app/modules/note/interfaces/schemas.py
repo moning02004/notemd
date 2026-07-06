@@ -96,7 +96,6 @@ class DefaultNoteRequest(BaseModel):
 
 
 class SnapshotRequest(BaseModel):
-    name: str = None
     description: str = None
 
 
