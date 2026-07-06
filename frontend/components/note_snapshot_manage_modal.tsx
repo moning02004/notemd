@@ -82,13 +82,19 @@ export const NoteSnapshotManageModal = (
         setNoteSnapshot(prev => prev.filter(t => t.hash_id !== id))
     }
 
-    const applyNoteSnapshot = (noteSnapshot: NoteSnapshot) => {
+    const applyNoteSnapshot = async (noteSnapshot: NoteSnapshot) => {
         if (!confirm("모든 내용이 지워지고 스냅샷으로 대체됩니다. 계속하시겠습니까?")) return
 
+        if (currentContent != noteSnapshot.content) {
+            await apiRequest.post<NoteSnapshot>(`/notes/${noteHash}/snapshots`,
+                {body: JSON.stringify({})}
+            )
+        }
         setTitle(noteSnapshot.title)
         setContent(noteSnapshot.content)
         onClose()
         afterApplyTemplate()
+        setPreviewId("")
     }
 
     const previewNoteSnapshot = noteSnapshot.find(t => t.hash_id === previewId)
