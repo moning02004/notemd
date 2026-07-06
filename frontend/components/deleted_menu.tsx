@@ -1,17 +1,23 @@
 import {LuEllipsisVertical} from "react-icons/lu";
 import {Drawer} from "vaul";
 import {apiRequest} from "@/lib/api";
+import toast from "react-hot-toast";
+import {useNotesStore} from "@/store/notes";
 
 export const DeletedMenu = ({noteId}: {noteId: string}) => {
-    const restoreNote = () => {
-        apiRequest.patch(`/notes/${noteId}/restore`).then(r => {
-            window.location.reload();
+    const {notes, setNotes, clearNotes} = useNotesStore()
+
+    const restoreNote = async () => {
+        await apiRequest.patch(`/notes/${noteId}/restore`).then((note_hashes: Array<string>) => {
+            toast.success("노트가 복구되었습니다.")
+            setNotes(notes.filter(note => note.hash_id != noteId))
         })
     }
 
-    const permanentDelete = () => {
-        apiRequest.delete(`/notes/${noteId}/permanently`).then(r => {
-            window.location.reload();
+    const permanentDelete = async () => {
+        await apiRequest.delete(`/notes/${noteId}/permanently`).then((note_hashes: Array<string>) => {
+            toast.success("노트가 삭제되었습니다.")
+            setNotes(notes.filter(note => note.hash_id != noteId))
         })
     }
 

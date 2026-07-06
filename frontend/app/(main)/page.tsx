@@ -76,11 +76,6 @@ function NoteListContent() {
         })
     }
 
-    function handleShareSelected() {
-        // TODO: 선택 노트 공유/공개 설정
-        console.log("share", [...selectedIds])
-    }
-
     return (
         <>
             <NoteFilterBar tags={tagsData ?? []}/>
@@ -119,7 +114,6 @@ function NoteListContent() {
                     selectedCount={selectedIds.size}
                     onDownload={handleDownloadSelected}
                     onDelete={handleDeleteSelected}
-                    onShare={handleShareSelected}
                 />
             ) : (
                 <button

@@ -48,7 +48,7 @@ export function Topbar() {
     }, [pathname])
 
     const topTitle = menuItems.find(item => item.path === pathname)?.name ?? ""
-    const isNotePage = pathname === "/"
+    const isSettingsPage = pathname.startsWith("/settings")
 
     function handleFileUpload() {
         setMenuOpen(false)
@@ -77,11 +77,6 @@ export function Topbar() {
         })
 
         input.click()
-    }
-
-    function handleDownloadAll() {
-        setMenuOpen(false)
-        // TODO: 전체 노트 다운로드
     }
 
     return (
@@ -118,7 +113,7 @@ export function Topbar() {
 
                     <div className="ml-auto flex items-center gap-1">
 
-                        {isNotePage && (
+                        {!isSettingsPage && (
                             <button
                                 className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors cursor-pointer"
                                 onClick={() => setIsSearchModalOpen(true)}
@@ -128,10 +123,8 @@ export function Topbar() {
                             </button>
                         )}
 
-                        {/* ⋮ 메뉴 (노트 페이지만) */}
-                        {isNotePage && (
-                            <TopbarMenu onFileUpload={handleFileUpload}
-                                        onDownloadAll={handleDownloadAll}
+                        {!isSettingsPage && (
+                            <TopbarMenu {...(pathname === "/" && { onFileUpload: handleFileUpload })}
                                         onSelectMode={() => {
                                             setMenuOpen(false);
                                             enterSelectMode()

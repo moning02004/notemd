@@ -88,18 +88,17 @@ class NoteService(Service):
 
     def soft_delete_note(self, user_id: int, note_hashes: list):
         notes = self.repository.soft_delete_note(user_id=user_id, note_hashes=note_hashes)
-        [self.indexing_note(note) for note in notes]
+        self._update_index_after(notes)
         return [x.hash_id for x in notes]
 
-    def hard_delete_note(self, user_id: int, note_hash: str):
-        note = self.repository.hard_delete_note(user_id=user_id, hash_id=note_hash)
-        self.search_service.delete_from_index(doc_id=note_hash)
-        return note
+    def hard_delete_note(self, user_id: int, note_hashes: List):
+        self.repository.hard_delete_note(user_id=user_id, note_hashes=note_hashes)
+        self.search_service.delete_from_index(doc_ids=note_hashes)
 
-    def restore_note(self, user_id: int, note_hash: str):
-        note = self.repository.restore_note(user_id=user_id, hash_id=note_hash)
-        self.indexing_note(note)
-        return note
+    def restore_note(self, user_id: int, note_hashes: List[str]):
+        notes = self.repository.restore_note(user_id=user_id, note_hashes=note_hashes)
+        self._update_index_after(notes)
+        return [x.hash_id for x in notes]
 
     async def create_note_image(self, user_id, note_hash: str, file):
         note = self._get_owned_note(user_id, note_hash)
@@ -213,3 +212,7 @@ class NoteService(Service):
     def delete_note_snapshot(self, user_id, note_snapshot_hash):
         note_snapshot = self._get_owned_snapshot(user_id, note_snapshot_hash)
         self.repository.remove_note_snapshot(note_snapshot)
+
+    def _update_index_after(self, notes):
+        for note in notes:
+            self.indexing_note(note)

@@ -3,6 +3,7 @@ from typing import List
 
 from fastapi_clean_archi.core.commons.repository import Repository
 from sqlalchemy import desc, asc
+from sqlalchemy.orm import joinedload
 
 from app.modules.note.domain.entity import SnapshotEntity
 from app.modules.note.infrastructure.models import Note
@@ -94,30 +95,37 @@ class NoteRepository(Repository):
         ).all()
         return instances
 
-    def soft_delete_note(self, user_id: int, note_hashes: str):
+    def soft_delete_note(self, user_id: int, note_hashes: List[str]):
         notes = self.db.query(self.DB_MODEL).filter(self.DB_MODEL.user_id == user_id,
                                                     self.DB_MODEL.hash_id.in_(note_hashes)).all()
         for note in notes:
             if note and not note.is_deleted:
                 note.is_deleted = True
         self.db.commit()
-        [self.db.refresh(note) for note in notes]
+        for note in notes:
+            self.db.refresh(note)
         return notes
 
-    def hard_delete_note(self, user_id: int, hash_id: str):
-        note = self.get_by_hash_id_and_user_id(user_id=user_id, hash_id=hash_id)
-        if note:
+    def hard_delete_note(self, user_id: int, note_hashes: List[str]):
+        notes = self.db.query(self.DB_MODEL).options(
+            joinedload(self.DB_MODEL.snapshot)
+        ).filter(
+            self.DB_MODEL.user_id == user_id,
+            self.DB_MODEL.hash_id.in_(note_hashes)
+        ).all()
+        for note in notes:
             self.db.delete(note)
-            self.db.commit()
-        return note
+        self.db.commit()
 
-    def restore_note(self, user_id: int, hash_id: str):
-        note = self.get_by_hash_id_and_user_id(user_id=user_id, hash_id=hash_id)
-        if note and note.is_deleted:
+    def restore_note(self, user_id: int, note_hashes: List[str]):
+        notes = self.db.query(self.DB_MODEL).filter(self.DB_MODEL.user_id == user_id,
+                                                    self.DB_MODEL.hash_id.in_(note_hashes)).all()
+        for note in notes:
             note.is_deleted = False
-            self.db.commit()
+        self.db.commit()
+        for note in notes:
             self.db.refresh(note)
-        return note
+        return notes
 
     def find_note_snapshots(self, note_hash: str):
         queryset = self.db.query(NoteSnapshot).join(NoteSnapshot.note).filter(
@@ -125,7 +133,7 @@ class NoteRepository(Repository):
         ).order_by(desc(NoteSnapshot.created_at)).all()
         return [SnapshotEntity.from_orm(snapshot) for snapshot in queryset]
 
-    def add_note_snapshot(self, description:str, note: Note):
+    def add_note_snapshot(self, description: str, note: Note):
         timestamp = int(datetime.now().timestamp() * 1000)
         snapshot = NoteSnapshot(note_id=note.pk,
                                 description=description or f"auto_{timestamp}",

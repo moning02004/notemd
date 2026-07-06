@@ -41,13 +41,33 @@ def create_note(user=Depends(get_current_user), db=Depends(get_db)):
 
 
 @router.delete("")
-def bulk_delete_note(request: NoteHashesRequest, user=Depends(get_current_user), db=Depends(get_db)):
+def bulk_soft_delete_note(request: NoteHashesRequest, user=Depends(get_current_user), db=Depends(get_db)):
     repository = NoteRepository(db)
     search_service = SearchService(SearchRepository())
 
     service = NoteService(repository, search_service)
     note_hashes = service.soft_delete_note(user_id=user.pk, note_hashes=request.note_hashes)
     return note_hashes
+
+
+@router.delete("/permanently")
+def bulk_permanently_delete_note(request: NoteHashesRequest, user=Depends(get_current_user), db=Depends(get_db)):
+    repository = NoteRepository(db)
+    search_service = SearchService(SearchRepository())
+
+    service = NoteService(repository, search_service)
+    service.hard_delete_note(user_id=user.pk, note_hashes=request.note_hashes)
+    return request.note_hashes
+
+
+@router.patch("/restore")
+def bulk_restore_note(request: NoteHashesRequest, user=Depends(get_current_user), db=Depends(get_db)):
+    repository = NoteRepository(db)
+    search_service = SearchService(SearchRepository())
+
+    service = NoteService(repository, search_service)
+    service.restore_note(user_id=user.pk, note_hashes=request.note_hashes)
+    return request.note_hashes
 
 
 @router.post("/download")
@@ -127,7 +147,7 @@ def permanency_delete_note(note_hash: str, user=Depends(get_current_user), db=De
     search_service = SearchService(SearchRepository())
 
     service = NoteService(repository, search_service)
-    note = service.hard_delete_note(user_id=user.pk, note_hash=note_hash)
+    note = service.hard_delete_note(user_id=user.pk, note_hashes=[note_hash])
     return note
 
 
@@ -137,7 +157,7 @@ def restore_note(note_hash: str, user=Depends(get_current_user), db=Depends(get_
     search_service = SearchService(SearchRepository())
 
     service = NoteService(repository, search_service)
-    note = service.restore_note(user_id=user.pk, note_hash=note_hash)
+    note = service.restore_note(user_id=user.pk, note_hashes=[note_hash])
     return note
 
 
