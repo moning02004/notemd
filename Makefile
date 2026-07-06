@@ -41,5 +41,9 @@ ps:
 restart:
 	docker-compose -f $(LOCAL_COMPOSE_FILE) restart backend
 
+.PHONY: db-history
+db-history:
+	docker exec -it notemd-backend alembic history
+
 
 .PHONY: build upd up up-build  down logs migrate makemigrations ps

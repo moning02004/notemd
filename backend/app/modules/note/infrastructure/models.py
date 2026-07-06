@@ -15,11 +15,11 @@ class Note(BaseModel):
     # relationships
     user = relationship("User", back_populates="notes")
     tags = relationship("Tag", secondary="notetag", back_populates="notes")
-    snapshot = relationship("NoteSnapshot", back_populates="note", uselist=False)
+    snapshot = relationship("NoteSnapshot", back_populates="note", uselist=False, cascade="all, delete-orphan")
 
 
 class NoteSnapshot(BaseModel):
-    note_id = Column(Integer, ForeignKey("note.id"), nullable=False)
+    note_id = Column(Integer, ForeignKey("note.id", ondelete="CASCADE"), nullable=False)
     description = Column(String)
 
     title = Column(String)

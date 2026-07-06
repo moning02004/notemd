@@ -36,8 +36,8 @@ class SearchRepository:
     def upsert(self, data: Sequence[Mapping[str, Any]]):
         self.index.add_documents(data)
 
-    def delete(self, doc_id: str) -> None:
-        self.index.delete_document(doc_id)
+    def delete(self, doc_ids: list) -> None:
+        self.index.delete_documents(doc_ids)
 
 
 INDEX_SETTINGS = {

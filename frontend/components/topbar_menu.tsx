@@ -2,11 +2,10 @@
 
 import {useEffect, useRef} from "react"
 import {BsThreeDotsVertical} from "react-icons/bs"
-import {FiUpload, FiDownload, FiCheckSquare} from "react-icons/fi"
+import {FiCheckSquare, FiUpload} from "react-icons/fi"
 
 interface TopbarMenuProps {
-    onFileUpload: () => void
-    onDownloadAll: () => void
+    onFileUpload?: () => void
     onSelectMode: () => void
     open: boolean
     onToggle: () => void
@@ -14,13 +13,12 @@ interface TopbarMenuProps {
 }
 
 export default function TopbarMenu({
-    onFileUpload,
-    onDownloadAll,
-    onSelectMode,
-    open,
-    onToggle,
-    onClose,
-}: TopbarMenuProps) {
+                                       onFileUpload,
+                                       onSelectMode,
+                                       open,
+                                       onToggle,
+                                       onClose,
+                                   }: TopbarMenuProps) {
     const menuRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
@@ -29,23 +27,10 @@ export default function TopbarMenu({
                 onClose()
             }
         }
+
         if (open) document.addEventListener("mousedown", handleClickOutside)
         return () => document.removeEventListener("mousedown", handleClickOutside)
     }, [open, onClose])
-
-    const items = [
-        {
-            icon: <FiUpload size={15}/>,
-            label: "파일 업로드",
-            sub: "업로드 후 자동으로 노트로 변환되며 확인이 필요합니다.",
-            onClick: () => { onClose(); onFileUpload() },
-        },
-        {
-            icon: <FiCheckSquare size={15}/>,
-            label: "선택 모드",
-            onClick: () => { onClose(); onSelectMode() },
-        },
-    ]
 
     return (
         <div ref={menuRef} className="relative">
@@ -58,24 +43,38 @@ export default function TopbarMenu({
             </button>
 
             {open && (
-                <div className="absolute right-0 top-9 z-50 min-w-[15rem] bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                    {items.map((item, i) => (
-                        <div key={i}>
-                            {i > 0 && <div className="h-px bg-gray-100 mx-3"/>}
-                            <button
-                                onClick={item.onClick}
-                                className="w-full flex cursor-pointer items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-gray-50 transition-colors duration-100"
-                            >
-                                <span className="text-gray-500 shrink-0">{item.icon}</span>
-                                <span className="flex flex-col">
-                                    <span className="text-gray-800 font-medium leading-snug">{item.label}</span>
-                                    {item.sub && (
-                                        <span className="text-xs text-gray-400 leading-snug">{item.sub}</span>
-                                    )}
+                <div
+                    className="absolute right-0 top-9 z-50 min-w-[15rem] bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+
+                    {onFileUpload && <div>
+                        <button
+                            onClick={() => {
+                                onClose();
+                                onFileUpload();
+                            }}
+                            className="w-full flex cursor-pointer items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-gray-50 transition-colors duration-100"
+                        >
+                            <span className="text-gray-500 shrink-0"><FiCheckSquare size={15}/></span>
+                            <span className="flex flex-col">
+                                <span className="text-gray-800 font-medium leading-snug">파일 업로드</span>
+                                <span
+                                    className="text-xs text-gray-400 leading-snug">업로드 후 자동으로 노트로 변환되며 확인이 필요합니다.</span>
                                 </span>
-                            </button>
-                        </div>
-                    ))}
+                        </button>
+                    </div>}
+
+                    <div>
+                        <button
+                            onClick={() => {
+                                onClose();
+                                onSelectMode();
+                            }}
+                            className="w-full flex cursor-pointer items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-gray-50 transition-colors duration-100"
+                        >
+                            <span className="text-gray-500 shrink-0"><FiUpload size={15}/></span>
+                            <span className="text-gray-800 font-medium leading-snug">선택 모드</span>
+                        </button>
+                    </div>
                 </div>
             )}
         </div>
