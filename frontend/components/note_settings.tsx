@@ -58,103 +58,111 @@ export const NoteSettings = ({
 
     return (
         <>
-            <div className={`w-full md:w-[50vw] sm:w-[7vw] lg:w-[25vw] bg-white fixed flex flex-col right-0 top-0 h-screen border-l border-[#ededed] shadow-xl
+            <div className={`w-full md:w-[50vw] sm:w-[7vw] lg:w-[25vw] bg-white fixed flex flex-col right-0 top-0 h-screen border-l border-[#ededed] shadow-xl overflow-y-auto
                 transform transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] z-11
                 ${isOpenedSetting ? "translate-x-0" : "translate-x-full"}`}>
-                <div className="flex flex-col p-5 w-full">
-                    <div className="flex flex-row justify-between mb-5">
-                        <h5 className="font-bold">노트 설정</h5>
+
+                <div className="flex flex-col px-7 pt-7">
+                    <div className="flex flex-row justify-between items-center mb-7">
+                        <h5 className="text-lg font-medium">노트 설정</h5>
                         <button onClick={() => setOpenedSetting(false)}
-                                className="my-auto text-center hover:bg-gray-100 cursor-pointer">
-                            <FiX size={22}/>
+                                className="text-gray-500 hover:text-gray-700 cursor-pointer">
+                            <FiX size={20}/>
                         </button>
                     </div>
-                </div>
 
-                {/* 템플릿 관리 */}
-                <div className="p-5 border-y border-[#ededed]">
-                    <button
-                        onClick={() => setTemplateModalOpen(true)}
-                        className="w-full flex cursor-pointer items-center justify-center gap-2 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                    >
-                        <FiLayout size={16}/>
-                        템플릿 관리
-                    </button>
-                </div>
+                    {/* 공유 및 보안 */}
+                    <p className="text-sm font-medium text-blue-600 tracking-wide mb-3">공유 및 보안</p>
 
-                {/* 외부 공개 */}
-                <div className="flex flex-row justify-between p-5 border-b border-[#ededed]">
-                    <div className="flex font-bold px-2 gap-3">
-                        <div className="my-auto">외부 공개</div>
-                        {isPublic && (
-                            <button
-                                className="my-auto cursor-pointer"
-                                onClick={() => {
-                                    navigator.clipboard.writeText(`${window.location.origin}/s/${noteId}`)
-                                    toast('노트 링크가 복사되었습니다.');
-                                }}
-                            >
-                                <FiCopy size={22}/>
-                            </button>
-                        )}
-                    </div>
-                    <div className="px-2 cursor-pointer select-none my-auto"
-                         onClick={() => {
-                             setStatusType("loading")
-                             setIsPublic(!isPublic)
-                         }}>
-                        <div className={`w-10 h-5 flex items-center rounded-full p-1 transition-all duration-300
-                                ${isPublic ? "bg-blue-500" : "bg-gray-300"}`}>
-                            <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-all duration-300
-                                    ${isPublic ? "translate-x-4" : "translate-x-0"}`}/>
+                    <div className="flex flex-row justify-between items-center mb-4">
+                        <div>
+                            <p className="text-base font-medium">외부 공개</p>
+                            <p className="text-sm text-gray-400 mt-1">
+                                링크가 있는 누구나 볼 수 있어요.
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            {isPublic && (
+                                <button
+                                    className="text-gray-400 hover:text-gray-600 cursor-pointer"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(`${window.location.origin}/s/${noteId}`)
+                                        toast('노트 링크가 복사되었습니다.');
+                                    }}
+                                >
+                                    <FiCopy size={16}/>
+                                </button>
+                            )}
+                            <div className="cursor-pointer select-none"
+                                 onClick={() => {
+                                     setStatusType("loading")
+                                     setIsPublic(!isPublic)
+                                 }}>
+                                <div className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-all duration-300
+                                        ${isPublic ? "bg-blue-500" : "bg-gray-300"}`}>
+                                    <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-all duration-300
+                                            ${isPublic ? "translate-x-4" : "translate-x-0"}`}/>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                {/* 노트 보호 */}
-                <div className="flex flex-row justify-between p-5 border-b border-[#ededed]">
-                    <div className="font-bold px-2">노트 보호</div>
-                    <div className="px-2 cursor-pointer select-none"
-                         onClick={() => {
-                             setStatusType("loading")
-                             setIsProtected(!isProtected)
-                         }}>
-                        <div className={`w-10 h-5 flex items-center rounded-full p-1 transition-all duration-300
-                                ${isProtected ? "bg-blue-500" : "bg-gray-300"}`}>
-                            <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-all duration-300
-                                    ${isProtected ? "translate-x-4" : "translate-x-0"}`}/>
+                    <div className="flex flex-row justify-between items-center mb-7">
+                        <div>
+                            <p className="text-base font-medium">노트 보호</p>
+                            <p className="text-sm text-gray-400 mt-1">
+                                비밀번호로 접근을 제한해요.
+                            </p>
+                        </div>
+                        <div className="cursor-pointer select-none"
+                             onClick={() => {
+                                 setStatusType("loading")
+                                 setIsProtected(!isProtected)
+                             }}>
+                            <div className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-all duration-300
+                                    ${isProtected ? "bg-blue-500" : "bg-gray-300"}`}>
+                                <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-all duration-300
+                                        ${isProtected ? "translate-x-4" : "translate-x-0"}`}/>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                {/* 태그 */}
-                <NoteTagInput selectedTags={selectedTags} setSelectedTags={setSelectedTags}/>
+                    {/* 분류 */}
+                    <p className="text-sm font-medium text-blue-600 tracking-wide mb-3">분류</p>
+                    <NoteTagInput selectedTags={selectedTags} setSelectedTags={setSelectedTags}/>
 
-                {/* 템플릿 관리 */}
-                <div className="p-5 border-b border-[#ededed]">
-                    <button
-                        onClick={() => setNoteSnapshotModalOpen(true)}
-                        className="w-full flex cursor-pointer items-center justify-center gap-2 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                    >
-                        <FaHistory size={16}/>
-                        스냅샷 목록
-                    </button>
-                </div>
-
-                {/* 회원 공개 */}
-                {/*<NoteTagInput selectedTags={selectedTags} setSelectedTags={setSelectedTags}/>*/}
-
-                {/* 삭제 */}
-                {!isProtected && (
-                    <div className="mt-auto flex flex-row justify-between p-5 border-b border-[#ededed]">
+                    {/* 관리 */}
+                    <p className="text-sm font-medium text-blue-600 tracking-wide mb-3">관리</p>
+                    <div className="flex flex-col gap-2.5 mb-7">
                         <button
-                            className="w-full bg-[#fa0000] py-2 rounded cursor-pointer hover:bg-[#ff2222] text-white"
-                            onClick={deleteNote}
+                            onClick={() => setTemplateModalOpen(true)}
+                            className="w-full flex cursor-pointer items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 text-base text-gray-700 hover:bg-gray-50 transition-colors text-left"
                         >
-                            삭제
+                            <FiLayout size={16}/>
+                            템플릿 관리
+                        </button>
+
+                        <button
+                            onClick={() => setNoteSnapshotModalOpen(true)}
+                            className="w-full flex cursor-pointer items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 text-base text-gray-700 hover:bg-gray-50 transition-colors text-left"
+                        >
+                            <FaHistory size={16}/>
+                            스냅샷 목록
                         </button>
                     </div>
-                )}
+
+                    {/* 삭제 */}
+                    {!isProtected && (
+                        <div className="pb-7">
+                            <button
+                                className="w-full bg-red-50 text-red-600 py-2.5 rounded-lg cursor-pointer hover:bg-red-100 transition-colors text-base font-medium"
+                                onClick={deleteNote}
+                            >
+                                노트 삭제
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
 
             <TemplateManageModal
