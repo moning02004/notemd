@@ -62,7 +62,7 @@ export const NoteSettings = ({
                 transform transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] z-11
                 ${isOpenedSetting ? "translate-x-0" : "translate-x-full"}`}>
 
-                <div className="flex flex-col px-7 pt-7">
+                <div className="flex flex-col px-7 pt-7 h-screen">
                     <div className="flex flex-row justify-between items-center mb-7">
                         <h5 className="text-lg font-medium">노트 설정</h5>
                         <button onClick={() => setOpenedSetting(false)}
@@ -153,7 +153,7 @@ export const NoteSettings = ({
 
                     {/* 삭제 */}
                     {!isProtected && (
-                        <div className="pb-7">
+                        <div className="mt-auto pb-7">
                             <button
                                 className="w-full bg-red-50 text-red-600 py-2.5 rounded-lg cursor-pointer hover:bg-red-100 transition-colors text-base font-medium"
                                 onClick={deleteNote}
