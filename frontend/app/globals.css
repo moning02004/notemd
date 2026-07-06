@@ -165,6 +165,10 @@ body * {
     margin-left: 1rem;
 }
 
+.ProseMirror ul[data-type="taskList"] li div {
+    width: 100%;
+}
+
 .ProseMirror ol li {
     list-style-type: decimal;
     margin-left: 1rem;

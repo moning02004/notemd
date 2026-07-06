@@ -55,8 +55,8 @@ export default function NoteTagInput({selectedTags, setSelectedTags}: Props) {
     };
 
     return (
-        <div className="flex flex-col p-5 border-b border-[#ededed]">
-            <div className="font-bold px-2 mb-2">노트 태그</div>
+        <div className="flex flex-col pb-7">
+            <div className="font-bold mb-2">노트 태그</div>
 
             <div className="relative">
                 <input
