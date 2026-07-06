@@ -156,7 +156,6 @@ def create_note_snapshot(note_hash: str, request: SnapshotRequest, user=Depends(
     service = NoteService(repository)
     note = service.create_note_snapshot(user_id=user.pk,
                                         note_hash=note_hash,
-                                        name=request.name,
                                         description=request.description)
     return note
 

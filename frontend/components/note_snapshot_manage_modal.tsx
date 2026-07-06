@@ -131,7 +131,7 @@ export const NoteSnapshotManageModal = (
                                                 ${previewId === noteSnapshot.hash_id ? 'bg-gray-200' : 'hover:bg-gray-50'}`}
                                         >
                                             <div className="flex-1 truncate mr-2">
-                                                <p className="text-sm font-medium text-gray-800 truncate">{noteSnapshot.description ?? "[자동 저장]"}</p>
+                                                <p className="text-sm font-medium text-gray-800 truncate">{noteSnapshot.description}</p>
                                                 <p className="text-xs font-medium text-gray-500 truncate">{noteSnapshot.created_at}</p>
                                             </div>
                                             <div className="flex items-center gap-1 shrink-0">
