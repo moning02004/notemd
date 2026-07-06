@@ -113,15 +113,15 @@ class NoteSnapshotSchema(BaseModel):
     def serialize_created_at(self, value: datetime, _info):
         return value.strftime("%Y-%m-%d %H:%M")
 
-    @field_serializer('content')
-    def serialize_content(self, value: str, _info):
-        value = re.sub(r'\n{2,}', '\n', value)
-        values = value.split("\n")
-        for index in range(len(values)):
-            if values[index] == "<br />":
-                values[index] = "\n"
-            elif "<br />" in values[index]:
-                values[index] = values[index].replace("<br />", "--")
-
-        value = re.sub(r'\n{3,}', '\n\n', "\n".join(values))
-        return value.strip()
+    # @field_serializer('content')
+    # def serialize_content(self, value: str, _info):
+    #     value = re.sub(r'\n{2,}', '\n', value)
+    #     values = value.split("\n")
+    #     for index in range(len(values)):
+    #         if values[index] == "<br />":
+    #             values[index] = "\n"
+    #         elif "<br />" in values[index]:
+    #             values[index] = values[index].replace("<br />", "--")
+    #
+    #     value = re.sub(r'\n{3,}', '\n\n', "\n".join(values))
+    #     return value.strip()
