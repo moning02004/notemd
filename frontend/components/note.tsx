@@ -5,27 +5,12 @@ import {DeletedMenu} from "@/components/deleted_menu"
 import DOMPurify from "dompurify"
 import {FiCheck} from "react-icons/fi"
 
-export const Note = ({
-    onClick,
-    hashId,
-    title,
-    content,
-    ownerName,
-    isPublic,
-    isProtected,
-    created_at,
-    noteMenu,
-    templateMenu,
-    deletedMenu,
-    selectable,
-    selected,
-    onSelect,
-}: {
+type NoteType = {
     onClick?: React.MouseEventHandler<HTMLDivElement>
     hashId: string
     title: string
     content: string
-    ownerName: string
+    ownerName?: string
     isPublic?: boolean
     isProtected?: boolean
     created_at?: string
@@ -35,7 +20,23 @@ export const Note = ({
     selectable?: boolean
     selected?: boolean
     onSelect?: (id: string) => void
-}) => {
+}
+export const Note = ({
+                         onClick,
+                         hashId,
+                         title,
+                         content,
+                         ownerName,
+                         isPublic,
+                         isProtected,
+                         created_at,
+                         noteMenu,
+                         templateMenu,
+                         deletedMenu,
+                         selectable,
+                         selected,
+                         onSelect,
+                     }: NoteType) => {
     const cleanContent = DOMPurify.sanitize(content)
     const texts = [
         isPublic ? "공유됨" : "",
@@ -58,11 +59,11 @@ export const Note = ({
                     text-ellipsis rounded border whitespace-pre-line
                     transition-all duration-200 cursor-pointer
                     ${selected
-                        ? "border-emerald-500 ring-2 ring-emerald-200 bg-emerald-50"
-                        : selectable
-                            ? "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
-                            : "border-[#afafaf] hover:shadow-lg hover:border-[#888888] hover:bg-emerald-50"
-                    }
+                    ? "border-emerald-500 ring-2 ring-emerald-200 bg-emerald-50"
+                    : selectable
+                        ? "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
+                        : "border-[#afafaf] hover:shadow-lg hover:border-[#888888] hover:bg-emerald-50"
+                }
                 `}
             >
                 {/* 선택 체크 오버레이 */}
@@ -71,9 +72,9 @@ export const Note = ({
                         absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center
                         transition-all duration-150 z-10
                         ${selected
-                            ? "bg-emerald-500 scale-100 opacity-100"
-                            : "border border-gray-300 bg-white scale-90 opacity-60"
-                        }
+                        ? "bg-emerald-500 scale-100 opacity-100"
+                        : "border border-gray-300 bg-white scale-90 opacity-60"
+                    }
                     `}>
                         {selected && <FiCheck size={11} className="text-white stroke-[3]"/>}
                     </div>
