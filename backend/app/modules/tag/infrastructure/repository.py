@@ -20,7 +20,7 @@ class TagRepository(Repository):
                 notetag.c.tag_id,
                 func.count(Note.pk).label("note_count")
             )
-            .join(Note, and_(Note.pk == notetag.c.note_id, Note.is_deleted == False))
+            .join(Note, and_(Note.pk == notetag.c.note_id, Note.deleted_at.isnot(None)))
             .group_by(notetag.c.tag_id)
             .subquery()
         )
@@ -38,7 +38,7 @@ class TagRepository(Repository):
 
         if total:
             all_tag = Tag(keyword="전체")
-            all_tag.count = self.db.query(Note).filter(Note.is_deleted == False).count()
+            all_tag.count = self.db.query(Note).filter(Note.deleted_at.isnot(None)).count()
             filtered_tags = [all_tag] + filtered_tags
 
         return filtered_tags

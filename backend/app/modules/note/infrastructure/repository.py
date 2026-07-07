@@ -18,13 +18,17 @@ class NoteRepository(Repository):
     def list_note_by_user_hash(self, user_hash: int, is_deleted=False, tag=None, sort=None, page=1):
         queryset = self.db.query(self.DB_MODEL).join(self.DB_MODEL.user).filter(
             User.hash_id == user_hash,
-            self.DB_MODEL.is_deleted == is_deleted,
         )
+
+        queryset = queryset.filter(self.DB_MODEL.deleted_at.isnot(None) if is_deleted
+                                   else self.DB_MODEL.deleted_at.is_(None))
 
         if tag:
             queryset = queryset.join(self.DB_MODEL.tags).filter(Tag.keyword == tag)
 
-        if sort:
+        if is_deleted:
+            queryset = queryset.order_by(desc(self.DB_MODEL.deleted_at), desc(self.DB_MODEL.updated_at))
+        else:
             queryset = queryset.order_by(
                 desc(self.DB_MODEL.updated_at) if sort == "-updated_at"
                 else asc(self.DB_MODEL.created_at) if sort == "created_at"
@@ -33,7 +37,11 @@ class NoteRepository(Repository):
 
         page_size = 20
         offset = (page - 1) * page_size  # page=1 이면 0부터 시작
-        return queryset.offset(offset).limit(page_size).all()
+
+        data = queryset.offset(offset).limit(page_size).all()
+        for x in data:
+            print(x.updated_at, x.created_at, x.title)
+        return data
 
     def create_note(self, note_entity) -> Note:
         new_note = self.DB_MODEL(user_id=note_entity.user_id,
@@ -96,11 +104,12 @@ class NoteRepository(Repository):
         return instances
 
     def soft_delete_note(self, user_id: int, note_hashes: List[str]):
+        current_date = datetime.now()
         notes = self.db.query(self.DB_MODEL).filter(self.DB_MODEL.user_id == user_id,
                                                     self.DB_MODEL.hash_id.in_(note_hashes)).all()
         for note in notes:
-            if note and not note.is_deleted:
-                note.is_deleted = True
+            note.deleted_at = current_date
+
         self.db.commit()
         for note in notes:
             self.db.refresh(note)
@@ -121,7 +130,8 @@ class NoteRepository(Repository):
         notes = self.db.query(self.DB_MODEL).filter(self.DB_MODEL.user_id == user_id,
                                                     self.DB_MODEL.hash_id.in_(note_hashes)).all()
         for note in notes:
-            note.is_deleted = False
+            note.deleted_at = None
+
         self.db.commit()
         for note in notes:
             self.db.refresh(note)
