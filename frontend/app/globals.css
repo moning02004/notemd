@@ -148,7 +148,6 @@ body * {
 }
 
 .ProseMirror p:not(table p, blockquote p, li p) {
-    margin: 0.25rem;
     padding: 0.25rem;
 }
 

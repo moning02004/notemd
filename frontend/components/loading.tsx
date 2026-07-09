@@ -1,6 +1,6 @@
 export const LoadingPage = () => {
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen gap-8 bg-[#FAFAF8]">
+        <div className="flex flex-col items-center justify-center min-h-screen gap-8 bg-[#FAFAF4]">
             <style>{`
                 @keyframes pulse-dot {
                     0%, 100% { opacity: 0.2; transform: scale(1); }

@@ -86,7 +86,7 @@ export const Note = ({
 
                 <div
                     onClick={handleClick}
-                    className={`${texts.length ? "pt-3" : ""} text-sm h-[100%]`}
+                    className={`${texts.length ? "pt-3" : ""} text-sm h-[100%] overflow-hidden`}
                     dangerouslySetInnerHTML={{__html: cleanContent}}
                 />
 

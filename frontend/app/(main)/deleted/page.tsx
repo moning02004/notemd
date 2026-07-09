@@ -1,25 +1,19 @@
 "use client"
 
-import {Suspense, useEffect, useRef} from "react"
-import {useRouter, useSearchParams} from "next/navigation"
-import {FiPlus} from "react-icons/fi"
+import {Suspense, useEffect} from "react"
+import {useRouter} from "next/navigation"
 import {useAuthStore} from "@/store/auth"
 import {useNoteSelectStore} from "@/store/noteSelect"
-import {gotoNote} from "@/lib/note"
 import {Note} from "@/components/note"
 import {LoadingPage} from "@/components/loading"
-import NoteFilterBar from "@/components/note_filterbar"
 import SelectActionBar from "@/components/select_action_bar"
-import {useInfiniteNotes} from "@/hooks/useNotes"
-import {useTags} from "@/hooks/useTags"
-import {useNotesStore} from "@/store/notes";
+import {useNoteListPaging} from "@/hooks/useNoteListPaging"
 import {apiRequest} from "@/lib/api";
 import toast from "react-hot-toast";
+import {SkeletonLoading} from "@/components/skeleton";
 
 function NoteListContent() {
-    const router = useRouter()
-    const searchParams = useSearchParams()
-    const {notes, setNotes, clearNotes} = useNotesStore()
+    const {notes, isLoading, isFetchingNextPage, sentinelRef, removeNotes} = useNoteListPaging("is_deleted=1")
 
     const {
         selectMode,
@@ -28,43 +22,12 @@ function NoteListContent() {
         toggleSelect,
     } = useNoteSelectStore()
 
-    const {data: tagsData} = useTags()
-    const {
-        data,
-        isLoading,
-        isFetchingNextPage,
-        hasNextPage,
-        fetchNextPage,
-    } = useInfiniteNotes("is_deleted=1")
-
-    const sentinelRef = useRef<HTMLDivElement>(null)
-    useEffect(() => {
-        const el = sentinelRef.current
-        if (!el) return
-
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting && hasNextPage) fetchNextPage()
-            },
-            {threshold: 0.1}
-        )
-        observer.observe(el)
-        return () => observer.disconnect()
-    }, [hasNextPage, fetchNextPage])
-
-    useEffect(() => {
-        if (data) {
-            const allNotes = data.pages.flat()
-            setNotes(allNotes)
-        }
-    }, [data]);
-
     const handleRestoreSelected = async () => {
         await apiRequest.patch(`/notes/restore`,
             {body: JSON.stringify({note_hashes: [...selectedIds]})}
         ).then((note_hashes: Array<string>) => {
             toast.success("노트가 복구되었습니다.")
-            setNotes(notes.filter(note => !note_hashes.includes(note.hash_id)))
+            removeNotes(note_hashes)
             exitSelectMode()
         })
     }
@@ -73,7 +36,7 @@ function NoteListContent() {
             {body: JSON.stringify({note_hashes: [...selectedIds]})}
         ).then((note_hashes: Array<string>) => {
             toast.success("노트가 삭제되었습니다.")
-            setNotes(notes.filter(note => !note_hashes.includes(note.hash_id)))
+            removeNotes(note_hashes)
             exitSelectMode()
         })
     }
@@ -83,7 +46,7 @@ function NoteListContent() {
             <div
                 className={`min-h-full pt-5 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-5 ${selectMode ? "pb-20" : ""}`}>
                 {isLoading
-                    ? <SkeletonCards/>
+                    ? <SkeletonLoading count={4}/>
                     : notes.map(note => (
                         <Note
                             key={note.hash_id}
@@ -102,7 +65,7 @@ function NoteListContent() {
             </div>
 
             <div ref={sentinelRef} className="py-4 flex justify-center">
-                {isFetchingNextPage && <SkeletonCards count={4}/>}
+                {isFetchingNextPage && <SkeletonLoading count={4}/>}
             </div>
 
             {selectMode && (
@@ -112,16 +75,6 @@ function NoteListContent() {
                     onDelete={handleDeleteSelected}
                 />
             )}
-        </>
-    )
-}
-
-function SkeletonCards({count = 8}: { count?: number }) {
-    return (
-        <>
-            {Array.from({length: count}).map((_, i) => (
-                <div key={i} className="mx-3 rounded w-[90%] h-[7rem] md:h-[17rem] bg-gray-200 animate-pulse"/>
-            ))}
         </>
     )
 }
