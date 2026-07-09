@@ -66,13 +66,13 @@ export const NoteSnapshotManageModal = (
         setShowSaveForm(false)
         setPreviewId(data.hash_id)
 
-        setNoteSnapshot(prev => [...prev, {
+        setNoteSnapshot(prev => [{
             hash_id: data.hash_id,
             description: data.description,
             title: data.title,
             content: data.content,
             created_at: data.created_at,
-        }])
+        }, ...prev])
     }
 
     const deleteNoteSnapshot = async (id: string) => {

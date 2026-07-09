@@ -96,8 +96,8 @@ export default function Page() {
     if (title == null) return <LoadingPage/>
 
     return (
-        <>
-            <div className="flex w-full h-[100%]"
+        <div className="relative w-full h-screen">
+            <div className="flex w-full h-full"
                  onClick={() => {
                      setIsReadonly(!token)
                      setLoadingStatus("loaded")
@@ -114,6 +114,14 @@ export default function Page() {
                                 statusType={statusType}
                 />
             </div>
+
+            {isOpenedSetting &&
+                <div
+                    className="fixed inset-0 bg-[#23241F]/25 backdrop-blur-[2px] z-10 transition-opacity duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                    onClick={() => setOpenedSetting(false)}
+                />
+            }
+
             {token &&
                 <NoteSettings noteId={noteId}
                               setIsPublic={setIsPublic}
@@ -133,7 +141,6 @@ export default function Page() {
                               isPublic={isPublic}
                               isOpenedSetting={isOpenedSetting}/>
             }
-
-        </>
+        </div>
     );
 }
