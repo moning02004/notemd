@@ -3,8 +3,8 @@ import {createJSONStorage, persist} from 'zustand/middleware';
 
 interface AuthState {
     token: string | null;
-    userId: number | null;
-    setAuth: (token: string, userId: number) => void;
+    userHash: string | null;
+    setAuth: (token: string, userHash: string) => void;
     logout: () => void;
 }
 
@@ -12,10 +12,10 @@ export const useAuthStore = create<AuthState>()(
     persist(
         (set) => ({
             token: null,
-            userId: null,
-            setAuth: (token, userId) => set({token, userId}),
+            userHash: null,
+            setAuth: (token, userHash) => set({token, userHash}),
             logout: () => {
-                set({token: null, userId: null});
+                set({token: null, userHash: null});
                 useAuthStore.persist.clearStorage();
             }
         }),

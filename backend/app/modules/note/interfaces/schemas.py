@@ -2,7 +2,7 @@ import re
 from datetime import datetime
 from typing import List
 
-from fastapi import Query, UploadFile, File
+from fastapi import Query
 from pydantic import BaseModel, ConfigDict, field_serializer
 from dataclasses import dataclass
 
@@ -16,19 +16,13 @@ class QueryParams:
     page: int = Query(1, ge=1)
 
 
-def get_query_params(keyword: str = Query(None),
-                     sort: str = Query("-updated_at"),
-                     tag: str = Query(None),
-                     is_deleted: int = Query(0),
-                     page: int = Query(1)) -> QueryParams:
-    return QueryParams(keyword=keyword, page=page, is_deleted=is_deleted, tag=tag, sort=sort)
-
-
 class NoteListSchema(BaseModel):
     title: str
     content: str
+    owner_name: str
     is_public: bool
     is_protected: bool
+    is_shared: bool
     hash_id: str
     created_at: datetime
     tags: list = []
@@ -66,16 +60,21 @@ class NoteCreateSchema(BaseModel):
 class NoteDetailSchema(BaseModel):
     title: str
     content: str
-    user_id: int
+    user_hash: str
     is_public: bool
     is_protected: bool
     tags: list = []
+    workspaces: list = []
 
     model_config = ConfigDict(from_attributes=True)
 
     @field_serializer("tags")
     def serialize_tags(self, value, _info):
         return [x.keyword for x in value]
+
+    @field_serializer("workspaces")
+    def serialize_workspaces(self, value, _info):
+        return [{"hashId": x.hash_id, "name": x.name} for x in value]
 
 
 class NoteUpdateRequest(BaseModel):
@@ -84,6 +83,7 @@ class NoteUpdateRequest(BaseModel):
     is_public: bool = None
     is_protected: bool = None
     tags: list[str] = None
+    workspaces: list[str] = None
 
 
 class NoteHashesRequest(BaseModel):

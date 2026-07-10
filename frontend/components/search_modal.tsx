@@ -4,14 +4,8 @@ import {apiRequest} from "@/lib/api";
 import DOMPurify from "dompurify";
 import {gotoNote} from "@/lib/note";
 import {useRouter} from "next/navigation";
-
-interface NoteResponse {
-    hash_id: string | null
-    title: string | null
-    content: string | null
-    created_at: boolean
-    user_id: number
-}
+import {Modal} from "@/components/ui/modal";
+import {NoteSearchResult} from "@/types/note";
 
 interface Props {
     isOpen: boolean;
@@ -38,7 +32,7 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
 
     const keywordRef = useRef(null)
     const [keyword, setKeyword] = useState("")
-    const [results, setResults] = useState<NoteResponse[]>([])
+    const [results, setResults] = useState<NoteSearchResult[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [searched, setSearched] = useState(false)
 
@@ -61,10 +55,10 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
             setIsLoading(true)
             setSearched(true)
             try {
-                let data = await apiRequest.get<NoteResponse[]>(`/notes?keyword=${keyword}`)
+                let data = await apiRequest.get<NoteSearchResult[]>(`/notes?keyword=${keyword}`)
                 data = data.map(note => ({
                     ...note,
-                    content: DOMPurify.sanitize(note.content.replace(/<[^>]*>/g, "") || "")
+                    content: DOMPurify.sanitize((note.content || "").replace(/<[^>]*>/g, ""))
                 }))
                 setResults(data)
             } catch (e) {
@@ -78,11 +72,8 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
     }, [keyword])
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/30" onClick={onClose}/>
-
-            <div
-                className="relative bg-white md:rounded-xl shadow-2xl w-full max-w-2xl md:mx-4 flex flex-col md:h-[90vh] h-[100vh]">
+        <Modal isOpen={isOpen} onClose={onClose}
+               className="md:rounded-xl w-full max-w-2xl md:mx-4 md:h-[90vh] h-[100vh]">
                 <div className="flex items-center justify-between py-4 border-b border-gray-100">
                     <button
                         onClick={onClose}
@@ -148,7 +139,6 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
                         </div>
                     )}
                 </div>
-            </div>
-        </div>
+        </Modal>
     )
 }

@@ -4,7 +4,7 @@ from sqlalchemy.orm import relationship
 
 
 class Template(BaseModel):
-    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
 
     name = Column(String, nullable=False)
     description = Column(String, default="")

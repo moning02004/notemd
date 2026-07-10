@@ -15,11 +15,13 @@ import {useTags} from "@/hooks/useTags"
 import {apiRequest} from "@/lib/api";
 import toast from "react-hot-toast";
 import {SkeletonLoading} from "@/components/skeleton";
+import {useViewModeStore} from "@/store/viewMode";
 
 function NoteListContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const {data: tagsData} = useTags()
+    const {viewMode} = useViewModeStore()
 
     const {notes, isLoading, isFetchingNextPage, sentinelRef, removeNotes} =
         useNoteListPaging(searchParams.toString())
@@ -55,7 +57,10 @@ function NoteListContent() {
             </div>
 
             <div
-                className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-4 md:p-6 ${selectMode ? "pb-24" : "pb-24"}`}>
+                className={viewMode === "list"
+                    ? "flex flex-col p-4 md:p-6 pb-24"
+                    : "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-4 md:p-6 pb-24"
+                }>
                 {isLoading
                     ? <SkeletonLoading count={4}/>
                     : notes.map(note => (
@@ -66,14 +71,15 @@ function NoteListContent() {
                             onClick={() => gotoNote({id: note.hash_id, router})}
                             title={note.title || "제목 없음"}
                             content={note.content}
-                            ownerName={note.owner_name}
                             isPublic={note.is_public}
                             isProtected={note.is_protected}
+                            isShared={note.is_shared}
                             created_at={note.created_at}
                             noteMenu={!selectMode}
                             selectable={selectMode}
                             selected={selectedIds.has(note.hash_id)}
                             onSelect={toggleSelect}
+                            viewMode={viewMode}
                         />
                     ))
                 }
@@ -92,7 +98,7 @@ function NoteListContent() {
             ) : (
                 <button
                     onClick={() => gotoNote({id: null, router})}
-                    className="fixed right-5 bottom-[calc(9vh+1rem)] flex items-center gap-2 pl-4 pr-5 py-3.5
+                    className="fixed right-5 bottom-[calc(9vh+1rem)] flex items-center gap-2 p-4
                                bg-[#3F6C51] text-white rounded-full shadow-lg cursor-pointer
                                hover:bg-[#345A44] hover:shadow-xl active:scale-95
                                transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]"
@@ -108,7 +114,7 @@ function NoteListContent() {
 
 export default function Page() {
     const router = useRouter()
-    const token = useAuthStore((state) => state.token)
+    const {token} = useAuthStore.getState()
 
     useEffect(() => {
         if (!token) router.replace("/login")

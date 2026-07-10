@@ -6,12 +6,14 @@ from datetime import datetime
 from typing import List
 
 import fitz
+from fastapi import HTTPException
 from fastapi_clean_archi.core.commons.service import Service
 from markdown import markdown
 from markdownify import markdownify
 
 from app.modules.note.domain.entity import NoteEntity, NoteDocument, DownloadResult
 from app.modules.note.infrastructure.models import Note, NoteSnapshot
+from app.modules.user.infrastructure.repository import UserRepository
 
 
 class NoteService(Service):
@@ -69,16 +71,16 @@ class NoteService(Service):
 
     def get_note_by_hash_id(self, user_id: int | None, note_hash: str):
         note = self.repository.get_by_hash_id(hash_id=note_hash)
+        if note is None or (not note.is_public and user_id is None):
+            raise HTTPException(status_code=404, detail="노트를 찾을 수 없습니다.")
 
-        if note is None:
-            return None
-        if not note.is_public and user_id is None:
-            return None
-        if not note.is_public and user_id is None:
-            return None
-        if user_id and note.user_id != user_id:
-            return None
-        self.indexing_note(note)
+        if user_id:
+            user = UserRepository(self.repository.db).get_by_pk(user_id)
+            workspaces = self.repository.get_shared_workspace(
+                workspace_hashes=[x.hash_id for x in note.workspaces],
+                user_id=user.pk)
+            if not user.is_superuser and not workspaces:
+                raise HTTPException(status_code=404, detail="노트를 찾을 수 없습니다.")
         return note
 
     def update_note(self, user_id: int, note_hash: str, request):

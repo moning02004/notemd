@@ -3,8 +3,10 @@
 import { useRouter } from 'next/navigation'
 import { useSearchParams } from 'next/navigation'
 import { ArrowDownUp, Check, ChevronDown } from 'lucide-react'
-import { useRef, useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Tag } from "@/types/note";
+import { useClickOutside } from "@/hooks/useClickOutside"
+import ViewModeToggle from "@/components/view_mode_toggle"
 
 function sortTags(tags: Tag[]): Tag[] {
     const totalTag = tags.filter(t => t.keyword === '전체')
@@ -24,8 +26,6 @@ interface Props {
 export default function NoteFilterBar({ tags }: Props) {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const sortDropdownRef = useRef<HTMLDivElement>(null)
-    const tagDropdownRef = useRef<HTMLDivElement>(null)
 
     const selectedTag = searchParams.get('tag') ?? '전체'
     const sort = searchParams.get('sort') ?? '-updated_at'
@@ -34,20 +34,10 @@ export default function NoteFilterBar({ tags }: Props) {
     const [sortOpen, setSortOpen] = useState(false)
     const [tagOpen, setTagOpen] = useState(false)
 
-    const currentSortLabel = SORT_OPTIONS.find(o => o.value === sort)?.label ?? '최근 수정순'
+    const sortDropdownRef = useClickOutside<HTMLDivElement>(() => setSortOpen(false))
+    const tagDropdownRef = useClickOutside<HTMLDivElement>(() => setTagOpen(false))
 
-    useEffect(() => {
-        const handler = (e: MouseEvent) => {
-            if (sortDropdownRef.current && !sortDropdownRef.current.contains(e.target as Node)) {
-                setSortOpen(false)
-            }
-            if (tagDropdownRef.current && !tagDropdownRef.current.contains(e.target as Node)) {
-                setTagOpen(false)
-            }
-        }
-        document.addEventListener('mousedown', handler)
-        return () => document.removeEventListener('mousedown', handler)
-    }, [])
+    const currentSortLabel = SORT_OPTIONS.find(o => o.value === sort)?.label ?? '최근 수정순'
 
     const updateParam = (key: string, value: string) => {
         const params = new URLSearchParams(searchParams.toString())
@@ -166,6 +156,12 @@ export default function NoteFilterBar({ tags }: Props) {
                             </div>
                         )}
                     </div>
+                </div>
+
+                {/* 보기 방식 토글 */}
+                <div className="flex items-center gap-1 shrink-0">
+                    <div className="w-px h-3 bg-gray-200 mr-1"/>
+                    <ViewModeToggle/>
                 </div>
             </div>
         </div>

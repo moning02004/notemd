@@ -1,13 +1,12 @@
 "use client"
 
-import {FiDownload, FiTrash2, FiShare2} from "react-icons/fi"
+import {FiDownload, FiTrash2} from "react-icons/fi"
 
 interface SelectActionBarProps {
     selectedCount: number
     onDownload?: () => void
     onRestore?: () => void
-    onDelete: () => void
-    onShare?: () => void
+    onDelete?: () => void
 }
 
 export default function SelectActionBar({

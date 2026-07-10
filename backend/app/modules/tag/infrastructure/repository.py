@@ -13,14 +13,16 @@ class TagRepository(Repository):
     def list_tags(self) -> list:
         return self.db.query(self.DB_MODEL).all()
 
-    def list_tags_with_note_count(self, total) -> List:
+    def list_tags_with_note_count(self, user, total) -> List:
         # 태그별 non-deleted 노트 수를 서브쿼리로 직접 집계
         note_count_subq = (
             self.db.query(
                 notetag.c.tag_id,
                 func.count(Note.pk).label("note_count")
             )
-            .join(Note, and_(Note.pk == notetag.c.note_id, Note.deleted_at.is_(None)))
+            .join(Note, and_(Note.pk == notetag.c.note_id,
+                             Note.user_id == user.pk,
+                             Note.deleted_at.is_(None)))
             .group_by(notetag.c.tag_id)
             .subquery()
         )
@@ -38,7 +40,8 @@ class TagRepository(Repository):
 
         if total:
             all_tag = Tag(keyword="전체")
-            all_tag.count = self.db.query(Note).filter(Note.deleted_at.is_(None)).count()
+            all_tag.count = self.db.query(Note).filter(Note.user_id == user.pk,
+                                                       Note.deleted_at.is_(None)).count()
             filtered_tags = [all_tag] + filtered_tags
 
         return filtered_tags

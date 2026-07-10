@@ -1,6 +1,7 @@
 import {useAuthStore} from "@/store/auth";
 import {API_HOST} from "@/constants/api";
 import {authLogout} from "@/lib/auth";
+import {AuthTokenResponse} from "@/types/auth";
 
 type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 type RequestExtraOptions = {
@@ -39,8 +40,8 @@ async function request<T = unknown>(endPoint: string,
         })
 
         if (refreshRes.ok) {
-            const data = await refreshRes.json();
-            setAuth(data.access_token, data.user_id);
+            const data: AuthTokenResponse = await refreshRes.json();
+            setAuth(data.access_token, data.user_hash);
 
             headers.Authorization = `Bearer ${data.access_token}`;
             res = await fetch(`${API_HOST}${endPoint}`, {

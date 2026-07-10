@@ -10,13 +10,17 @@ from app.modules.note.infrastructure.models import Note
 from app.modules.note.infrastructure.models import NoteSnapshot
 from app.modules.tag.infrastructure.models import Tag
 from app.modules.user.infrastructure.models import User
+from app.modules.workspace.infrastructure.models import Workspace, workspace_member
 
 
 class NoteRepository(Repository):
     DB_MODEL = Note
+    PAGE_SIZE = 20
 
     def list_note_by_user_hash(self, user_hash: int, is_deleted=False, tag=None, sort=None, page=1):
-        queryset = self.db.query(self.DB_MODEL).join(self.DB_MODEL.user).filter(
+        queryset = self.db.query(self.DB_MODEL).join(self.DB_MODEL.user).options(
+            joinedload(self.DB_MODEL.tags)
+        ).filter(
             User.hash_id == user_hash,
         )
 
@@ -35,13 +39,9 @@ class NoteRepository(Repository):
                 else desc(self.DB_MODEL.created_at)
             )
 
-        page_size = 20
-        offset = (page - 1) * page_size  # page=1 이면 0부터 시작
+        offset = (page - 1) * self.PAGE_SIZE  # page=1 이면 0부터 시작
 
-        data = queryset.offset(offset).limit(page_size).all()
-        for x in data:
-            print(x.updated_at, x.created_at, x.title)
-        return data
+        return queryset.offset(offset).limit(self.PAGE_SIZE).all()
 
     def create_note(self, note_entity) -> Note:
         new_note = self.DB_MODEL(user_id=note_entity.user_id,
@@ -55,6 +55,18 @@ class NoteRepository(Repository):
     def get_by_hash_id(self, hash_id: str):
         instance = self.db.query(self.DB_MODEL).filter(self.DB_MODEL.hash_id == hash_id).first()
         return instance
+
+    def get_shared_workspace(self, workspace_hashes: list, user_id: int):
+        if not workspace_hashes or not user_id:
+            return []
+
+        instances = self.db.query(Workspace).join(
+            workspace_member, workspace_member.c.workspace_id == Workspace.pk
+        ).filter(
+            Workspace.hash_id.in_(workspace_hashes),
+            workspace_member.c.user_id == user_id,
+        ).all()
+        return instances
 
     def update_note(self, user_id: int, hash_id: str, request):
         instance = self.db.query(self.DB_MODEL).filter(self.DB_MODEL.user_id == user_id,
@@ -79,6 +91,11 @@ class NoteRepository(Repository):
                 self.db.add_all(new_tags)
                 self.db.flush()
                 instance.tags = existing_tags + new_tags
+
+            if request.workspaces is not None:
+                workspace_hashes = request.workspaces
+                workspaces = self.db.query(Workspace).filter(Workspace.hash_id.in_(workspace_hashes)).all()
+                instance.workspaces = workspaces
 
             self.db.commit()
             self.db.refresh(instance)
