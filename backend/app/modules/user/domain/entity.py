@@ -5,7 +5,8 @@ from fastapi_clean_archi.core.auth import verify_password
 
 @dataclass
 class UserEntity:
-    id: int
+    pk: int
+    user_hash: str
     hashed_password: str
 
     def check_password(self, password: str) -> bool:
@@ -17,3 +18,4 @@ class UserSignupEntity:
     username: str
     hashed_password: str
     name: str
+    is_superuser: bool = False

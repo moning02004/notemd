@@ -1,5 +1,6 @@
 fastapi-clean-archi
 fastapi
+httpx2
 python-multipart
 psycopg2-binary
 pillow
@@ -7,6 +8,7 @@ pillow-heif
 
 gunicorn>=21.2.0
 uvicorn[standard]>=0.27.1
+cryptography
 
 celery[redis]==5.3.6
 flower==2.0.1

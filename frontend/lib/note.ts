@@ -23,7 +23,6 @@ export const downloadNoteRequest = async (noteHashes: Array<string>) => {
     if (!res.ok) {
         throw new Error(`다운로드 실패: ${res.status}`);
     }
-    console.log(res)
     const disposition = res.headers.get("Content-Disposition");
     const filename = extractFilename(disposition) ?? "download";
 

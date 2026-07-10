@@ -24,6 +24,7 @@ import {apiRequest} from "@/lib/api";
 import {CreateNoteImageResponse} from "@/types/note";
 import {API_HOST} from "@/constants/api";
 import {GoListOrdered, GoListUnordered, GoTasklist} from "react-icons/go";
+import {useClickOutside} from "@/hooks/useClickOutside";
 
 interface Props {
     editor: Editor;
@@ -37,7 +38,7 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
     const [tableRows, setTableRows] = useState(3);
     const [tableCols, setTableCols] = useState(3);
 
-    const tableMenuRef = useRef<HTMLDivElement>(null);
+    const tableMenuRef = useClickOutside<HTMLDivElement>(() => setTableMenuOpen(false), tableMenuOpen);
 
     if (!editor) return null;
 

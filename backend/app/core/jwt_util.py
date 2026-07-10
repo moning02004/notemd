@@ -43,3 +43,23 @@ class JWTManager:
 
 
 jwt_manager = JWTManager()
+
+
+def verify_refresh_token(token: str) -> bool:
+    try:
+        jwt_manager.decode_payload(token)
+        return True
+    except (jwt.InvalidTokenError, jwt.ExpiredSignatureError):
+        return False
+
+
+def get_refresh_token_expires_seconds() -> int:
+    value = settings.REFRESH_TOKEN_EXPIRE_MINUTES
+    number, unit = int(value[:-1]), value[-1].lower()
+    if unit == "d":
+        return number * 60 * 60 * 24
+    elif unit == "h":
+        return number * 60 * 60
+    elif unit == "m":
+        return number * 60
+    return 0

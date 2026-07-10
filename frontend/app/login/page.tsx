@@ -3,11 +3,12 @@
 import React, {useEffect, useRef, useState} from "react"
 import {apiRequest} from "@/lib/api";
 import {useAuthStore} from "@/store/auth";
-import {GetAuthResponse} from "@/types/auth";
 import {SignupPage} from "@/components/signup";
 import {LoadingPage} from "@/components/loading";
 import {API_HOST} from "@/constants/api";
 import Cookies from "js-cookie";
+import {AuthTokenResponse, CheckAccountExistenceResponse} from "@/types/auth";
+
 
 export default function Page() {
     const usernameRef = useRef<HTMLInputElement>(null)
@@ -19,11 +20,9 @@ export default function Page() {
     const [existsAccount, setExistsAccount] = useState<boolean | null>(null);
 
     const isAutoLogin = Cookies.get('auto-login') === '1'
-    const existsRefreshToken = Cookies.get('refreshtoken') !== undefined
-
     const checkAccountExistence = async () => {
         try {
-            const res = await apiRequest.get<{ exists: boolean }>("/check");
+            const res = await apiRequest.get<CheckAccountExistenceResponse>("/check");
             setExistsAccount(res.exists);
         } catch (error) {
             setExistsAccount(false);
@@ -42,8 +41,8 @@ export default function Page() {
             });
 
             if (refreshRes.ok) {
-                const data = await refreshRes.json();
-                setAuth(data.access_token, data.user_id);
+                const data: AuthTokenResponse = await refreshRes.json();
+                setAuth(data.access_token, data.user_hash);
                 window.location.replace("/")
             } else {
                 Cookies.remove('auto-login')
@@ -64,14 +63,14 @@ export default function Page() {
             return
         }
 
-        const data = await apiRequest.post<GetAuthResponse>("/auth/obtain-token", {
+        const data = await apiRequest.post<Partial<AuthTokenResponse>>("/auth/obtain-token", {
             body: JSON.stringify({
                 username: usernameRef.current.value,
                 password: passwordRef.current.value,
             })
         }).catch(error => {
             setErrorMessage(error.detail || "계정을 찾을 수 없습니다.")
-            return {access_token: "", user_id: 0}
+            return {} as Partial<AuthTokenResponse>
         })
         if (!data.access_token) return
 
@@ -80,7 +79,7 @@ export default function Page() {
         } else {
             Cookies.remove('auto-login')
         }
-        setAuth(data.access_token, data.user_id)
+        setAuth(data.access_token, data.user_hash)
         window.location.href = "/"
     }
     const isEnterLogin = (e: React.KeyboardEvent<HTMLInputElement>) => {

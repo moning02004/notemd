@@ -13,7 +13,6 @@ interface NoteSelectStore {
     exitSelectMode: () => void
     toggleSelect: (id: string) => void
     selectAll: (ids: string[]) => void
-    clearSelection: () => void
 
     setMenuOpen: (open: boolean) => void
     toggleMenu: () => void
@@ -36,8 +35,6 @@ export const useNoteSelectStore = create<NoteSelectStore>((set, get) => ({
     },
 
     selectAll: (ids) => set({selectedIds: new Set(ids)}),
-
-    clearSelection: () => set({selectedIds: new Set()}),
 
     setMenuOpen: (open) => set({menuOpen: open}),
 

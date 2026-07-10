@@ -27,7 +27,7 @@ class TemplateRepository(Repository):
                                                        self.DB_MODEL.hash_id == hash_id).first()
         return instance
 
-    def update_note(self, user_id: int, hash_id: str, request) -> Union[Template, None]:
+    def update_template(self, user_id: int, hash_id: str, request) -> Union[Template, None]:
         instance = self.db.query(self.DB_MODEL).filter(self.DB_MODEL.user_id == user_id,
                                                        self.DB_MODEL.hash_id == hash_id).first()
         if instance:

@@ -11,22 +11,22 @@ class NotExistsToken(Exception):
         super().__init__(self.message)
 
 
-def get_user_id_from_token(token):
+def get_user_hash_from_token(token):
     if not token:
         raise NotExistsToken
 
     token = token.replace("Bearer ", "")
     payload = jwt_manager.decode_payload(token)
-    return payload["user_id"]
+    return payload["user_hash"]
 
 
 class AuthTokenMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         token = request.headers.get("Authorization")
 
-        request.state.user_id = None
+        request.state.user_hash = None
         try:
-            request.state.user_id = get_user_id_from_token(token)
+            request.state.user_hash = get_user_hash_from_token(token)
         except (ExpiredSignatureError, NotExistsToken):
             pass
 

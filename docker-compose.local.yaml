@@ -21,7 +21,7 @@ services:
   backend:
     build:
       context: backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.local
     container_name: notemd-backend
     restart: always
     volumes:
@@ -40,6 +40,9 @@ services:
       MEILISEARCH_URL: "http://meilisearch:7700"
       MEILISEARCH_MASTER_KEY: 6547723aae4112da0be104ad3ec45cf2057cd6baa3c63dc4a0ad9dbb3e9ff45b
       MEILISEARCH_INDEX_UID: "notes"
+      # macOS Docker Desktop 의 bind mount 는 inotify 이벤트가 안정적으로 전달되지 않아
+      # uvicorn --reload 가 변경을 못 잡는 경우가 있음 -> polling 방식으로 강제
+      WATCHFILES_FORCE_POLLING: "true"
     ports:
       - "8002:8000"
     depends_on:

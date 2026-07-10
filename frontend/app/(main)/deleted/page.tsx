@@ -11,8 +11,11 @@ import {useNoteListPaging} from "@/hooks/useNoteListPaging"
 import {apiRequest} from "@/lib/api";
 import toast from "react-hot-toast";
 import {SkeletonLoading} from "@/components/skeleton";
+import {useViewModeStore} from "@/store/viewMode";
+import ViewModeToggle from "@/components/view_mode_toggle";
 
 function NoteListContent() {
+    const {viewMode} = useViewModeStore()
     const {notes, isLoading, isFetchingNextPage, sentinelRef, removeNotes} = useNoteListPaging("is_deleted=1")
 
     const {
@@ -43,8 +46,15 @@ function NoteListContent() {
 
     return (
         <>
+            <div className="sticky top-0 z-10 backdrop-blur border-b border-[#E8E5DD] bg-white/80 flex items-center justify-end px-4 h-11">
+                <ViewModeToggle/>
+            </div>
+
             <div
-                className={`min-h-full pt-5 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-5 ${selectMode ? "pb-20" : ""}`}>
+                className={viewMode === "list"
+                    ? `flex flex-col p-4 md:p-6 ${selectMode ? "pb-20" : ""}`
+                    : `grid grid-cols-2 sm:grid-cols-2 md:grid-cols-5 pt-5 ${selectMode ? "pb-20" : ""}`
+                }>
                 {isLoading
                     ? <SkeletonLoading count={4}/>
                     : notes.map(note => (
@@ -59,6 +69,7 @@ function NoteListContent() {
                             selectable={selectMode}
                             selected={selectedIds.has(note.hash_id)}
                             onSelect={toggleSelect}
+                            viewMode={viewMode}
                         />
                     ))
                 }
@@ -81,7 +92,7 @@ function NoteListContent() {
 
 export default function Page() {
     const router = useRouter()
-    const token = useAuthStore((state) => state.token)
+    const {token} = useAuthStore.getState();
 
     useEffect(() => {
         if (!token) router.replace("/login")

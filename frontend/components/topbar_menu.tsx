@@ -1,12 +1,17 @@
 "use client"
 
-import {useEffect, useRef} from "react"
+import {useRouter} from "next/navigation"
 import {BsThreeDotsVertical} from "react-icons/bs"
 import {FiCheckSquare, FiUpload} from "react-icons/fi"
+import {MdOutlineSettings} from "react-icons/md"
+import {GrTrash} from "react-icons/gr";
+import {useClickOutside} from "@/hooks/useClickOutside"
 
 interface TopbarMenuProps {
     onFileUpload?: () => void
     onSelectMode: () => void
+    gotoSettings: () => void
+    gotoTrash: () => void
     open: boolean
     onToggle: () => void
     onClose: () => void
@@ -15,22 +20,14 @@ interface TopbarMenuProps {
 export default function TopbarMenu({
                                        onFileUpload,
                                        onSelectMode,
+                                       gotoSettings,
+                                       gotoTrash,
                                        open,
                                        onToggle,
                                        onClose,
                                    }: TopbarMenuProps) {
-    const menuRef = useRef<HTMLDivElement>(null)
-
-    useEffect(() => {
-        function handleClickOutside(e: MouseEvent) {
-            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-                onClose()
-            }
-        }
-
-        if (open) document.addEventListener("mousedown", handleClickOutside)
-        return () => document.removeEventListener("mousedown", handleClickOutside)
-    }, [open, onClose])
+    const router = useRouter()
+    const menuRef = useClickOutside<HTMLDivElement>(onClose, open)
 
     return (
         <div ref={menuRef} className="relative">
@@ -63,18 +60,49 @@ export default function TopbarMenu({
                         </button>
                     </div>}
 
-                    <div>
+                    {gotoTrash &&
+                        <div>
+                            <button
+                                onClick={() => {
+                                    onClose();
+                                    gotoTrash();
+                                }}
+                                className="w-full flex cursor-pointer items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-gray-50 transition-colors duration-100"
+                            >
+                                <span className="text-gray-500 shrink-0"><GrTrash size={15}/></span>
+                                <span className="text-gray-800 font-medium leading-snug">휴지통</span>
+                            </button>
+                        </div>
+                    }
+                    {onSelectMode &&
+                        <div>
+                            <button
+                                onClick={() => {
+                                    onClose();
+                                    onSelectMode();
+                                }}
+                                className="w-full flex cursor-pointer items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-gray-50 transition-colors duration-100"
+                            >
+                                <span className="text-gray-500 shrink-0"><FiUpload size={15}/></span>
+                                <span className="text-gray-800 font-medium leading-snug">선택 모드</span>
+                            </button>
+                        </div>
+                    }
+
+                    <div className="h-px bg-gray-100"/>
+
+                    {gotoSettings &&<div>
                         <button
                             onClick={() => {
                                 onClose();
-                                onSelectMode();
+                                gotoSettings();
                             }}
                             className="w-full flex cursor-pointer items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-gray-50 transition-colors duration-100"
                         >
-                            <span className="text-gray-500 shrink-0"><FiUpload size={15}/></span>
-                            <span className="text-gray-800 font-medium leading-snug">선택 모드</span>
+                            <span className="text-gray-500 shrink-0"><MdOutlineSettings size={15}/></span>
+                            <span className="text-gray-800 font-medium leading-snug">설정</span>
                         </button>
-                    </div>
+                    </div>}
                 </div>
             )}
         </div>

@@ -97,7 +97,6 @@ export default function NoteTagInput({selectedTags, setSelectedTags}: Props) {
             {selectedTags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-2.5">
                     {selectedTags.map((name) => {
-                        const tag = tags.find((t) => t.keyword === name);
                         return (
                             <span
                                 key={name}

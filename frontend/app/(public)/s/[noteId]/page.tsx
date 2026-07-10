@@ -8,18 +8,20 @@ import {MarkdownEditor} from "@/components/editor";
 import {LoadingPage} from "@/components/loading";
 import {useAuthStore} from "@/store/auth";
 import {NoteSettings} from "@/components/note_settings";
+import {useNotePatch} from "@/hooks/useNotePatch";
+import {NoteDetailResponse} from "@/types/note";
+import {NoteWorkspace} from "@/types/workspace";
 
-interface NoteResponse {
-    title: string | null
-    content: string | null
-    is_public: boolean
-    is_protected: boolean
-    tags: string[]
-    user_id: number
+// Tailwind는 소스에 리터럴로 존재하는 클래스명만 인식하므로 `w-[${n}%]`처럼 동적으로
+// 조합하면 CSS가 생성되지 않는다. note_settings.tsx의 <select> 옵션과 값을 맞춰야 함.
+const EDITOR_WIDTH_CLASSES: Record<number, string> = {
+    100: "w-[100%]",
+    70: "w-[70%]",
+    50: "w-[50%]",
 }
 
 export default function Page() {
-    const {token, userId} = useAuthStore.getState();
+    const {token, userHash} = useAuthStore.getState()
 
     const [loadingStatus, setLoadingStatus] = useState("loading")
     const [isOpenedSetting, setOpenedSetting] = useState(false)
@@ -33,22 +35,17 @@ export default function Page() {
     const [title, setTitle] = useState<string | null>(null);
     const [content, setContent] = useState<string>("");
     const [statusType, setStatusType] = useState<string>("");
+    const [selectedWorkspaces, setSelectedWorkspaces] = useState<NoteWorkspace[]>([]);
+    const [editorWidth, setEditorWidth] = useState(100)
+
+    const patchNote = useNotePatch(setStatusType)
 
     useEffect(() => {
         if (!isOwner || loadingStatus == "loading") return
 
         setStatusType("loading")
-        const timer = setTimeout(async () => {
-            await apiRequest.patch(`/notes/${noteId}`, {
-                body: JSON.stringify({
-                    title: title,
-                    content: content,
-                })
-            }).then(() => {
-                setStatusType("complete")
-            }).catch(() => {
-                setStatusType("warning")
-            })
+        const timer = setTimeout(() => {
+            patchNote(noteId, {title, content})
         }, 300);
 
         return () => clearTimeout(timer);
@@ -57,33 +54,25 @@ export default function Page() {
     useEffect(() => {
         if (!isOwner || loadingStatus == "loading") return
 
-        const patchRequest = async (data: Partial<{
-            is_public: boolean
-            is_protected: boolean
-            tags: string[]
-        }>) => {
-            await apiRequest.patch(`/notes/${noteId}`, {
-                body: JSON.stringify(data)
-            }).then(() => {
-                setStatusType("complete")
-            }).catch(() => {
-                setStatusType("warning")
-            })
-        }
-
-        patchRequest({is_public: isPublic, is_protected: isProtected, tags: selectedTags});
-    }, [isPublic, isProtected, selectedTags]);
+        patchNote(noteId, {
+            is_public: isPublic,
+            is_protected: isProtected,
+            tags: selectedTags,
+            workspaces: selectedWorkspaces.map(x => x.hashId)
+        });
+    }, [isPublic, isProtected, selectedTags, selectedWorkspaces]);
 
     useEffect(() => {
         const fetchData = async () => {
-            await apiRequest.get<NoteResponse>(`/notes/${noteId}`)
+            await apiRequest.get<NoteDetailResponse>(`/notes/${noteId}`)
                 .then(response => {
                     setTitle(response.title || "")
                     setContent(response.content || "")
                     setIsPublic(response.is_public)
                     setIsProtected(response.is_protected)
                     setSelectedTags(response.tags)
-                    setIsOwner(response.user_id === userId)
+                    setSelectedWorkspaces(response.workspaces)
+                    setIsOwner(response.user_hash === userHash)
                 })
                 .catch(() => {
                     setLoadingStatus("404")
@@ -94,7 +83,6 @@ export default function Page() {
 
     if (loadingStatus == "404") return notFound()
     if (title == null) return <LoadingPage/>
-
     return (
         <div className="relative w-full h-screen">
             <div className="flex w-full h-full"
@@ -112,6 +100,7 @@ export default function Page() {
                                 setTitle={setTitle}
                                 setContent={setContent}
                                 statusType={statusType}
+                                widthClass={EDITOR_WIDTH_CLASSES[editorWidth] ?? EDITOR_WIDTH_CLASSES[100]}
                 />
             </div>
 
@@ -129,6 +118,9 @@ export default function Page() {
                               setStatusType={setStatusType}
                               setIsProtected={setIsProtected}
                               setSelectedTags={setSelectedTags}
+                              selectedWorkspaces={selectedWorkspaces}
+                              setSelectedWorkspaces={setSelectedWorkspaces}
+                              setEditorWidth={setEditorWidth}
 
                               setTitle={setTitle}
                               setContent={setContent}
@@ -137,6 +129,7 @@ export default function Page() {
                               afterApplyTemplate={() => setOpenedSetting(false)}
 
                               selectedTags={selectedTags}
+                              editorWidth={editorWidth}
                               isProtected={isProtected}
                               isPublic={isPublic}
                               isOpenedSetting={isOpenedSetting}/>

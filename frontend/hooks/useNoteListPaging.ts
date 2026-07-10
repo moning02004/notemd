@@ -2,7 +2,7 @@ import {useEffect, useRef} from "react"
 import {useInfiniteNotes} from "@/hooks/useNotes"
 import {useNotesStore} from "@/store/notes"
 
-export function useNoteListPaging(query: string) {
+export function useNoteListPaging(query: string, endPoint: string = "/notes", enabled: boolean = true) {
     const {notes, setNotes} = useNotesStore()
 
     const {
@@ -11,7 +11,7 @@ export function useNoteListPaging(query: string) {
         isFetchingNextPage,
         hasNextPage,
         fetchNextPage,
-    } = useInfiniteNotes(query)
+    } = useInfiniteNotes(endPoint, query, enabled)
 
     const sentinelRef = useRef<HTMLDivElement>(null)
 

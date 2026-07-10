@@ -7,25 +7,13 @@ import {useRouter} from "next/navigation";
 import {EditorContent} from "@tiptap/react";
 import {useEditorInstance} from "@/lib/create_editor";
 import MenuBar from "@/components/editor_menubar";
-import {IoIosCheckmarkCircleOutline} from "react-icons/io";
-import {Warning} from "@/components/icons";
+import {Complete, LoadingSpinner, Warning} from "@/components/icons";
 import {apiRequest} from "@/lib/api";
 import {CreateNoteImageResponse} from "@/types/note";
 import {API_HOST} from "@/constants/api";
 import toast from "react-hot-toast";
 import {BubbleMenu} from "@tiptap/react/menus";
-
-function LoadingSpinner() {
-    return (
-        <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin"></div>
-    );
-}
-
-function Complete() {
-    return (
-        <IoIosCheckmarkCircleOutline size={22} className="text-green-500"/>
-    );
-}
+import {useAuthStore} from "@/store/auth";
 
 interface EditorProps {
     setOpenedSetting: Dispatch<SetStateAction<boolean>>;
@@ -37,6 +25,7 @@ interface EditorProps {
     setContent: (value: string) => void;
     paramsNoteId: string;
     statusType: string;
+    widthClass: string;
 }
 
 export function MarkdownEditor({
@@ -48,7 +37,8 @@ export function MarkdownEditor({
                                    setTitle,
                                    setContent,
                                    isReadonly,
-                                   statusType
+                                   statusType,
+                                   widthClass
                                }: EditorProps
 ) {
     const titleRef = React.useRef<HTMLInputElement>(null);
@@ -58,6 +48,7 @@ export function MarkdownEditor({
             ((statusType == "warning") ? <Warning/> :
                 ""));
     const [tableMenuOpen, setTableMenuOpen] = useState(false)
+    const {token} = useAuthStore.getState();
 
     const editor = useEditorInstance({
         initialContent: content,
@@ -110,7 +101,7 @@ export function MarkdownEditor({
             <div
                 className="flex flex-row items-center bg-white border-b border-gray-200 px-3 transition-colors duration-300">
                 {
-                    isOwner &&
+                    token &&
                     <div
                         className="my-auto p-1.5 rounded-lg cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors duration-200"
                         onClick={goBack}>
@@ -182,7 +173,7 @@ export function MarkdownEditor({
                 </BubbleMenu>
             }
 
-            <div className="flex-20 bg-white">
+            <div className={`flex-20 bg-white ${widthClass} mx-auto`}>
                 <EditorContent editor={editor}
                                className="h-[100%]"
                                onClick={() => {

@@ -10,10 +10,13 @@ from starlette.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.middlewares.token import AuthTokenMiddleware
 from app.modules.note.interfaces.controller import router as note_router
+from app.modules.preference.interfaces.controller import router as preference_router
 from app.modules.search.infrastructure.repository import SearchRepository
 from app.modules.tag.interfaces.controller import router as tag_router
 from app.modules.template.interfaces.controller import router as template_router
-from app.modules.user.interfaces.controller import router as auth_router
+from app.modules.user.interfaces.auth_controller import router as auth_router
+from app.modules.user.interfaces.user_controller import router as user_router
+from app.modules.workspace.interfaces.controller import router as workspace_router
 
 modules = os.listdir("app/modules")
 for module in modules:
@@ -49,7 +52,16 @@ app.add_middleware(
     expose_headers=["Content-Disposition"],
 )
 app.add_middleware(AuthTokenMiddleware)
-app.include_router(auth_router)
-app.include_router(note_router)
-app.include_router(template_router)
-app.include_router(tag_router)
+
+# router 등록
+routers = [
+    auth_router,
+    user_router,
+    note_router,
+    template_router,
+    tag_router,
+    workspace_router,
+    preference_router,
+]
+for router in routers:
+    app.include_router(router)

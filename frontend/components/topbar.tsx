@@ -1,18 +1,20 @@
 "use client"
 
-import {usePathname} from "next/navigation"
+import {usePathname, useRouter} from "next/navigation"
 import {menuItems} from "@/constants/menus"
 import {FaSearch} from "react-icons/fa"
-import {FiUpload, FiDownload, FiCheckSquare, FiX} from "react-icons/fi"
-import {BsThreeDotsVertical} from "react-icons/bs"
+import {FiX, FiChevronLeft} from "react-icons/fi"
 import {SearchModal} from "@/components/search_modal"
-import {useEffect, useRef, useState} from "react"
+import {useEffect, useState} from "react"
 import {useNoteSelectStore} from "@/store/noteSelect"
 import TopbarMenu from "@/components/topbar_menu";
 import {apiRequest} from "@/lib/api";
+import {WorkspaceSelector} from "@/components/workspace_selector";
 
 export function Topbar() {
     const pathname = usePathname()
+    const router = useRouter();
+
     const [isSearchModalOpen, setIsSearchModalOpen] = useState(false)
 
     const {
@@ -26,29 +28,33 @@ export function Topbar() {
         setMenuOpen,
     } = useNoteSelectStore()
 
-    const menuRef = useRef<HTMLDivElement>(null)
-
-    // 외부 클릭 시 메뉴 닫기
-    useEffect(() => {
-        if (!menuOpen) return
-
-        function handler(e: MouseEvent) {
-            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-                setMenuOpen(false)
-            }
-        }
-
-        document.addEventListener("mousedown", handler)
-        return () => document.removeEventListener("mousedown", handler)
-    }, [menuOpen])
-
     // 페이지 이동 시 선택 모드 초기화
     useEffect(() => {
         exitSelectMode()
     }, [pathname])
 
-    const topTitle = menuItems.find(item => item.path === pathname)?.name ?? ""
     const isSettingsPage = pathname.startsWith("/settings")
+    const isTrashPage = pathname.startsWith("/deleted")
+    const topTitle = isSettingsPage ? "설정" : isTrashPage ? "휴지통" : menuItems.find(item => item.path === pathname)?.name ?? ""
+    const isAccountPage = isSettingsPage || pathname.startsWith("/my-info")
+
+    const handleSelectMode = () => {
+        setMenuOpen(false);
+        enterSelectMode()
+    }
+    const handleGotoTrash = () => {
+        router.push("/deleted")
+    }
+    const handleGotoSettings = () => {
+        router.push("/settings")
+    }
+    const handleBack = () => {
+        try {
+            router.back()
+        } catch (e) {
+            window.location.href = "/"
+        }
+    }
 
     function handleFileUpload() {
         setMenuOpen(false)
@@ -109,11 +115,22 @@ export function Topbar() {
                 </>
             ) : (
                 <>
+                    {(isSettingsPage || isTrashPage) && (
+                        <button
+                            onClick={handleBack}
+                            className="p-1.5 -ml-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors cursor-pointer"
+                            aria-label="뒤로 가기"
+                        >
+                            <FiChevronLeft size={20}/>
+                        </button>
+                    )}
                     <h3 className="m-0!">{topTitle}</h3>
+
+                    {pathname === "/workspace" && <WorkspaceSelector/>}
 
                     <div className="ml-auto flex items-center gap-1">
 
-                        {!isSettingsPage && (
+                        {!isAccountPage && (
                             <button
                                 className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors cursor-pointer"
                                 onClick={() => setIsSearchModalOpen(true)}
@@ -124,11 +141,10 @@ export function Topbar() {
                         )}
 
                         {!isSettingsPage && (
-                            <TopbarMenu {...(pathname === "/" && { onFileUpload: handleFileUpload })}
-                                        onSelectMode={() => {
-                                            setMenuOpen(false);
-                                            enterSelectMode()
-                                        }}
+                            <TopbarMenu {...(pathname === "/" && {onFileUpload: handleFileUpload})}
+                                        {...(!isAccountPage && {onSelectMode: handleSelectMode})}
+                                        {...(pathname === "/" && {gotoTrash: handleGotoTrash})}
+                                        {...(isAccountPage && {gotoSettings: handleGotoSettings})}
                                         open={menuOpen}
                                         onToggle={toggleMenu}
                                         onClose={() => setMenuOpen(false)}/>
@@ -144,25 +160,5 @@ export function Topbar() {
                 />
             )}
         </div>
-    )
-}
-
-function MenuItem({icon, label, sub, onClick}: {
-    icon: React.ReactNode
-    label: string
-    sub?: string
-    onClick: () => void
-}) {
-    return (
-        <button
-            onClick={onClick}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-gray-50 transition-colors duration-100"
-        >
-            <span className="text-gray-500 shrink-0">{icon}</span>
-            <span className="flex flex-col">
-                <span className="text-gray-800 font-medium leading-snug">{label}</span>
-                {sub && <span className="text-xs text-gray-400 leading-snug">{sub}</span>}
-            </span>
-        </button>
     )
 }

@@ -6,6 +6,10 @@ import {TemplateManageModal} from "@/components/template/manage_modal";
 import {Dispatch, SetStateAction, useState} from "react";
 import {FaHistory} from "react-icons/fa";
 import {NoteSnapshotManageModal} from "@/components/note_snapshot_manage_modal";
+import {ToggleSwitch} from "@/components/ui/toggle_switch";
+import {SettingsCard} from "@/components/ui/settings_card";
+import SettingsWorkspaceInput from "@/components/settings_workspace_input";
+import {NoteWorkspace} from "@/types/workspace";
 
 interface SettingsProps {
     noteId: string,
@@ -14,11 +18,15 @@ interface SettingsProps {
     setIsPublic: (flag: boolean) => void;
     setIsProtected: (flag: boolean) => void;
     setSelectedTags: (tag: string[]) => void;
+    setEditorWidth: (editorWidth: number) => void;
+    selectedWorkspaces: NoteWorkspace[];
+    setSelectedWorkspaces: (workspace: NoteWorkspace[]) => void;
 
     selectedTags: string[];
     isProtected: boolean;
     isPublic: boolean;
     isOpenedSetting: boolean;
+    editorWidth: number;
 
     setTitle: Dispatch<SetStateAction<string>>;
     setContent: Dispatch<SetStateAction<string>>;
@@ -34,11 +42,15 @@ export const NoteSettings = ({
                                  setIsPublic,
                                  setIsProtected,
                                  setSelectedTags,
+                                 selectedWorkspaces,
+                                 editorWidth,
 
                                  selectedTags,
+                                 setSelectedWorkspaces,
                                  isProtected,
                                  isPublic,
                                  isOpenedSetting,
+                                 setEditorWidth,
 
                                  currentTitle,
                                  currentContent,
@@ -64,7 +76,8 @@ export const NoteSettings = ({
 
                 <div className="flex flex-col h-full">
                     {/* 헤더 */}
-                    <div className="flex flex-row justify-between items-center p-3 bg-white/80 backdrop-blur border-b border-[#E8E5DD] sticky top-0 z-10">
+                    <div
+                        className="flex flex-row justify-between items-center p-3 bg-white/80 backdrop-blur border-b border-[#E8E5DD] sticky top-0 z-10">
                         <div className="text-lg font-serif text-[#23241F]">노트 설정</div>
                         <button onClick={() => setOpenedSetting(false)}
                                 className="w-8 h-8 flex items-center justify-center rounded-full text-[#6B6A63] hover:bg-[#E8E5DD]/60 hover:text-[#23241F] transition-colors duration-200 cursor-pointer">
@@ -75,9 +88,7 @@ export const NoteSettings = ({
                     <div className="flex flex-col gap-4 px-5 py-5 flex-1">
 
                         {/* 공유 및 보안 */}
-                        <div className="bg-white rounded-2xl border border-[#E8E5DD] p-4">
-                            <p className="text-[11px] font-medium text-[#6B6A63] tracking-widest uppercase mb-3">공유 및 보안</p>
-
+                        <SettingsCard title="기본 설정">
                             <div className="flex flex-row justify-between items-center py-2">
                                 <div className="pr-3">
                                     <p className="text-[15px] font-medium text-[#23241F]">외부 공개</p>
@@ -97,17 +108,10 @@ export const NoteSettings = ({
                                             <FiCopy size={14}/>
                                         </button>
                                     )}
-                                    <div className="cursor-pointer select-none"
-                                         onClick={() => {
-                                             setStatusType("loading")
-                                             setIsPublic(!isPublic)
-                                         }}>
-                                        <div className={`w-11 h-6 flex items-center rounded-full p-0.5 transition-colors duration-300
-                                                ${isPublic ? "bg-[#3F6C51]" : "bg-[#E8E5DD]"}`}>
-                                            <div className={`w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-300
-                                                    ${isPublic ? "translate-x-5" : "translate-x-0"}`}/>
-                                        </div>
-                                    </div>
+                                    <ToggleSwitch checked={isPublic} onClick={() => {
+                                        setStatusType("loading")
+                                        setIsPublic(!isPublic)
+                                    }}/>
                                 </div>
                             </div>
 
@@ -117,32 +121,50 @@ export const NoteSettings = ({
                                 <div className="pr-3">
                                     <p className="text-[15px] font-medium text-[#23241F]">노트 보호</p>
                                     <p className="text-[13px] text-[#6B6A63] mt-0.5">
-                                        비밀번호로 접근을 제한해요.
+                                        편집과 삭제가 제한됩니다.
                                     </p>
                                 </div>
-                                <div className="cursor-pointer select-none shrink-0"
-                                     onClick={() => {
-                                         setStatusType("loading")
-                                         setIsProtected(!isProtected)
-                                     }}>
-                                    <div className={`w-11 h-6 flex items-center rounded-full p-0.5 transition-colors duration-300
-                                            ${isProtected ? "bg-[#B45309]" : "bg-[#E8E5DD]"}`}>
-                                        <div className={`w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-300
-                                                ${isProtected ? "translate-x-5" : "translate-x-0"}`}/>
-                                    </div>
+                                <ToggleSwitch checked={isProtected} activeColor="bg-[#B45309]" onClick={() => {
+                                    setStatusType("loading")
+                                    setIsProtected(!isProtected)
+                                }}/>
+                            </div>
+                            <div className="h-px bg-[#E8E5DD] my-1"/>
+
+                            <div className="flex flex-row justify-between items-center py-2">
+                                <div className="pr-3">
+                                    <p className="text-[15px] font-medium text-[#23241F]">레이아웃</p>
+                                    <p className="text-[13px] text-[#6B6A63] mt-0.5">
+                                        편집기 영역의 너비를 조절할 수 있어요.
+                                    </p>
+                                </div>
+                                <div className="cursor-pointer shrink-0">
+                                    <select
+                                        value={editorWidth}
+                                        onChange={(e) => setEditorWidth(parseInt(e.target.value))}
+                                        className="border border-[#E8E5DD] rounded-lg px-3 py-1.5 text-[13px] bg-white cursor-pointer outline-none focus:border-[#3F6C51] transition-colors duration-150 shrink-0"
+                                    >
+                                        <option value="100">100%</option>
+                                        <option value="70">70%</option>
+                                        <option value="50">50%</option>
+                                    </select>
                                 </div>
                             </div>
-                        </div>
+                        </SettingsCard>
 
                         {/* 분류 */}
-                        <div className="bg-white rounded-2xl border border-[#E8E5DD] p-4">
-                            <p className="text-[11px] font-medium text-[#6B6A63] tracking-widest uppercase mb-3">분류</p>
+                        <SettingsCard title="분류">
                             <NoteTagInput selectedTags={selectedTags} setSelectedTags={setSelectedTags}/>
-                        </div>
+                        </SettingsCard>
+
+                        {/* 분류 */}
+                        <SettingsCard title="워크스페이스">
+                            <SettingsWorkspaceInput selectedWorkspaces={selectedWorkspaces}
+                                                    setSelectedWorkspaces={setSelectedWorkspaces}/>
+                        </SettingsCard>
 
                         {/* 관리 */}
-                        <div className="bg-white rounded-2xl border border-[#E8E5DD] p-4">
-                            <p className="text-[11px] font-medium text-[#6B6A63] tracking-widest uppercase mb-3">관리</p>
+                        <SettingsCard title="관리">
                             <div className="grid grid-cols-2 gap-2">
                                 <button
                                     onClick={() => setTemplateModalOpen(true)}
@@ -160,7 +182,7 @@ export const NoteSettings = ({
                                     <span className="text-[13px] font-medium">스냅샷 목록</span>
                                 </button>
                             </div>
-                        </div>
+                        </SettingsCard>
                     </div>
 
                     {/* 삭제 */}
