@@ -30,26 +30,27 @@ export default function Page() {
                     trashPolicy: data.trash_policy,
                     snapshotPolicy: data.snapshot_policy,
                 })
-            })
-        apiRequest.get("/users")
-            .then((data: { user_hash: string, username: string, name: string, created_at: string }[]) => {
-                const fetchedUsers = data.map(user => ({
-                    userHash: user.user_hash,
-                    username: user.username,
-                    name: user.name,
-                    createdAt: user.created_at
-                }))
-                setUsers(fetchedUsers)
-            })
-        apiRequest.get("/workspaces")
-            .then((data: { hash_id: string, name: string, description: string, user_count: number }[]) => {
-                const fetchedWorkspaces = data.map(workspace => ({
-                    hashId: workspace.hash_id,
-                    name: workspace.name,
-                    description: workspace.description,
-                    userCount: workspace.user_count
-                }))
-                setWorkspaces(fetchedWorkspaces)
+                if (!data.is_superuser) return;
+                apiRequest.get("/users")
+                    .then((data: { user_hash: string, username: string, name: string, created_at: string }[]) => {
+                        const fetchedUsers = data.map(user => ({
+                            userHash: user.user_hash,
+                            username: user.username,
+                            name: user.name,
+                            createdAt: user.created_at
+                        }))
+                        setUsers(fetchedUsers)
+                    })
+                apiRequest.get("/workspaces")
+                    .then((data: { hash_id: string, name: string, description: string, user_count: number }[]) => {
+                        const fetchedWorkspaces = data.map(workspace => ({
+                            hashId: workspace.hash_id,
+                            name: workspace.name,
+                            description: workspace.description,
+                            userCount: workspace.user_count
+                        }))
+                        setWorkspaces(fetchedWorkspaces)
+                    })
             })
     }, []);
 
@@ -149,7 +150,7 @@ export default function Page() {
             })
     }
 
-    if (!preference) return <LoadingPage />
+    if (!preference) return <LoadingPage/>
     return (
         <main className="flex-1 overflow-auto w-full max-w-2xl mx-auto my-5 px-4 md:px-0">
             <div className="flex flex-col gap-4">
