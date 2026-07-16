@@ -10,7 +10,7 @@ export function useInfiniteNotes(endPoint: string, searchParams: string, enabled
         queryKey: ["notes", endPoint, searchParams],
         queryFn: ({pageParam = 1}) => {
             const params = searchParams ? `?${searchParams}&page=${pageParam}` : `?page=${pageParam}`
-            return apiRequest.get<NoteCard[]>(`${endPoint}/${params}`)
+            return apiRequest.get<NoteCard[]>(`${endPoint}${params}`)
         },
         getNextPageParam: (lastPage, _, lastPageParam) =>
             lastPage.length === PAGE_SIZE ? lastPageParam + 1 : undefined,
