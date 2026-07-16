@@ -167,8 +167,8 @@ export const Note = ({
 
             <div className="flex font-bold truncate cursor-default mt-1">
                 <div className="flex flex-row gap-2 mx-auto">
-                    {icons.map(x => (
-                        <div className="my-auto">{x}</div>
+                    {icons.map((x, index) => (
+                        <div key={index} className="my-auto">{x}</div>
                     ))}
                     <div className="w-full">{title}</div>
                 </div>
