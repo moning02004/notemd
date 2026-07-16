@@ -28,7 +28,9 @@
 """
 import abc
 import argparse
+import importlib
 import logging
+import os
 from datetime import datetime
 
 from sqlalchemy import select, func
@@ -36,6 +38,14 @@ from sqlalchemy import select, func
 from app.core.session import SessionLocal
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+
+# ORM 모델 간 relationship("Note") 같은 문자열 참조를 풀려면 관련 모듈이 전부 import 되어
+# 있어야 한다 (main.py / migrations/env.py 와 동일한 부트스트랩).
+for _module_name in os.listdir("app/modules"):
+    try:
+        importlib.import_module(f"app.modules.{_module_name}.infrastructure.models")
+    except ModuleNotFoundError:
+        continue
 
 
 class BackfillScript(abc.ABC):
@@ -76,6 +86,7 @@ class BackfillScript(abc.ABC):
         try:
             target_count = self._count_target(db)
             if target_count == 0:
+                self.logger.info(self.args.username)
                 self.logger.info("채울 대상이 없습니다.")
                 return 0
 
@@ -102,13 +113,19 @@ class BackfillScript(abc.ABC):
         finally:
             db.close()
 
+    @classmethod
+    def add_arguments(cls, parser):
+        return parser
+
     def main(self):
         parser = argparse.ArgumentParser(description=self.name)
         parser.add_argument("--batch-size", type=int, default=self.default_batch_size,
                            help="한 트랜잭션에 채울 최대 row 수")
         parser.add_argument("--dry-run", action="store_true", help="실제로 채우지 않고 대상 건수만 확인")
         parser.add_argument("--env", default="unknown", help="실행 이력에 남길 환경 이름 (dev/staging/prod 등)")
+        parser = self.add_arguments(parser)
         args = parser.parse_args()
+        self.args = args
 
         total = self.run(batch_size=args.batch_size, dry_run=args.dry_run)
         self.logger.info("완료. 총 %d건 처리.", total)
