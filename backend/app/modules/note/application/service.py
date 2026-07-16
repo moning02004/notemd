@@ -79,7 +79,8 @@ class NoteService(Service):
             workspaces = self.repository.get_shared_workspace(
                 workspace_hashes=[x.hash_id for x in note.workspaces],
                 user_id=user.pk)
-            if not user.is_superuser and not workspaces:
+
+            if not user.is_superuser and not workspaces and note.user_id != user.pk:
                 raise HTTPException(status_code=404, detail="노트를 찾을 수 없습니다.")
         return note
 
