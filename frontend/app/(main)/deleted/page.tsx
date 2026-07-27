@@ -46,7 +46,7 @@ function NoteListContent() {
 
     return (
         <>
-            <div className="sticky top-0 z-10 backdrop-blur border-b border-[#E8E5DD] bg-white/80 flex items-center justify-end px-4 h-11">
+            <div className="sticky top-0 z-10 backdrop-blur border-b border-border bg-surface/80 flex items-center justify-end px-4 h-11">
                 <ViewModeToggle/>
             </div>
 

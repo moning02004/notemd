@@ -23,6 +23,7 @@ type NoteType = {
     onSelect?: (id: string) => void
     viewMode?: "card" | "list"
 }
+
 export const Note = ({
                          onClick,
                          hashId,
@@ -40,13 +41,19 @@ export const Note = ({
                          onSelect,
                          viewMode = "card",
                      }: NoteType) => {
-    const cleanContent = DOMPurify.sanitize(content)
+    const isUntitled = !title?.trim()
+    const displayTitle = isUntitled ? "제목 없음" : title
+
+    // 미리보기는 서식 없이 본문 텍스트만 보여준다
+    const preview = DOMPurify.sanitize(content ?? "", {ALLOWED_TAGS: [], ALLOWED_ATTR: []})
+        .replace(/\s+/g, " ")
+        .trim()
+
     const icons = [
-        isPublic && <FaLink size={14}/>,
-        isProtected && <FaLock size={14}/>,
-        isShared && <MdWorkspacesFilled size={15}/>,
+        isPublic && <FaLink size={12} key="public"/>,
+        isProtected && <FaLock size={12} key="protected"/>,
+        isShared && <MdWorkspacesFilled size={13} key="shared"/>,
     ].filter(Boolean)
-    console.log(icons)
 
     function handleClick(e: React.MouseEvent<HTMLDivElement>) {
         if (selectable) {
@@ -62,38 +69,40 @@ export const Note = ({
                 data-note-id={hashId}
                 onClick={handleClick}
                 className={`
-                    flex items-center gap-3 px-3 py-2.5 border-b border-[#ededed]
+                    flex items-center gap-3 px-3 py-2.5 border-b border-border
                     transition-colors cursor-pointer
-                    ${selected
-                    ? "bg-emerald-50"
-                    : selectable
-                        ? "hover:bg-gray-50"
-                        : "hover:bg-emerald-50/60"
-                }
+                    ${selected ? "bg-accent-soft" : "hover:bg-background"}
                 `}
             >
                 {selectable && (
                     <div className={`
-                        shrink-0 w-5 h-5 rounded-full flex items-center justify-center
-                        transition-all duration-150
-                        ${selected
-                        ? "bg-emerald-500"
-                        : "border border-gray-300 bg-white"
-                    }
+                        shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-150
+                        ${selected ? "bg-accent" : "border border-border-strong bg-surface"}
                     `}>
                         {selected && <FiCheck size={11} className="text-white stroke-[3]"/>}
                     </div>
                 )}
 
-                <span className="flex-1 min-w-0 truncate font-medium text-sm text-[#23241F]">
-                    {title}
-                </span>
+                {icons.length > 0 && (
+                    <div className="shrink-0 flex items-center gap-1.5 text-accent">{icons}</div>
+                )}
 
-                <span className="shrink-0 w-20 sm:w-28 truncate text-right text-xs text-gray-400">
-                    {ownerName ?? "-"}
-                </span>
+                <div className="flex-1 min-w-0">
+                    <p className={`truncate text-sm font-medium ${isUntitled ? "text-subtle" : "text-foreground"}`}>
+                        {displayTitle}
+                    </p>
+                    <p className="truncate text-xs text-subtle">
+                        {preview || "아직 아무것도 쓰지 않았어요"}
+                    </p>
+                </div>
 
-                <span className="shrink-0 w-20 sm:w-24 text-right text-xs text-gray-400">
+                {ownerName && (
+                    <span className="shrink-0 hidden sm:block w-24 truncate text-right text-xs text-subtle">
+                        {ownerName}
+                    </span>
+                )}
+
+                <span className="shrink-0 w-20 sm:w-24 text-right text-xs text-subtle">
                     {created_at}
                 </span>
 
@@ -104,7 +113,7 @@ export const Note = ({
                                 noteId={hashId}
                                 canDelete={!isProtected}
                                 trigger={
-                                    <button className="p-1 rounded hover:bg-gray-200 text-gray-500 cursor-pointer">
+                                    <button className="p-1 rounded hover:bg-accent-soft text-muted cursor-pointer">
                                         <LuEllipsisVertical size={16}/>
                                     </button>
                                 }
@@ -114,7 +123,7 @@ export const Note = ({
                             <DeletedMenu
                                 noteId={hashId}
                                 trigger={
-                                    <button className="p-1 rounded hover:bg-gray-200 text-gray-500 cursor-pointer">
+                                    <button className="p-1 rounded hover:bg-accent-soft text-muted cursor-pointer">
                                         <LuEllipsisVertical size={16}/>
                                     </button>
                                 }
@@ -127,54 +136,64 @@ export const Note = ({
     }
 
     return (
-        <div className="flex-1 flex flex-col h-[14rem] mx-auto mb-8 group w-[90%]" data-note-id={hashId}>
-            <div
-                className={`
-                    relative bg-white flex-10 overflow-hidden p-3
-                    text-ellipsis rounded border whitespace-pre-line
-                    transition-all duration-200 cursor-pointer
-                    ${selected
-                    ? "border-emerald-500 ring-2 ring-emerald-200 bg-emerald-50"
-                    : selectable
-                        ? "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
-                        : "border-[#afafaf] hover:shadow-lg hover:border-[#888888] hover:bg-emerald-50"
-                }
-                `}
-            >
-                {/* 선택 체크 오버레이 */}
-                {selectable && (
-                    <div className={`
-                        absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center
-                        transition-all duration-150 z-10
-                        ${selected
-                        ? "bg-emerald-500 scale-100 opacity-100"
-                        : "border border-gray-300 bg-white scale-90 opacity-60"
-                    }
-                    `}>
-                        {selected && <FiCheck size={11} className="text-white stroke-[3]"/>}
-                    </div>
-                )}
+        <div
+            data-note-id={hashId}
+            onClick={handleClick}
+            className={`
+                group relative flex flex-col min-h-[11.5rem] p-3.5 rounded-xl border bg-surface
+                transition-all duration-150 cursor-pointer
+                ${selected
+                ? "border-accent bg-accent-soft"
+                : "border-border hover:border-border-strong hover:shadow-[0_8px_18px_-12px_rgba(0,0,0,0.25)]"
+            }
+            `}
+        >
+            {selected && (
+                <div className="absolute left-0 top-2.5 bottom-2.5 w-[3px] rounded-r bg-accent"/>
+            )}
 
-                <div
-                    onClick={handleClick}
-                    className="text-sm h-[100%] overflow-hidden"
-                    dangerouslySetInnerHTML={{__html: cleanContent}}
-                />
-
-                {!selectable && noteMenu && <NoteMenu noteId={hashId} canDelete={!isProtected}/>}
-                {!selectable && deletedMenu && <DeletedMenu noteId={hashId}/>}
-            </div>
-
-            <div className="flex font-bold truncate cursor-default mt-1">
-                <div className="flex flex-row gap-2 mx-auto">
-                    {icons.map((x, index) => (
-                        <div key={index} className="my-auto">{x}</div>
-                    ))}
-                    <div className="w-full">{title}</div>
+            {selectable && (
+                <div className={`
+                    absolute top-2.5 right-2.5 w-5 h-5 rounded-full flex items-center justify-center
+                    transition-all duration-150 z-10
+                    ${selected ? "bg-accent" : "border border-border-strong bg-surface"}
+                `}>
+                    {selected && <FiCheck size={11} className="text-white stroke-[3]"/>}
                 </div>
+            )}
+
+            <div className="flex items-start gap-1.5 mb-1.5 pr-5">
+                {icons.length > 0 && (
+                    <div className="shrink-0 flex items-center gap-1.5 mt-0.5 text-accent">{icons}</div>
+                )}
+                <p className={`text-sm font-medium leading-snug line-clamp-2 ${isUntitled ? "text-subtle" : "text-foreground"}`}>
+                    {displayTitle}
+                </p>
             </div>
-            <small className="w-full text-gray-500 text-center cursor-default">{ownerName}</small>
-            <small className="w-full text-gray-500 text-center cursor-default">{created_at}</small>
+
+            <p className={`flex-1 text-xs leading-relaxed line-clamp-4 ${preview ? "text-muted" : "text-subtle italic"}`}>
+                {preview || "아직 아무것도 쓰지 않았어요"}
+            </p>
+
+            <div className="flex items-center gap-2 mt-3">
+                {ownerName && (
+                    <span className="text-[11px] text-subtle truncate max-w-[7rem]">{ownerName}</span>
+                )}
+                <span className="ml-auto text-[11px] text-subtle shrink-0">{created_at}</span>
+            </div>
+
+            {!selectable && noteMenu && (
+                <div onClick={(e) => e.stopPropagation()}
+                     className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                    <NoteMenu noteId={hashId} canDelete={!isProtected}/>
+                </div>
+            )}
+            {!selectable && deletedMenu && (
+                <div onClick={(e) => e.stopPropagation()}
+                     className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                    <DeletedMenu noteId={hashId}/>
+                </div>
+            )}
         </div>
     )
 }

@@ -7,8 +7,8 @@ interface SettingsCardProps {
 
 export function SettingsCard({title, icon, children, className = ""}: SettingsCardProps) {
     return (
-        <div className={`bg-white rounded-2xl border border-[#E8E5DD] p-4 ${className}`}>
-            <p className="text-[11px] font-medium text-[#6B6A63] tracking-widest uppercase mb-3 flex items-center gap-1.5">
+        <div className={`bg-surface rounded-xl border border-border p-4 ${className}`}>
+            <p className="text-[11px] font-medium text-subtle tracking-widest uppercase mb-3 flex items-center gap-1.5">
                 {icon}
                 {title}
             </p>

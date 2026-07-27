@@ -97,13 +97,13 @@ export function MarkdownEditor({
     if (!editor) return <div></div>;
 
     return (
-        <div className="h-screen flex flex-col bg-white w-full overflow-y-auto">
+        <div className="h-screen flex flex-col bg-surface w-full overflow-y-auto">
             <div
-                className="flex flex-row items-center bg-white border-b border-gray-200 px-3 transition-colors duration-300">
+                className="flex flex-row items-center bg-surface border-b border-border px-3 transition-colors duration-300">
                 {
                     token &&
                     <div
-                        className="my-auto p-1.5 rounded-lg cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors duration-200"
+                        className="my-auto p-1.5 rounded-lg cursor-pointer text-muted hover:bg-background hover:text-foreground transition-colors duration-200"
                         onClick={goBack}>
                         <FiArrowLeft size={24}/>
                     </div>
@@ -114,14 +114,14 @@ export function MarkdownEditor({
                        value={title || ''}
                        readOnly={isReadonly}
                        onChange={(e) => setTitle(e.currentTarget.value)}
-                       className={`title-editor w-[100%] outline-none text-gray-900 ${isReadonly ? "cursor-text" : "cursor-text"}`}
+                       className={`title-editor w-[100%] outline-none text-foreground ${isReadonly ? "cursor-text" : "cursor-text"}`}
                        placeholder="제목"
                 />
 
                 {
                     isOwner &&
                     <div
-                        className="my-auto p-3 rounded-lg cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors duration-200"
+                        className="my-auto p-3 rounded-lg cursor-pointer text-muted hover:bg-background hover:text-foreground transition-colors duration-200"
                         onClick={() => setOpenedSetting(true)}>
                         <FiMenu size={24}/>
                     </div>
@@ -130,7 +130,7 @@ export function MarkdownEditor({
 
             {
                 !isReadonly &&
-                <div className="pr-3 bg-editor sticky top-0 z-10 flex border-b border-gray-200 shadow-sm">
+                <div className="pr-3 bg-editor sticky top-0 z-10 flex shadow-sm">
                     <div className="flex-1">
                         <MenuBar editor={editor} noteId={paramsNoteId}
                                  tableMenuOpen={tableMenuOpen}
@@ -144,36 +144,36 @@ export function MarkdownEditor({
                 <BubbleMenu editor={editor} options={{placement: "top", offset: 8}} style={{
                     zIndex: 9999,
                 }}>
-                    <div className="flex items-center gap-1 bg-gray-900 rounded-lg px-1.5 py-1 shadow-lg z-20">
+                    <div className="flex items-center gap-1 bg-foreground rounded-lg px-1.5 py-1 shadow-lg z-20">
                         <button
                             onClick={() => editor.chain().focus().toggleBold().run()}
                             className={`px-2 py-1 rounded text-xs font-medium cursor-pointer transition-colors duration-150
-                                ${editor.isActive("bold") ? "bg-white text-gray-900" : "text-white hover:bg-white/10"}`}>
+                                ${editor.isActive("bold") ? "bg-surface text-foreground" : "text-white hover:bg-surface/10"}`}>
                             B
                         </button>
                         <button
                             onClick={() => editor.chain().focus().toggleItalic().run()}
                             className={`px-2 py-1 rounded text-xs italic cursor-pointer transition-colors duration-150
-                                ${editor.isActive("italic") ? "bg-white text-gray-900" : "text-white hover:bg-white/10"}`}>
+                                ${editor.isActive("italic") ? "bg-surface text-foreground" : "text-white hover:bg-surface/10"}`}>
                             I
                         </button>
                         <button
                             onClick={() => editor.chain().focus().toggleStrike().run()}
                             className={`px-2 py-1 rounded text-xs line-through cursor-pointer transition-colors duration-150
-                                ${editor.isActive("strike") ? "bg-white text-gray-900" : "text-white hover:bg-white/10"}`}>
+                                ${editor.isActive("strike") ? "bg-surface text-foreground" : "text-white hover:bg-surface/10"}`}>
                             S
                         </button>
                         <button
                             onClick={() => editor.chain().focus().toggleCode().run()}
                             className={`px-2 py-1 rounded text-xs font-mono cursor-pointer transition-colors duration-150
-                                ${editor.isActive("code") ? "bg-white text-gray-900" : "text-white hover:bg-white/10"}`}>
+                                ${editor.isActive("code") ? "bg-surface text-foreground" : "text-white hover:bg-surface/10"}`}>
                             {"</>"}
                         </button>
                     </div>
                 </BubbleMenu>
             }
 
-            <div className={`flex-20 bg-white ${widthClass} mx-auto`}>
+            <div className={`flex-20 bg-surface ${widthClass} mx-auto`}>
                 <EditorContent editor={editor}
                                className="h-[100%]"
                                onClick={() => {

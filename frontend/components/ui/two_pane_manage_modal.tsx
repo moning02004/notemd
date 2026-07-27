@@ -30,7 +30,7 @@ interface TwoPaneManageModalProps<T> {
 
 const DEFAULT_ITEM_CLASSNAME = (selected: boolean) =>
     `flex items-center justify-between px-4 py-3 cursor-pointer transition-colors ${
-        selected ? "bg-gray-50" : "hover:bg-gray-50"
+        selected ? "bg-background" : "hover:bg-background"
     }`
 
 export function TwoPaneManageModal<T>({
@@ -45,30 +45,31 @@ export function TwoPaneManageModal<T>({
     const selectedItem = items.find(item => getItemKey(item) === selectedKey)
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} className="rounded-xl w-full max-w-2xl mx-4 h-[80vh]">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <Modal isOpen={isOpen} onClose={onClose}
+               className="rounded-none md:rounded-xl w-full md:max-w-2xl mx-0 md:mx-4 h-[100vh] md:h-[80vh]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
                 <h5 className="font-bold text-base">{title}</h5>
-                <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-md transition-colors">
+                <button onClick={onClose} className="p-1 hover:bg-background rounded-md transition-colors">
                     <FiX size={20}/>
                 </button>
             </div>
 
-            <div className="flex flex-1 overflow-hidden">
-                {/* 왼쪽: 목록 */}
-                <div className="w-1/2 border-r border-gray-100 flex flex-col">
+            <div className="flex flex-col md:flex-row flex-1 overflow-hidden min-h-0">
+                {/* 목록 (모바일: 상단 / 데스크톱: 왼쪽) */}
+                <div className="md:w-1/2 border-b md:border-b-0 md:border-r border-border flex flex-col shrink-0 max-h-[38vh] md:max-h-none md:flex-1 min-h-0">
                     <div className="flex-1 overflow-y-auto">
                         {isLoading ? (
                             <div className="space-y-2 p-4">
                                 {Array.from({length: 3}).map((_, i) => (
-                                    <div key={i} className="h-12 rounded bg-gray-100 animate-pulse"/>
+                                    <div key={i} className="h-12 rounded bg-background animate-pulse"/>
                                 ))}
                             </div>
                         ) : items.length === 0 ? (
-                            <div className="flex items-center justify-center h-full text-sm text-gray-400 py-10">
+                            <div className="flex items-center justify-center h-full text-sm text-subtle py-10">
                                 {emptyListText}
                             </div>
                         ) : (
-                            <ul className="divide-y divide-gray-50">
+                            <ul className="divide-y divide-border">
                                 {items.map(item => {
                                     const key = getItemKey(item)
                                     const selected = key === selectedKey
@@ -87,11 +88,11 @@ export function TwoPaneManageModal<T>({
                     </div>
 
                     {/* 저장 폼 */}
-                    <div className="border-t border-gray-100 p-3">
+                    <div className="border-t border-border p-3 shrink-0">
                         {showSaveForm ? renderSaveForm() : (
                             <button
                                 onClick={onOpenSaveForm}
-                                className="w-full text-sm py-1.5 border border-dashed border-gray-300 rounded-md text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors"
+                                className="w-full text-sm py-2 border border-dashed border-border-strong rounded-md text-muted hover:border-border-strong hover:text-foreground transition-colors"
                             >
                                 {saveFormTriggerLabel}
                             </button>
@@ -99,10 +100,10 @@ export function TwoPaneManageModal<T>({
                     </div>
                 </div>
 
-                {/* 오른쪽: 미리보기 */}
-                <div className="w-1/2 flex flex-col">
+                {/* 미리보기 (모바일: 하단 / 데스크톱: 오른쪽) */}
+                <div className="flex-1 md:w-1/2 flex flex-col min-h-0">
                     {selectedItem ? renderPreview(selectedItem) : (
-                        <div className="flex items-center justify-center h-full text-sm text-gray-400">
+                        <div className="flex items-center justify-center h-full text-sm text-subtle py-10">
                             {previewEmptyText}
                         </div>
                     )}

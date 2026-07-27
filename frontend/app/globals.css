@@ -1,8 +1,28 @@
 @import "tailwindcss";
 
+/*
+ * 중앙 컬러 팔레트. 이 값들만 바꾸면 앱 전체 색상이 바뀐다.
+ * 컴포넌트에서는 bg-[#hex] 같은 임의값 대신 아래에서 생성되는
+ * bg-surface / text-muted / border-accent 같은 유틸리티 클래스를 쓴다.
+ */
 :root {
-    --background: #f9f9f9;
-    --foreground: #171717;
+    --background: #FAFAF9;
+    --foreground: #1B1D1B;
+
+    --surface: #FFFFFF;
+    --sidebar: #F1F1EF;
+    --border: #E4E4E0;
+    --border-strong: #D4D4CE;
+
+    --muted: #6B6E68;
+    --subtle: #9A9D96;
+
+    --accent: #1F6650;
+    --accent-hover: #164B3B;
+    --accent-soft: #E7EFEB;
+
+    --danger: #B3261E;
+    --danger-soft: #FBEAE8;
 }
 
 @theme inline {
@@ -14,13 +34,20 @@
     --color-editor: #ffffff;
     --color-editor-line: #ededed;
 
-}
+    --color-surface: var(--surface);
+    --color-sidebar: var(--sidebar);
+    --color-border: var(--border);
+    --color-border-strong: var(--border-strong);
 
-@media (prefers-color-scheme: dark) {
-    :root {
-        --background: #0a0a0a;
-        --foreground: #ededed;
-    }
+    --color-muted: var(--muted);
+    --color-subtle: var(--subtle);
+
+    --color-accent: var(--accent);
+    --color-accent-hover: var(--accent-hover);
+    --color-accent-soft: var(--accent-soft);
+
+    --color-danger: var(--danger);
+    --color-danger-soft: var(--danger-soft);
 }
 
 body {
@@ -29,11 +56,11 @@ body {
 }
 
 h1 {
-    @apply text-4xl font-bold border-b-2 border-[#b3b3b3] mt-0! mb-[16px]!;
+    @apply text-4xl font-bold border-b-2 border-border mt-0! mb-[16px]!;
 }
 
 h2 {
-    @apply text-3xl font-bold border-b-1 border-[#dadada] mt-0! mb-[12px]!;
+    @apply text-3xl font-bold border-b-1 border-border mt-0! mb-[12px]!;
 }
 
 h3 {
@@ -53,7 +80,7 @@ h6 {
 }
 
 body * {
-    font-family: Arial, Helvetica, sans-serif !important;
+    font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif !important;
 }
 
 .drawer-button {
@@ -61,11 +88,11 @@ body * {
 }
 
 .drawer-menu {
-    @apply px-1 bg-[#ffffff] md:bg-[#fafafa] cursor-pointer hover:text-[#9a9a9a] rounded;
+    @apply px-1 bg-surface cursor-pointer hover:text-muted rounded;
 }
 
 .drawer-content {
-    @apply fixed bottom-0 left-0 right-0 z-50 mx-auto w-[85vw] md:w-[50vw] rounded-t-2xl bg-white border
+    @apply fixed bottom-0 left-0 right-0 z-50 mx-auto w-[85vw] md:w-[50vw] rounded-t-2xl bg-surface border border-border
 }
 
 .title-editor {
@@ -82,18 +109,18 @@ body * {
 
 
 .login-form button {
-    @apply w-full px-3 py-2 bg-[#cfcfcf] rounded hover:bg-[#adadad] cursor-pointer;
+    @apply w-full px-3 py-2 bg-accent text-white rounded-lg hover:bg-accent-hover cursor-pointer;
 }
 
 .login-footer a {
-    @apply text-sm text-gray-500 hover:underline mx-2;
+    @apply text-sm text-muted hover:underline mx-2;
 }
 
 .ProseMirror pre {
     position: relative;
-    background: var(--color-gray-800);
+    background: var(--foreground);
     border-radius: 0.5rem;
-    color: var(--color-white);
+    color: var(--surface);
     font-family: 'JetBrainsMono', monospace;
     margin: 1.5rem 0;
     padding: 1.25rem;
@@ -115,13 +142,13 @@ body * {
     width: 100%;
     padding: 0.75rem 1rem;
     font-size: 1rem;
-    background-color: var(--color-gray-900);
-    border-bottom: 1px solid #30363d;
-    color: #efefef;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--surface);
     text-transform: uppercase;
     font-weight: bold;
-    border-top-left-radius: 1rem;
-    border-top-right-radius: 1rem;
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
 }
 
 .ProseMirror pre::before {
@@ -130,7 +157,8 @@ body * {
 
 
 .ProseMirror p code {
-    background-color: var(--color-blue-50);
+    background-color: var(--accent-soft);
+    color: var(--accent-hover);
     padding: 0.2rem 0.4rem;
     border-radius: 4px;
     margin: 0 0.2rem;
@@ -143,7 +171,7 @@ body * {
 
 .ProseMirror p a {
     @apply cursor-pointer;
-    color: var(--color-blue-600);
+    color: var(--accent);
     text-decoration: underline;
 }
 
@@ -152,7 +180,7 @@ body * {
 }
 
 .ProseMirror p:not(table p):hover {
-    background-color: var(--color-gray-50);
+    background-color: var(--background);
 }
 
 .ProseMirror ul, .ProseMirror ol {
@@ -199,26 +227,26 @@ body * {
 }
 
 .ProseMirror th {
-    background: #f9fafb;
+    background: var(--sidebar);
     font-weight: 600;
 }
 
 .ProseMirror tr:hover td {
-    background: #fafafa;
+    background: var(--background);
 }
 
 .ProseMirror blockquote {
-    border-left: 4px solid #d1d5db;
+    border-left: 4px solid var(--border-strong);
     padding-left: 1rem;
     margin: 1rem 0;
-    color: #4b5563;
+    color: var(--muted);
     font-style: italic;
 }
 
 .ProseMirror p.is-editor-empty:first-child::before {
     content: attr(data-placeholder);
     float: left;
-    color: #9ca3af;
+    color: var(--subtle);
     pointer-events: none;
     height: 0;
 }
@@ -231,7 +259,7 @@ body * {
 }
 
 .ProseMirror-selectednode > div {
-    outline: 3px solid var(--color-blue-500);
+    outline: 3px solid var(--accent);
 }
 
 .ProseMirror [data-resize-handle] {
@@ -390,7 +418,7 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
 }
 
 .ProseMirror .copy-code-btn:hover {
-    color: #afafaf;
+    color: var(--subtle);
 }
 
 .ProseMirror ul[data-type="taskList"] li div {

@@ -19,7 +19,7 @@ export default function SelectActionBar({
 
     return (
         <div
-            className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-4 flex items-center gap-2 z-40 safe-area-inset-bottom">
+            className="fixed bottom-0 left-0 right-0 bg-surface border-t border-border px-4 py-4 flex items-center gap-2 z-40 safe-area-inset-bottom">
             {onDownload && <ActionBtn
                 icon={<FiDownload size={16}/>}
                 label="다운로드"
@@ -65,10 +65,10 @@ function ActionBtn({
                 flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg
                 text-sm font-medium border transition-all duration-150
                 ${disabled
-                ? "opacity-35 cursor-not-allowed border-gray-200 text-gray-400"
+                ? "opacity-35 cursor-not-allowed border-border text-subtle"
                 : danger
-                    ? "border-red-200 text-red-600 hover:bg-red-50 active:scale-[0.97]"
-                    : "border-gray-200 text-gray-700 hover:bg-gray-50 active:scale-[0.97]"
+                    ? "border-danger text-danger hover:bg-danger-soft active:scale-[0.97]"
+                    : "border-border text-muted hover:bg-background active:scale-[0.97]"
             }
             `}
         >

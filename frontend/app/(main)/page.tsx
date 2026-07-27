@@ -2,7 +2,6 @@
 
 import {Suspense, useEffect} from "react"
 import {useRouter, useSearchParams} from "next/navigation"
-import {FiPlus} from "react-icons/fi"
 import {useAuthStore} from "@/store/auth"
 import {useNoteSelectStore} from "@/store/noteSelect"
 import {downloadNoteRequest, gotoNote} from "@/lib/note"
@@ -33,7 +32,6 @@ function NoteListContent() {
         toggleSelect,
     } = useNoteSelectStore()
 
-    // ── 배치 액션 ────────────────────────────────────────────
     async function handleDownloadSelected() {
         await downloadNoteRequest([...selectedIds])
     }
@@ -51,8 +49,8 @@ function NoteListContent() {
     }
 
     return (
-        <div className="min-h-screen">
-            <div className="sticky top-0 z-10 backdrop-blur border-b border-[#E8E5DD]">
+        <div className="h-[100%] bg-surface">
+            <div className="sticky top-0 z-10 bg-surface backdrop-blur">
                 <NoteFilterBar tags={tagsData ?? []}/>
             </div>
 
@@ -89,24 +87,12 @@ function NoteListContent() {
                 {isFetchingNextPage && <SkeletonLoading count={4}/>}
             </div>
 
-            {selectMode ? (
+            {selectMode && (
                 <SelectActionBar
                     selectedCount={selectedIds.size}
                     onDownload={handleDownloadSelected}
                     onDelete={handleDeleteSelected}
                 />
-            ) : (
-                <button
-                    onClick={() => gotoNote({id: null, router})}
-                    className="fixed right-5 bottom-[calc(9vh+1rem)] flex items-center gap-2 p-4
-                               bg-[#3F6C51] text-white rounded-full shadow-lg cursor-pointer
-                               hover:bg-[#345A44] hover:shadow-xl active:scale-95
-                               transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]"
-                    aria-label="새 노트 작성"
-                >
-                    <FiPlus size={20}/>
-                    <span className="hidden sm:inline text-sm font-medium">새 노트</span>
-                </button>
             )}
         </div>
     )

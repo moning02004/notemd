@@ -25,11 +25,11 @@ export function Modal({
     if (variant === "sheet") {
         return (
             <div
-                className="fixed inset-0 z-50 bg-[#23241F]/30 backdrop-blur-[2px] flex items-stretch sm:items-center justify-center sm:p-4"
+                className="fixed inset-0 z-50 bg-foreground/30 backdrop-blur-[2px] flex items-stretch sm:items-center justify-center sm:p-4"
                 onClick={closeOnBackdropClick ? onClose : undefined}
             >
                 <div
-                    className={`bg-white overflow-hidden flex flex-col ${className}`}
+                    className={`bg-surface overflow-hidden flex flex-col ${className}`}
                     onClick={(e) => e.stopPropagation()}
                 >
                     {children}
@@ -41,7 +41,7 @@ export function Modal({
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/30" onClick={closeOnBackdropClick ? onClose : undefined}/>
-            <div className={`relative bg-white shadow-2xl flex flex-col ${className}`}>
+            <div className={`relative bg-surface shadow-2xl flex flex-col ${className}`}>
                 {children}
             </div>
         </div>

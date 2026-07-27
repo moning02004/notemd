@@ -23,8 +23,10 @@ type SaveForm = {
 }
 
 const ITEM_CLASSNAME = (selected: boolean) =>
-    `flex items-center justify-between px-4 py-3 cursor-pointer transition-colors ${
-        selected ? "bg-gray-200" : "hover:bg-gray-50"
+    `flex items-center justify-between px-4 py-3 cursor-pointer transition-colors border-l-2 ${
+        selected
+            ? "bg-accent-soft border-l-accent"
+            : "border-l-transparent hover:bg-background"
     }`
 
 export const NoteSnapshotManageModal = (
@@ -111,8 +113,8 @@ export const NoteSnapshotManageModal = (
             renderListItem={(snapshot) => (
                 <>
                     <div className="flex-1 truncate mr-2">
-                        <p className="text-sm font-medium text-gray-800 truncate">{snapshot.description}</p>
-                        <p className="text-xs font-medium text-gray-500 truncate">{snapshot.created_at}</p>
+                        <p className="text-sm font-medium text-foreground truncate">{snapshot.description}</p>
+                        <p className="text-xs text-subtle truncate">{snapshot.created_at}</p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                         <button
@@ -120,7 +122,7 @@ export const NoteSnapshotManageModal = (
                                 e.stopPropagation();
                                 if (confirm("스냅샷을 삭제하시겠습니까?")) deleteNoteSnapshot(snapshot.hash_id)
                             }}
-                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                            className="p-1.5 text-subtle hover:text-danger hover:bg-danger-soft rounded-md transition-colors"
                             title="삭제"
                         >
                             <FiTrash2 size={15}/>
@@ -130,21 +132,21 @@ export const NoteSnapshotManageModal = (
             )}
             renderPreview={(snapshot) => (
                 <>
-                    <div className="px-4 py-3 border-b border-gray-100">
-                        <p className="text-xs text-gray-400 mb-1">제목</p>
-                        <p className="text-sm font-semibold text-gray-800">{snapshot.title}</p>
+                    <div className="px-4 py-3 border-b border-border">
+                        <p className="text-xs text-subtle mb-1">제목</p>
+                        <p className="text-sm font-medium text-foreground">{snapshot.title}</p>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                        <p className="text-xs text-gray-400 mb-1">내용</p>
+                        <p className="text-xs text-subtle mb-1">내용</p>
                         <div
-                            className="ProseMirror text-sm text-gray-700 prose prose-sm max-w-none"
+                            className="ProseMirror text-sm text-muted prose prose-sm max-w-none"
                             dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(snapshot.content)}}
                         />
                     </div>
-                    <div className="p-3 border-t border-gray-100">
+                    <div className="p-3 border-t border-border">
                         <button
                             onClick={() => applyNoteSnapshot(snapshot)}
-                            className="w-full text-sm py-2 bg-gray-900 text-white rounded-md hover:bg-gray-700 transition-colors"
+                            className="w-full text-sm py-2 bg-accent border border-dashed border-accent text-white rounded-md hover:bg-accent-hover transition-colors cursor-pointer"
                         >
                             이 스냅샷으로 대체
                         </button>
@@ -165,18 +167,18 @@ export const NoteSnapshotManageModal = (
                         value={saveForm.description}
                         onChange={e => setSaveForm(prev => ({...prev, description: e.target.value}))}
                         placeholder="설명"
-                        className="text-sm border border-gray-200 rounded-md px-2 py-1.5 outline-none focus:border-gray-400"
+                        className="text-sm bg-background border border-border-strong rounded-md px-2 py-1.5 text-foreground placeholder:text-subtle outline-none focus:border-accent transition-colors"
                     />
                     <div className="flex gap-2">
                         <button
                             onClick={saveNoteSnapshot}
-                            className="flex-1 text-sm py-1.5 bg-gray-900 text-white rounded-md hover:bg-gray-700 transition-colors"
+                            className="flex-1 text-sm py-1.5 bg-accent text-white rounded-md hover:bg-accent-hover transition-colors cursor-pointer"
                         >
                             저장
                         </button>
                         <button
                             onClick={() => setShowSaveForm(false)}
-                            className="text-sm px-3 py-1.5 text-gray-500 hover:bg-gray-100 rounded-md transition-colors"
+                            className="text-sm px-3 py-1.5 text-muted hover:bg-accent-soft hover:text-accent rounded-md transition-colors cursor-pointer"
                         >
                             취소
                         </button>

@@ -66,20 +66,20 @@ export default function SettingsWorkspaceInput({selectedWorkspaces, setSelectedW
                     onClick={() => setOpen(true)}
                     onBlur={() => setTimeout(() => setOpen(false), 150)}
                     placeholder="공유할 워크스페이스"
-                    className="w-full border border-[#e0e0e0] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#aaa] bg-[#fafafa] focus:bg-white transition-colors placeholder:text-[#bbb]"
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-subtle bg-background focus:bg-surface transition-colors placeholder:text-subtle"
                 />
 
                 {open && (
                     <div
-                        className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white border border-[#e0e0e0] rounded-xl shadow-lg z-50 overflow-hidden">
+                        className="absolute top-[calc(100%+6px)] left-0 right-0 bg-surface border border-border rounded-xl shadow-lg z-50 overflow-hidden">
                         {filteredWorkspace(workspaces).length === 0 ? (
-                            <p className="px-4 py-3 text-sm text-[#bbb]">공유할 워크스페이스가 없습니다.</p>
+                            <p className="px-4 py-3 text-sm text-subtle">공유할 워크스페이스가 없습니다.</p>
                         ) : (
                             filteredWorkspace(workspaces).map((workspace, i) => (
                                 <div
                                     key={workspace.hashId}
                                     onMouseDown={() => addWorkspace(workspace)}
-                                    className={`flex hover:bg-gray-100 items-center gap-2 px-4 py-2 text-sm text-[#333] cursor-pointer transition-colors`}
+                                    className={`flex hover:bg-background items-center gap-2 px-4 py-2 text-sm text-foreground cursor-pointer transition-colors`}
                                 >
                                     <span className="flex-1">{workspace.name}</span>
                                 </div>
@@ -95,12 +95,12 @@ export default function SettingsWorkspaceInput({selectedWorkspaces, setSelectedW
                         return (
                             <span
                                 key={workspace.hashId}
-                                className="inline-flex items-center gap-1.5 bg-[#f0f0f0] rounded-md px-2.5 py-1 text-xs text-[#444]"
+                                className="inline-flex items-center gap-1.5 bg-background rounded-md px-2.5 py-1 text-xs text-foreground"
                             >
                                 {workspace.name}
                                 <button
                                     onClick={() => removeWorkspace(workspace.hashId)}
-                                    className="text-[#aaa] hover:text-[#555] text-sm leading-none transition-colors"
+                                    className="text-subtle hover:text-muted text-sm leading-none transition-colors"
                                 >
                   ×
                 </button>

@@ -9,8 +9,8 @@ export default function ViewModeToggle() {
     const buttonClass = (active: boolean) => `
         p-1.5 rounded-md transition-all cursor-pointer
         ${active
-        ? "text-gray-900 bg-gray-100"
-        : "text-gray-400 hover:text-gray-700 hover:bg-gray-50"}
+        ? "text-foreground bg-background"
+        : "text-subtle hover:text-foreground hover:bg-background"}
     `
 
     return (

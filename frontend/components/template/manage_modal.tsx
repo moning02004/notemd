@@ -1,4 +1,4 @@
-// components/template_manage_modal.tsx
+// components/template/manage_modal.tsx
 import {Dispatch, SetStateAction, useEffect, useState} from "react";
 import {FiTrash2} from "react-icons/fi";
 import toast from "react-hot-toast";
@@ -103,9 +103,9 @@ export const TemplateManageModal = (
             renderListItem={(template) => (
                 <>
                     <div className="flex-1 truncate mr-2">
-                        <p className="text-sm font-medium text-gray-800 truncate">{template.name}</p>
+                        <p className="text-sm font-medium text-foreground truncate">{template.name}</p>
                         {template.description && (
-                            <p className="text-xs text-gray-400 truncate">{template.description}</p>
+                            <p className="text-xs text-subtle truncate">{template.description}</p>
                         )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
@@ -114,7 +114,7 @@ export const TemplateManageModal = (
                                 e.stopPropagation();
                                 deleteTemplate(template.hash_id)
                             }}
-                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                            className="p-1.5 text-subtle hover:text-danger hover:bg-danger-soft rounded-md transition-colors"
                             title="삭제"
                         >
                             <FiTrash2 size={15}/>
@@ -124,29 +124,29 @@ export const TemplateManageModal = (
             )}
             renderPreview={(template) => (
                 <>
-                    <div className="px-4 py-3 border-b border-gray-100">
-                        <p className="text-sm font-semibold text-gray-800">{template.name}</p>
+                    <div className="px-4 py-3 border-b border-border">
+                        <p className="text-sm font-medium text-foreground">{template.name}</p>
                         {template.description && (
-                            <p className="text-xs text-gray-400 mt-0.5">{template.description}</p>
+                            <p className="text-xs text-subtle mt-0.5">{template.description}</p>
                         )}
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-3">
                         <div>
-                            <p className="text-xs text-gray-400 mb-1">제목</p>
-                            <p className="text-sm font-medium text-gray-800">{template.title}</p>
+                            <p className="text-xs text-subtle mb-1">제목</p>
+                            <p className="text-sm font-medium text-foreground">{template.title}</p>
                         </div>
                         <div>
-                            <p className="text-xs text-gray-400 mb-1">내용</p>
+                            <p className="text-xs text-subtle mb-1">내용</p>
                             <div
-                                className="text-sm text-gray-700 prose prose-sm max-w-none"
+                                className="text-sm text-muted prose prose-sm max-w-none"
                                 dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(template.content)}}
                             />
                         </div>
                     </div>
-                    <div className="p-3 border-t border-gray-100">
+                    <div className="p-3 border-t border-border">
                         <button
                             onClick={() => applyTemplate(template)}
-                            className="w-full text-sm py-2 bg-gray-900 text-white rounded-md hover:bg-gray-700 transition-colors"
+                            className="w-full text-sm py-2 bg-accent border border-dashed border-accent text-white rounded-md hover:bg-accent-hover transition-colors cursor-pointer"
                         >
                             이 템플릿 적용
                         </button>
@@ -168,25 +168,25 @@ export const TemplateManageModal = (
                         value={saveForm.name}
                         onChange={e => setSaveForm(prev => ({...prev, name: e.target.value}))}
                         placeholder="템플릿 이름 *"
-                        className="text-sm border border-gray-200 rounded-md px-2 py-1.5 outline-none focus:border-gray-400"
+                        className="text-sm bg-background border border-border-strong rounded-md px-2 py-1.5 text-foreground placeholder:text-subtle outline-none focus:border-accent transition-colors"
                     />
                     <input
                         type="text"
                         value={saveForm.description}
                         onChange={e => setSaveForm(prev => ({...prev, description: e.target.value}))}
                         placeholder="설명 (선택)"
-                        className="text-sm border border-gray-200 rounded-md px-2 py-1.5 outline-none focus:border-gray-400"
+                        className="text-sm bg-background border border-border-strong rounded-md px-2 py-1.5 text-foreground placeholder:text-subtle outline-none focus:border-accent transition-colors"
                     />
                     <div className="flex gap-2">
                         <button
                             onClick={saveTemplate}
-                            className="flex-1 text-sm py-1.5 bg-gray-900 text-white rounded-md hover:bg-gray-700 transition-colors"
+                            className="flex-1 text-sm py-1.5 bg-accent text-white rounded-md hover:bg-accent-hover transition-colors cursor-pointer"
                         >
                             저장
                         </button>
                         <button
                             onClick={() => setShowSaveForm(false)}
-                            className="text-sm px-3 py-1.5 text-gray-500 hover:bg-gray-100 rounded-md transition-colors"
+                            className="text-sm px-3 py-1.5 text-muted hover:bg-accent-soft hover:text-accent rounded-md transition-colors cursor-pointer"
                         >
                             취소
                         </button>

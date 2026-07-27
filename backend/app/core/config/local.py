@@ -19,4 +19,7 @@ class Settings(BaseAbstractSettings):
     # CORS settings
     CORS_ORIGINS = [
         os.environ["FRONTEND_URL"],
+        "http://192.168.0.4:3001",
+        "http://localhost:3001",
+        "http://192.168.0.4:3000",
     ]

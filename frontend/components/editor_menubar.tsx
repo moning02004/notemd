@@ -43,8 +43,8 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
     if (!editor) return null;
 
     const base =
-        "p-2 rounded hover:bg-gray-200 transition flex items-center justify-center";
-    const active = "bg-gray-300";
+        "p-2 rounded hover:bg-border transition flex items-center justify-center";
+    const active = "bg-border-strong";
 
     const button = (
         onClick: () => void,
@@ -115,7 +115,7 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
                 "취소선"
             )}
 
-            <div className="w-px h-6 bg-gray-300 mx-1 my-auto"/>
+            <div className="w-px h-6 bg-border-strong mx-1 my-auto"/>
 
             {/* ── 정렬 ── */}
             {button(
@@ -137,7 +137,7 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
                 "오른쪽 정렬"
             )}
 
-            <div className="w-px h-6 bg-gray-300 mx-1 my-auto"/>
+            <div className="w-px h-6 bg-border-strong mx-1 my-auto"/>
 
             {/* ── 블록 요소 ── */}
             {button(
@@ -199,7 +199,7 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
                 onChange={handleImageUpload}
             />
 
-            <div className="w-px h-6 bg-gray-300 mx-1 my-auto"/>
+            <div className="w-px h-6 bg-border-strong mx-1 my-auto"/>
 
             {/* ══ 테이블 드롭다운 ══════════════════════════════════════ */}
             <div className="relative" ref={tableMenuRef}>
@@ -216,38 +216,38 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
 
                 {tableMenuOpen && (
                     <div
-                        className="absolute top-full left-0 mt-1 w-52 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden">
+                        className="absolute top-full left-0 mt-1 w-52 bg-surface border border-border rounded-lg shadow-xl z-50 overflow-hidden">
 
                         {/* 삽입 */}
-                        <div className="p-3 border-b border-gray-100">
-                            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                        <div className="p-3 border-b border-border">
+                            <p className="text-[11px] font-semibold text-subtle uppercase tracking-wide mb-2">
                                 테이블 삽입
                             </p>
                             <div className="flex flex-col gap-2 mb-3">
-                                <label className="flex items-center justify-between text-xs text-gray-600">
+                                <label className="flex items-center justify-between text-xs text-muted">
                                     행
                                     <input
                                         type="number"
                                         min={1} max={20}
                                         value={tableRows}
                                         onChange={(e) => setTableRows(Math.max(1, Number(e.target.value)))}
-                                        className="w-16 border border-gray-300 rounded px-2 py-0.5 text-xs text-right"
+                                        className="w-16 border border-border-strong rounded px-2 py-0.5 text-xs text-right"
                                     />
                                 </label>
-                                <label className="flex items-center justify-between text-xs text-gray-600">
+                                <label className="flex items-center justify-between text-xs text-muted">
                                     열
                                     <input
                                         type="number"
                                         min={1} max={20}
                                         value={tableCols}
                                         onChange={(e) => setTableCols(Math.max(1, Number(e.target.value)))}
-                                        className="w-16 border border-gray-300 rounded px-2 py-0.5 text-xs text-right"
+                                        className="w-16 border border-border-strong rounded px-2 py-0.5 text-xs text-right"
                                     />
                                 </label>
                             </div>
                             <button
                                 onClick={insertTable}
-                                className="w-full bg-gray-900 text-white text-xs py-1.5 rounded hover:bg-gray-700 transition font-medium"
+                                className="w-full bg-foreground text-white text-xs py-1.5 rounded hover:bg-muted transition font-medium"
                             >
                                 삽입
                             </button>
@@ -256,7 +256,7 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
                         {/* 편집 — 테이블 안에 커서가 없으면 흐리게 */}
                         <div
                             className={`p-3 transition-opacity ${isSelectTable ? "opacity-100" : "opacity-40 pointer-events-none select-none"}`}>
-                            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                            <p className="text-[11px] font-semibold text-subtle uppercase tracking-wide mb-1.5">
                                 열 편집
                             </p>
                             <div className="flex gap-1 mb-1">
@@ -265,7 +265,7 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
                                         editor.chain().focus().addColumnBefore().run();
                                         setTableMenuOpen(false);
                                     }}
-                                    className="flex-1 text-xs py-1.5 rounded hover:bg-gray-100 border border-gray-200 transition"
+                                    className="flex-1 text-xs py-1.5 rounded hover:bg-background border border-border transition"
                                 >
                                     ← 왼쪽 추가
                                 </button>
@@ -274,7 +274,7 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
                                         editor.chain().focus().addColumnAfter().run();
                                         setTableMenuOpen(false);
                                     }}
-                                    className="flex-1 text-xs py-1.5 rounded hover:bg-gray-100 border border-gray-200 transition"
+                                    className="flex-1 text-xs py-1.5 rounded hover:bg-background border border-border transition"
                                 >
                                     오른쪽 추가 →
                                 </button>
@@ -284,12 +284,12 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
                                     editor.chain().focus().deleteColumn().run();
                                     setTableMenuOpen(false);
                                 }}
-                                className="w-full text-xs py-1.5 rounded hover:bg-red-50 border border-gray-200 text-red-500 transition mb-3"
+                                className="w-full text-xs py-1.5 rounded hover:bg-danger-soft border border-border text-danger transition mb-3"
                             >
                                 현재 열 삭제
                             </button>
 
-                            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                            <p className="text-[11px] font-semibold text-subtle uppercase tracking-wide mb-1.5">
                                 행 편집
                             </p>
                             <div className="flex gap-1 mb-1">
@@ -298,7 +298,7 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
                                         editor.chain().focus().addRowBefore().run();
                                         setTableMenuOpen(false);
                                     }}
-                                    className="flex-1 text-xs py-1.5 rounded hover:bg-gray-100 border border-gray-200 transition"
+                                    className="flex-1 text-xs py-1.5 rounded hover:bg-background border border-border transition"
                                 >
                                     ↑ 위 추가
                                 </button>
@@ -307,7 +307,7 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
                                         editor.chain().focus().addRowAfter().run();
                                         setTableMenuOpen(false);
                                     }}
-                                    className="flex-1 text-xs py-1.5 rounded hover:bg-gray-100 border border-gray-200 transition"
+                                    className="flex-1 text-xs py-1.5 rounded hover:bg-background border border-border transition"
                                 >
                                     아래 추가 ↓
                                 </button>
@@ -317,18 +317,18 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
                                     editor.chain().focus().deleteRow().run();
                                     setTableMenuOpen(false);
                                 }}
-                                className="w-full text-xs py-1.5 rounded hover:bg-red-50 border border-gray-200 text-red-500 transition mb-3"
+                                className="w-full text-xs py-1.5 rounded hover:bg-danger-soft border border-border text-danger transition mb-3"
                             >
                                 현재 행 삭제
                             </button>
 
-                            <div className="border-t border-gray-100 pt-2">
+                            <div className="border-t border-border pt-2">
                                 <button
                                     onClick={() => {
                                         editor.chain().focus().deleteTable().run();
                                         setTableMenuOpen(false);
                                     }}
-                                    className="w-full flex items-center justify-center gap-1.5 text-xs py-1.5 rounded hover:bg-red-50 text-red-500 transition"
+                                    className="w-full flex items-center justify-center gap-1.5 text-xs py-1.5 rounded hover:bg-danger-soft text-danger transition"
                                 >
                                     <Trash2 size={12}/> 테이블 삭제
                                 </button>

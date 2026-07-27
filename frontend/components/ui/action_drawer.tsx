@@ -33,21 +33,21 @@ export function ActionDrawer({trigger, items, closeLabel = "취소"}: ActionDraw
                 <Drawer.Overlay className="fixed inset-0 z-40 bg-black/40"/>
 
                 <Drawer.Content className="drawer-content">
-                    <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-gray-300"/>
+                    <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-border-strong"/>
 
                     <div className="flex flex-col p-4">
                         {items.map((item, i) => (
                             <button
                                 key={i}
                                 onClick={item.onClick}
-                                className={`w-full p-3 text-left hover:bg-[#efefef] cursor-pointer rounded border-b border-[#ededed] ${
-                                    item.danger ? "text-red-600" : ""
+                                className={`w-full p-3 text-left hover:bg-background cursor-pointer rounded border-b border-border ${
+                                    item.danger ? "text-danger" : ""
                                 }`}
                             >
                                 {item.label}
                             </button>
                         ))}
-                        <Drawer.Close className="w-full p-3 hover:bg-[#efefef] rounded cursor-pointer text-left">
+                        <Drawer.Close className="w-full p-3 hover:bg-background rounded cursor-pointer text-left">
                             {closeLabel}
                         </Drawer.Close>
                     </div>

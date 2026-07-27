@@ -24,14 +24,14 @@ export function WorkspaceSelector() {
         <div className="relative" ref={ref}>
             <button
                 onClick={() => setOpen(prev => !prev)}
-                className="flex items-center gap-1 px-2 py-1 -ml-2 rounded-lg text-sm font-medium text-[#23241F] hover:bg-gray-100 transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-2 py-1 -ml-2 rounded-lg text-sm font-medium text-foreground hover:bg-background transition-colors cursor-pointer"
             >
                 <span className="max-w-[8rem] truncate">{selected?.name ?? "워크스페이스 선택"}</span>
                 <ChevronDown size={14} className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`}/>
             </button>
 
             {open && (
-                <div className="absolute left-0 top-full mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-md z-50 py-1 max-h-72 overflow-y-auto">
+                <div className="absolute left-0 top-full mt-1 w-56 bg-surface border border-border rounded-lg shadow-md z-50 py-1 max-h-72 overflow-y-auto">
                     {workspaces.map(w => (
                         <button
                             key={w.hashId}
@@ -39,12 +39,12 @@ export function WorkspaceSelector() {
                                 setSelectedWorkspaceId(w.hashId)
                                 setOpen(false)
                             }}
-                            className="w-full flex flex-col items-start px-3 py-2 hover:bg-gray-50 transition-colors text-left"
+                            className="w-full flex flex-col items-start px-3 py-2 hover:bg-background transition-colors text-left"
                         >
-                            <span className={`text-sm font-medium ${w.hashId === selectedWorkspaceId ? "text-emerald-600" : "text-gray-700"}`}>
+                            <span className={`text-sm font-medium ${w.hashId === selectedWorkspaceId ? "text-accent" : "text-muted"}`}>
                                 {w.name}
                             </span>
-                            <span className="text-xs text-gray-400">구성원 {w.userCount}명</span>
+                            <span className="text-xs text-subtle">구성원 {w.userCount}명</span>
                         </button>
                     ))}
                 </div>

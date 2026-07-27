@@ -2,7 +2,6 @@
 
 import {Suspense, useEffect, useMemo} from "react"
 import {useRouter, useSearchParams} from "next/navigation"
-import {FiPlus} from "react-icons/fi"
 import {MdWorkspacesFilled} from "react-icons/md"
 import {useAuthStore} from "@/store/auth"
 import {useNoteSelectStore} from "@/store/noteSelect"
@@ -57,16 +56,16 @@ function WorkspaceNoteListContent() {
     if (hasLoadedWorkspaces && !isWorkspacesLoading && workspaces.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-[70vh] gap-3 px-6 text-center">
-                <MdWorkspacesFilled size={40} className="text-gray-300"/>
-                <p className="text-gray-500 font-medium">아직 소속된 워크스페이스가 없습니다</p>
-                <p className="text-sm text-gray-400">설정에서 워크스페이스를 생성하거나 초대를 받아보세요.</p>
+                <MdWorkspacesFilled size={40} className="text-subtle"/>
+                <p className="text-muted font-medium">아직 소속된 워크스페이스가 없습니다</p>
+                <p className="text-sm text-subtle">설정에서 워크스페이스를 생성하거나 초대를 받아보세요.</p>
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen">
-            <div className="sticky top-0 z-10 backdrop-blur border-b border-[#E8E5DD]">
+        <div className="h-[100%] bg-surface">
+            <div className="sticky top-0 z-10 backdrop-blur border-b border-border">
                 <NoteFilterBar tags={tagsData ?? []}/>
             </div>
 
@@ -101,23 +100,11 @@ function WorkspaceNoteListContent() {
                 {isFetchingNextPage && <SkeletonLoading count={4}/>}
             </div>
 
-            {selectMode ? (
+            {selectMode && (
                 <SelectActionBar
                     selectedCount={selectedIds.size}
                     onDownload={handleDownloadSelected}
                 />
-            ) : (
-                <button
-                    onClick={() => gotoNote({id: null, router})}
-                    className="fixed right-5 bottom-[calc(9vh+1rem)] flex items-center gap-2 p-4
-                               bg-[#3F6C51] text-white rounded-full shadow-lg cursor-pointer
-                               hover:bg-[#345A44] hover:shadow-xl active:scale-95
-                               transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]"
-                    aria-label="새 노트 작성"
-                >
-                    <FiPlus size={20}/>
-                    <span className="hidden sm:inline text-sm font-medium">새 노트</span>
-                </button>
             )}
         </div>
     )

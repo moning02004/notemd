@@ -1,6 +1,6 @@
 export const LoadingPage = () => {
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen gap-8 bg-[#FAFAF4]">
+        <div className="flex flex-col items-center justify-center min-h-screen gap-8 bg-background">
             <style>{`
                 @keyframes pulse-dot {
                     0%, 100% { opacity: 0.2; transform: scale(1); }
@@ -17,12 +17,12 @@ export const LoadingPage = () => {
             `}</style>
 
             <div className="caption flex flex-col items-center gap-3">
-                <span className="text-[15px] font-medium text-[#2C2C2A] tracking-tight">
+                <span className="text-[15px] font-medium text-foreground tracking-tight">
                     잠시만 기다려 주세요
                 </span>
                 <div className="flex gap-[6px]">
                     {[0, 1, 2].map(i => (
-                        <div key={i} className="dot w-[5px] h-[5px] rounded-full bg-[#888780]" />
+                        <div key={i} className="dot w-[5px] h-[5px] rounded-full bg-subtle" />
                     ))}
                 </div>
             </div>

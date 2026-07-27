@@ -68,25 +68,25 @@ export default function NoteTagInput({selectedTags, setSelectedTags}: Props) {
                     onClick={() => setOpen(true)}
                     onBlur={() => setTimeout(() => setOpen(false), 150)}
                     placeholder="태그 검색..."
-                    className="w-full border border-[#e0e0e0] rounded-lg px-3 py-2 text-sm outline-none focus:border-[#aaa] bg-[#fafafa] focus:bg-white transition-colors placeholder:text-[#bbb]"
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-subtle bg-background focus:bg-surface transition-colors placeholder:text-subtle"
                 />
 
                 {open && (
                     <div
-                        className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white border border-[#e0e0e0] rounded-xl shadow-lg z-50 overflow-hidden">
+                        className="absolute top-[calc(100%+6px)] left-0 right-0 bg-surface border border-border rounded-xl shadow-lg z-50 overflow-hidden">
                         {filteredTags(tags).length === 0 ? (
-                            <div className="px-4 py-3 text-sm text-[#bbb] text-center" onClick={() => addTag(query)}>
-                                태그 추가: <strong className="text-black">{query}</strong>
+                            <div className="px-4 py-3 text-sm text-subtle text-center" onClick={() => addTag(query)}>
+                                태그 추가: <strong className="text-foreground">{query}</strong>
                             </div>
                         ) : (
                             filteredTags(tags).map((tag, i) => (
                                 <div
                                     key={tag.keyword}
                                     onMouseDown={() => addTag(tag.keyword)}
-                                    className={`flex hover:bg-gray-100 items-center gap-2 px-4 py-2 text-sm text-[#333] cursor-pointer transition-colors`}
+                                    className={`flex hover:bg-background items-center gap-2 px-4 py-2 text-sm text-foreground cursor-pointer transition-colors`}
                                 >
                                     <span className="flex-1">{tag.keyword}</span>
-                                    <span className="text-xs text-[#bbb]">{tag.count}</span>
+                                    <span className="text-xs text-subtle">{tag.count}</span>
                                 </div>
                             ))
                         )}
@@ -100,12 +100,12 @@ export default function NoteTagInput({selectedTags, setSelectedTags}: Props) {
                         return (
                             <span
                                 key={name}
-                                className="inline-flex items-center gap-1.5 bg-[#f0f0f0] rounded-md px-2.5 py-1 text-xs text-[#444]"
+                                className="inline-flex items-center gap-1.5 bg-background rounded-md px-2.5 py-1 text-xs text-foreground"
                             >
                                 {name}
                                 <button
                                     onClick={() => removeTag(name)}
-                                    className="text-[#aaa] hover:text-[#555] text-sm leading-none transition-colors"
+                                    className="text-subtle hover:text-muted text-sm leading-none transition-colors"
                                 >
                   ×
                 </button>

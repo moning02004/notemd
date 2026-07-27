@@ -64,22 +64,21 @@ export default function NoteFilterBar({ tags }: Props) {
     const iconButtonClass = (active?: boolean) => `
         p-1.5 rounded-md transition-all cursor-pointer
         ${active
-            ? 'text-gray-900 bg-gray-100'
-            : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50'}
+            ? 'text-accent bg-accent-soft'
+            : 'text-subtle hover:text-muted hover:bg-background'}
     `
 
     const tagButtonClass = (active: boolean) => `
         inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-sm border whitespace-nowrap transition-all cursor-pointer
         ${active
-            ? 'bg-gray-900 text-white border-gray-900'
-            : 'border-gray-200 text-gray-500 hover:border-gray-400 hover:text-gray-800'}
+            ? 'bg-accent text-white border-accent'
+            : 'border-border text-muted hover:border-subtle hover:text-foreground'}
     `
 
     return (
-        <div className="border-b border-gray-100 bg-white">
+        <div className="shadow-sm bg-surface">
             <div className="flex items-center gap-3 px-4 h-11">
 
-                {/* 데스크탑 태그 스크롤 */}
                 <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-1">
                     {displayTags.map(tag => (
                         <button
@@ -94,11 +93,10 @@ export default function NoteFilterBar({ tags }: Props) {
                     ))}
                 </div>
 
-                {/* 모바일 태그 드롭다운 */}
                 <div className="sm:hidden flex-1 relative" ref={tagDropdownRef}>
                     <button
                         onClick={() => setTagOpen(prev => !prev)}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-700 w-full"
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border text-sm text-muted w-full"
                     >
                         <span className="opacity-40 text-[11px]">#</span>
                         <span className="flex-1 text-left">{selectedTag}</span>
@@ -106,12 +104,12 @@ export default function NoteFilterBar({ tags }: Props) {
                     </button>
 
                     {tagOpen && (
-                        <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-md z-50 py-1 max-h-60 overflow-y-auto">
+                        <div className="absolute left-0 right-0 mt-1 bg-surface border border-border rounded-lg shadow-md z-50 py-1 max-h-60 overflow-y-auto">
                             {displayTags.map(tag => (
                                 <button
                                     key={tag.keyword}
                                     onClick={() => handleTagSelect(tag.keyword)}
-                                    className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                    className="w-full flex items-center justify-between px-3 py-2 text-sm text-muted hover:bg-background transition-colors"
                                 >
                                     <span className="flex items-center gap-1.5">
                                         <span className="opacity-40 text-[11px]">#</span>
@@ -119,7 +117,7 @@ export default function NoteFilterBar({ tags }: Props) {
                                         <span className="opacity-50 text-xs">{tag.count}</span>
                                     </span>
                                     {selectedTag === tag.keyword && (
-                                        <Check size={13} className="text-gray-900"/>
+                                        <Check size={13} className="text-accent"/>
                                     )}
                                 </button>
                             ))}
@@ -127,9 +125,8 @@ export default function NoteFilterBar({ tags }: Props) {
                     )}
                 </div>
 
-                {/* 정렬 드롭다운 */}
                 <div className="flex items-center gap-1 shrink-0">
-                    <div className="w-px h-3 bg-gray-200 mr-1"/>
+                    <div className="w-px h-3 bg-border mr-1"/>
                     <div ref={sortDropdownRef} className="relative">
                         <button
                             onClick={() => setSortOpen(prev => !prev)}
@@ -140,16 +137,16 @@ export default function NoteFilterBar({ tags }: Props) {
                         </button>
 
                         {sortOpen && (
-                            <div className="absolute right-0 top-full mt-1 w-36 bg-white border border-gray-200 rounded-lg shadow-md z-50 py-1">
+                            <div className="absolute right-0 top-full mt-1 w-36 bg-surface border border-border rounded-lg shadow-md z-50 py-1">
                                 {SORT_OPTIONS.map(option => (
                                     <button
                                         key={option.value}
                                         onClick={() => handleSortSelect(option.value)}
-                                        className="w-full flex items-center justify-between px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                        className="w-full flex items-center justify-between px-3 py-1.5 text-sm text-muted hover:bg-background transition-colors"
                                     >
                                         {option.label}
                                         {sort === option.value && (
-                                            <Check size={13} className="text-gray-900"/>
+                                            <Check size={13} className="text-accent"/>
                                         )}
                                     </button>
                                 ))}
@@ -158,9 +155,8 @@ export default function NoteFilterBar({ tags }: Props) {
                     </div>
                 </div>
 
-                {/* 보기 방식 토글 */}
                 <div className="flex items-center gap-1 shrink-0">
-                    <div className="w-px h-3 bg-gray-200 mr-1"/>
+                    <div className="w-px h-3 bg-border mr-1"/>
                     <ViewModeToggle/>
                 </div>
             </div>
