@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import List, Any
 
 from fastapi_clean_archi.core.commons.repository import Repository
 from sqlalchemy import desc, asc
@@ -139,6 +139,20 @@ class NoteRepository(Repository):
             self.DB_MODEL.user_id == user_id,
             self.DB_MODEL.hash_id.in_(note_hashes)
         ).all()
+        for note in notes:
+            self.db.delete(note)
+        self.db.commit()
+
+    def find_expired_trash_notes(self, user, cutoff: datetime):
+        return self.db.query(self.DB_MODEL).options(
+            joinedload(self.DB_MODEL.snapshot)
+        ).filter(
+            self.DB_MODEL.user_id == user.pk,
+            self.DB_MODEL.deleted_at.isnot(None),
+            self.DB_MODEL.deleted_at < cutoff,
+        ).all()
+
+    def hard_delete_notes(self, notes: List[Note]):
         for note in notes:
             self.db.delete(note)
         self.db.commit()

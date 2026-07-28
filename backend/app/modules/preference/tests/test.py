@@ -12,7 +12,7 @@ def test_get_preference_without_auth_fails(client):
 
 
 def test_update_preference_changes_only_given_fields(client, auth_headers):
-    response = client.patch("/preferences", json={"trash_policy": "7_DAYS"}, headers=auth_headers)
+    response = client.patch("/preferences", json={"trash_policy": "15_DAYS"}, headers=auth_headers)
 
     assert response.status_code == 200
-    assert response.json() == {"is_superuser": True, "trash_policy": "7_DAYS", "snapshot_policy": "MANUAL"}
+    assert response.json() == {"is_superuser": True, "trash_policy": "15_DAYS", "snapshot_policy": "MANUAL"}

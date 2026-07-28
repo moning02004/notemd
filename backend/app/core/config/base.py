@@ -18,6 +18,12 @@ class BaseAbstractSettings(AbstractSettings):
     MEILISEARCH_MASTER_KEY = os.environ.get("MEILISEARCH_MASTER_KEY", "")
     MEILISEARCH_INDEX_UID = os.environ.get("MEILISEARCH_INDEX_UID")
 
+    # Celery / Redis settings
+    REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+
+    # 휴지통에 들어간 노트를 영구 삭제하기까지의 보관 기간(일)
+    TRASH_RETENTION_DAYS = int(os.environ.get("TRASH_RETENTION_DAYS", "30"))
+
     # storage
     STORAGE = {
         "type": "local",
