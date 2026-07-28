@@ -9,11 +9,7 @@ class PreferenceService(Service):
     def get_preference(self, user_id: int):
         preference = self.repository.get_by_user_id(user_id)
         if preference is None:
-            preference = self.repository.create_preference(
-                user_id=user_id,
-                trash_policy=DEFAULT_TRASH_POLICY,
-                snapshot_policy=DEFAULT_SNAPSHOT_POLICY,
-            )
+            preference = self.repository.create_preference(user_id=user_id)
         return preference
 
     def update_preference(self, user_id: int, request):

@@ -10,8 +10,8 @@ class PreferenceRepository(Repository):
         instance = self.db.query(self.DB_MODEL).filter(self.DB_MODEL.user_id == user_id).first()
         return instance
 
-    def create_preference(self, user_id: int, trash_policy: str, snapshot_policy: str) -> Preference:
-        instance = self.DB_MODEL(user_id=user_id, trash_policy=trash_policy, snapshot_policy=snapshot_policy)
+    def create_preference(self, user_id: int) -> Preference:
+        instance = self.DB_MODEL(user_id=user_id)
         self.db.add(instance)
         self.db.commit()
         self.db.refresh(instance)

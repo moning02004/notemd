@@ -231,9 +231,9 @@ export default function Page() {
                             onChange={(e) => updatePreference({snapshotPolicy: e.target.value})}
                             className={selectClassName}
                         >
-                            <option value="on_first_edit">열고 처음 수정 시</option>
-                            <option value="on_every_edit">수정마다</option>
-                            <option value="manual">수동</option>
+                            <option value="ON_FIRST_EDIT">열고 처음 수정 시</option>
+                            <option value="ON_EVERY_EDIT">수정마다</option>
+                            <option value="MANUAL">수동</option>
                         </select>
                     </div>
 
@@ -255,10 +255,9 @@ export default function Page() {
                             onChange={(e) => updatePreference({trashPolicy: e.target.value})}
                             className={selectClassName}
                         >
-                            <option value="7">7일 후</option>
-                            <option value="14">14일 후</option>
-                            <option value="30">30일 후</option>
-                            <option value="never">삭제 안 함</option>
+                            <option value="14_DAYS">14일 후</option>
+                            <option value="30_DAYS">30일 후</option>
+                            <option value="NEVER">삭제 안 함</option>
                         </select>
                     </div>
                 </SettingsCard>
