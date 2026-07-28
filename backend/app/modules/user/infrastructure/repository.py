@@ -1,10 +1,31 @@
+import base64
+import os
+
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from fastapi_clean_archi.core.commons.repository import Repository
 
-from app.modules.user.infrastructure.models import User
+from app.core.config import settings
+from app.modules.user.infrastructure.models import User, UserKey
 
 
 class UserRepository(Repository):
     DB_MODEL = User
+
+    def create_user_key(self, user):
+        dek = os.urandom(32)  # 1) 난수 32바이트
+        nonce = os.urandom(12)  # 2) 랩용 nonce
+        kek = base64.b64decode(settings.KEK)
+        wrapped = AESGCM(kek).encrypt(nonce, dek, f"user:{user.pk}".encode())
+
+        user_key = UserKey(
+            user_id=user.pk,
+            key_blob=nonce + wrapped,
+            kek_version=settings.KEK_VERSION
+        )
+        del dek
+
+        self.db.add(user_key)
+        self.db.commit()
 
     def find_user_by_username(self, username: str):
         instance = self.db.query(self.DB_MODEL).filter(self.DB_MODEL.username == username).first()

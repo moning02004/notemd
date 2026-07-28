@@ -27,6 +27,8 @@ export default function Page() {
     const [isOpenedSetting, setOpenedSetting] = useState(false)
     const [isPublic, setIsPublic] = useState<boolean>(false);
     const [isProtected, setIsProtected] = useState<boolean>(false);
+    const [isEncrypted, setIsEncrypted] = useState<boolean>(false);
+    const [notePassword, setNotePassword] = useState<string | null>(null);
     const [isReadonly, setIsReadonly] = useState<boolean>(!token);
     const [isOwner, setIsOwner] = useState(false);
     const {noteId} = useParams() as { noteId: string };
@@ -58,9 +60,12 @@ export default function Page() {
             is_public: isPublic,
             is_protected: isProtected,
             tags: selectedTags,
+            is_encrypted: isEncrypted,
+            content: content,
+            password: notePassword,
             workspaces: selectedWorkspaces.map(x => x.hashId)
         });
-    }, [isPublic, isProtected, selectedTags, selectedWorkspaces]);
+    }, [isPublic, isProtected, selectedTags, selectedWorkspaces, isEncrypted, notePassword]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -72,6 +77,8 @@ export default function Page() {
                     setIsProtected(response.is_protected)
                     setSelectedTags(response.tags)
                     setSelectedWorkspaces(response.workspaces)
+                    setIsEncrypted(response.is_encrypted)
+                    setNotePassword(response.password)
                     setIsOwner(response.user_hash === userHash)
                 })
                 .catch(() => {
@@ -119,10 +126,14 @@ export default function Page() {
                               setIsProtected={setIsProtected}
                               setSelectedTags={setSelectedTags}
                               selectedWorkspaces={selectedWorkspaces}
+                              setIsEncrypted={setIsEncrypted}
+                              setNotePassword={setNotePassword}
                               setSelectedWorkspaces={setSelectedWorkspaces}
                               setEditorWidth={setEditorWidth}
 
                               setTitle={setTitle}
+                              isEncrypted={isEncrypted}
+                              notePassword={notePassword}
                               setContent={setContent}
                               currentTitle={title}
                               currentContent={content}

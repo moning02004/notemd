@@ -29,6 +29,8 @@ export interface NoteDetailResponse {
     content: string | null;
     is_public: boolean;
     is_protected: boolean;
+    is_encrypted: boolean;
+    password: string | null;
     tags: string[];
     workspaces: NoteWorkspace[];
     user_hash: string;

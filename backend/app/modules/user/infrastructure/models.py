@@ -1,5 +1,5 @@
 from fastapi_clean_archi.core.db.base import BaseModel
-from sqlalchemy import Column, String, ForeignKey, Integer, Boolean
+from sqlalchemy import Column, String, Integer, Boolean, LargeBinary, ForeignKey
 from sqlalchemy.orm import relationship
 
 
@@ -15,7 +15,18 @@ class User(BaseModel):
     templates = relationship("Template", back_populates="user", cascade="all, delete-orphan")
     workspaces = relationship("Workspace", secondary="workspace_member", back_populates="users")
     preference = relationship("Preference", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    key = relationship("UserKey", back_populates="user", uselist=False, cascade="all, delete-orphan",
+                       passive_deletes=True,
+                       lazy="selectin")
 
     @property
     def user_hash(self):
         return self.hash_id
+
+
+class UserKey(BaseModel):
+    user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), unique=True, nullable=False)
+    key_blob = Column(LargeBinary, nullable=False)
+    kek_version = Column(Integer, nullable=False, index=True)
+
+    user = relationship("User", back_populates="key")

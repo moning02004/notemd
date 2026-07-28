@@ -16,8 +16,9 @@ class NoteDocument:
     content: str
     tags: list[str]
     user_hash: str | None
-    created_at: int | None
-    updated_at: int | None
+    is_deleted: bool
+    created_at: str | None
+    updated_at: str | None
 
 
 @dataclass

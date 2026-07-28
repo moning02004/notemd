@@ -19,6 +19,9 @@ class Note(BaseModel):
     is_protected = Column(Boolean, default=False)
     deleted_at = Column(DateTime(timezone=True), nullable=True)
 
+    password = Column(String, nullable=True)
+    is_encrypted = Column(Boolean, default=False)
+
     # relationships
     user = relationship("User", back_populates="notes")
     tags = relationship("Tag", secondary="notetag", back_populates="notes")

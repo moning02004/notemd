@@ -17,6 +17,9 @@ class UserService(Service):
         if not user:
             raise self.NotFoundUser
 
+        if user.key is None:
+            self.repository.create_user_key(user)
+
         user_entity = UserEntity(pk=user.pk, user_hash=user.hash_id, hashed_password=user.hashed_password)
         if not user_entity.check_password(request.password):
             raise self.NotFoundUser

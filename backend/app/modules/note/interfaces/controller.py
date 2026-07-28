@@ -86,7 +86,7 @@ def get_note(note_hash: str, user=Depends(get_user_or_none), service: NoteServic
 @router.patch("/{note_hash}", response_model=NoteDetailSchema)
 def update_note(note_hash: str, request: NoteUpdateRequest, user=Depends(get_current_user),
                 service: NoteService = Depends(get_note_service)):
-    note = service.update_note(user_id=user.pk, note_hash=note_hash, request=request)
+    note = service.update_note(user=user, note_hash=note_hash, request=request)
     return note
 
 

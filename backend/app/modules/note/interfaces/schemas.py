@@ -82,6 +82,8 @@ class NoteUpdateRequest(BaseModel):
     content: str = None
     is_public: bool = None
     is_protected: bool = None
+    is_encrypted: bool = None
+    password: str = None
     tags: list[str] = None
     workspaces: list[str] = None
 

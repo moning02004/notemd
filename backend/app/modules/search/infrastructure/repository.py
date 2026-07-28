@@ -24,7 +24,9 @@ class SearchRepository:
 
     def search_index(self, keyword: str, user_hash: str, sort: str = None, page: int = 1):
         search_params = {
-            "filter": f"user_hash={user_hash}",
+            "filter": [
+                f'user_hash="{user_hash}"',
+            ],
             # "limit": 20,
             # "offset": (page - 1) * 20,
             "matchingStrategy": "all",

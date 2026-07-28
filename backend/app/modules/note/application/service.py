@@ -1,4 +1,6 @@
+import base64
 import io
+import os
 import re
 import zipfile
 from dataclasses import asdict
@@ -6,13 +8,16 @@ from datetime import datetime
 from typing import List
 
 import fitz
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from fastapi import HTTPException
 from fastapi_clean_archi.core.commons.service import Service
 from markdown import markdown
 from markdownify import markdownify
 
+from app.core.config import settings
 from app.modules.note.domain.entity import NoteEntity, NoteDocument, DownloadResult
 from app.modules.note.infrastructure.models import Note, NoteSnapshot
+from app.modules.user.infrastructure.models import User
 from app.modules.user.infrastructure.repository import UserRepository
 
 
@@ -30,6 +35,7 @@ class NoteService(Service):
             content=re.sub(r"<[^>]+>", "", note.content or ""),
             tags=[x.keyword for x in note.tags],
             user_hash=note.user.hash_id,
+            is_deleted=note.deleted_at is not None,
             created_at=note.created_at.strftime("%Y-%m-%d %H:%M:%S"),
             updated_at=note.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
         )
@@ -42,6 +48,34 @@ class NoteService(Service):
         if note.user_id != user_id:
             raise ValueError("노트를 찾을 수 없습니다.")
         return note
+
+    @classmethod
+    def _load_user_dek(cls, user):
+        blob = user.key.key_blob
+        kek = base64.b64decode(settings.KEK)
+        return AESGCM(kek).decrypt(
+            blob[:12], blob[12:], f"user:{user.pk}".encode()
+        )
+
+    @classmethod
+    def _encrypt_content(cls, user, content):
+        dek = cls._load_user_dek(user)
+        nonce = os.urandom(12)
+        encrypted_content = AESGCM(dek).encrypt(
+            nonce, content.encode(), f"user:{user.pk}".encode()
+        )
+        return base64.b64encode(nonce + encrypted_content).decode("ascii")
+
+    @classmethod
+    def _decrypt_content(cls, user, content):
+        try:
+            dek = cls._load_user_dek(user)
+            blob = base64.b64decode(content)
+            return AESGCM(dek).decrypt(
+                blob[:12], blob[12:], f"user:{user.pk}".encode()
+            ).decode()
+        except ValueError:
+            return content
 
     def _get_owned_snapshot(self, user_id, note_snapshot_hash: str) -> Note:
         note_snapshot = self.repository.get_note_snapshot_by_hash_id(user_id=user_id, hash_id=note_snapshot_hash)
@@ -82,11 +116,31 @@ class NoteService(Service):
 
             if not user.is_superuser and not workspaces and note.user_id != user.pk:
                 raise HTTPException(status_code=404, detail="노트를 찾을 수 없습니다.")
+
+        if note.is_encrypted:
+            note.content = self._decrypt_content(note.user, note.content)
         return note
 
-    def update_note(self, user_id: int, note_hash: str, request):
-        note = self.repository.update_note(user_id=user_id, hash_id=note_hash, request=request)
+    def update_note(self, user: User, note_hash: str, request):
+        note = self.repository.get_by_hash_id(hash_id=note_hash)
+
+        content = request.content
+        if request.is_encrypted or note.is_encrypted:
+            content = self._encrypt_content(user, content)
+
+        note = self.repository.update_note(user_id=user.pk,
+                                           note=note,
+                                           title=request.title,
+                                           content=content,
+                                           is_public=request.is_public,
+                                           is_protected=request.is_protected,
+                                           is_encrypted=request.is_encrypted,
+                                           password=request.password,
+                                           tags=request.tags,
+                                           workspaces=request.workspaces)
         self.indexing_note(note)
+        if request.is_encrypted:
+            note.content = self._decrypt_content(user, content)
         return note
 
     def soft_delete_note(self, user_id: int, note_hashes: list):
