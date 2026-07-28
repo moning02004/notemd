@@ -91,6 +91,10 @@ class NoteService(Service):
         else:
             note_hashes = self.search_service.find_documents(keyword, user_hash, sort, page)
             notes = self.repository.get_by_hash_ids_and_user_id(user_hash, note_hashes)
+
+        for note in notes:
+            if note.is_encrypted:
+                note.content = self._decrypt_content(note.user, note.content)
         return notes
 
     def create_default_note(self, user_id: int):
