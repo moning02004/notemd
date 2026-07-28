@@ -18,6 +18,8 @@ interface SettingsProps {
     setIsPublic: (flag: boolean) => void;
     setIsProtected: (flag: boolean) => void;
     setSelectedTags: (tag: string[]) => void;
+    setIsEncrypted: (flag: boolean) => void;
+    setNotePassword: (notePassword: string) => void;
     setEditorWidth: (editorWidth: number) => void;
     selectedWorkspaces: NoteWorkspace[];
     setSelectedWorkspaces: (workspace: NoteWorkspace[]) => void;
@@ -25,6 +27,8 @@ interface SettingsProps {
     selectedTags: string[];
     isProtected: boolean;
     isPublic: boolean;
+    isEncrypted: boolean;
+    notePassword: string;
     isOpenedSetting: boolean;
     editorWidth: number;
 
@@ -41,6 +45,8 @@ export const NoteSettings = ({
                                  setStatusType,
                                  setIsPublic,
                                  setIsProtected,
+                                 setIsEncrypted,
+                                 setNotePassword,
                                  setSelectedTags,
                                  selectedWorkspaces,
                                  editorWidth,
@@ -49,6 +55,8 @@ export const NoteSettings = ({
                                  setSelectedWorkspaces,
                                  isProtected,
                                  isPublic,
+                                 isEncrypted,
+                                 notePassword,
                                  isOpenedSetting,
                                  setEditorWidth,
 
@@ -60,6 +68,8 @@ export const NoteSettings = ({
                              }: SettingsProps) => {
     const [templateModalOpen, setTemplateModalOpen] = useState(false)
     const [noteSnapshotModalOpen, setNoteSnapshotModalOpen] = useState(false)
+    const [passwordInput, setPasswordInput] = useState(false)
+    const [password, setPassword] = useState<string | null>(notePassword)
 
     const deleteNote = async () => {
         await apiRequest.delete(`/notes/${noteId}`).then(() => {
@@ -149,6 +159,55 @@ export const NoteSettings = ({
                                         <option value="50">50%</option>
                                     </select>
                                 </div>
+                            </div>
+                        </SettingsCard>
+
+                        {/* 노트 암호 */}
+                        <SettingsCard title="노트 암호">
+
+                            <div className="flex flex-row justify-between items-center py-2">
+                                <div className="pr-3">
+                                    <p className="text-[15px] font-medium text-foreground">암호화 저장</p>
+                                    <p className="text-[13px] text-muted mt-0.5">
+                                        노트가 암호화되어 저장되고, 검색에서 제외됩니다.
+                                    </p>
+                                </div>
+                                <ToggleSwitch checked={isEncrypted} activeColor="bg-accent" onClick={() => {
+                                    setStatusType("loading")
+                                    setIsEncrypted(!isEncrypted)
+                                }}/>
+                            </div>
+
+                            <div className="h-px bg-border my-1"/>
+
+                            <div className="flex flex-col w-full">
+                                <div className="flex flex-row justify-between items-center pt-2">
+                                    <div className="pr-3">
+                                        <p className="text-[15px] font-medium text-foreground">비밀번호 설정</p>
+                                        <p className="text-[13px] text-muted mt-0.5">
+                                            다른 사람이 노트를 열 때 비밀번호를 확인합니다.
+                                        </p>
+                                    </div>
+                                    <ToggleSwitch checked={passwordInput} activeColor="bg-accent" onClick={() => {
+                                        setStatusType("loading")
+                                        setPasswordInput(!passwordInput)
+                                    }}/>
+                                </div>
+                                {passwordInput &&
+                                    <div className="flex flex-row w-full gap-2 mt-3 mb-1 pl-3">
+                                        <input type="password"
+                                               value={password}
+                                               onChange={(e) => setPassword(e.target.value)}
+                                               className="flex-1 border rounded border-border-strong py-1.5 px-2 text-sm outline-0"
+                                               placeholder="노트 비밀번호를 입력해주세요"
+                                        />
+                                        <button onClick={() => setNotePassword(password)}
+                                                className={`px-3 py-1.5 rounded bg-accent text-accent-soft text-sm
+                                                 ${password == notePassword ? "cursor-disabled" : "cursor-pointer"}
+                                                font-medium`}>저장
+                                        </button>
+                                    </div>
+                                }
                             </div>
                         </SettingsCard>
 

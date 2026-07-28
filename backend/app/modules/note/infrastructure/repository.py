@@ -1,10 +1,13 @@
+import os
 from datetime import datetime
 from typing import List, Any
 
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from fastapi_clean_archi.core.commons.repository import Repository
 from sqlalchemy import desc, asc
 from sqlalchemy.orm import joinedload
 
+from app.core.config import settings
 from app.modules.note.domain.entity import SnapshotEntity
 from app.modules.note.infrastructure.models import Note
 from app.modules.note.infrastructure.models import NoteSnapshot
@@ -68,38 +71,44 @@ class NoteRepository(Repository):
         ).all()
         return instances
 
-    def update_note(self, user_id: int, hash_id: str, request):
-        instance = self.db.query(self.DB_MODEL).filter(self.DB_MODEL.user_id == user_id,
-                                                       self.DB_MODEL.hash_id == hash_id).first()
-        if instance:
-            if request.title is not None:
-                instance.title = request.title
-            if request.content is not None:
-                instance.content = request.content
-            if request.is_public is not None:
-                instance.is_public = request.is_public
-            if request.is_protected is not None:
-                instance.is_protected = request.is_protected
+    def update_note(self, user_id: int, note: Note,
+                    title=None,
+                    content=None,
+                    is_public=None,
+                    is_protected=None,
+                    is_encrypted=None,
+                    password=None,
+                    tags=None,
+                    workspaces=None):
+        if title is not None:
+            note.title = title
+        if content is not None:
+            note.content = content
+        if is_public is not None:
+            note.is_public = is_public
+        if is_protected is not None:
+            note.is_protected = is_protected
+        if is_encrypted is not None:
+            note.is_encrypted = is_encrypted
+        if password is not None:
+            note.password = password
 
-            if request.tags is not None:
-                tag_keywords = request.tags
+        if tags is not None:
+            existing_tags = self.db.query(Tag).filter(Tag.keyword.in_(tags)).all()
 
-                existing_tags = self.db.query(Tag).filter(Tag.keyword.in_(tag_keywords)).all()
+            existing_keywords = {tag.keyword for tag in existing_tags}
+            new_tags = [Tag(keyword=k) for k in tags if k not in existing_keywords]
+            self.db.add_all(new_tags)
+            self.db.flush()
+            note.tags = existing_tags + new_tags
 
-                existing_keywords = {tag.keyword for tag in existing_tags}
-                new_tags = [Tag(keyword=k) for k in tag_keywords if k not in existing_keywords]
-                self.db.add_all(new_tags)
-                self.db.flush()
-                instance.tags = existing_tags + new_tags
+        if workspaces is not None:
+            workspaces = self.db.query(Workspace).filter(Workspace.hash_id.in_(workspaces)).all()
+            note.workspaces = workspaces
 
-            if request.workspaces is not None:
-                workspace_hashes = request.workspaces
-                workspaces = self.db.query(Workspace).filter(Workspace.hash_id.in_(workspace_hashes)).all()
-                instance.workspaces = workspaces
-
-            self.db.commit()
-            self.db.refresh(instance)
-        return instance
+        self.db.commit()
+        self.db.refresh(note)
+        return note
 
     def get_note_snapshot_by_hash_id(self, user_id, hash_id: str):
         instance = self.db.query(NoteSnapshot).join(NoteSnapshot.note).filter(

@@ -5,6 +5,8 @@ type NotePatchData = Partial<{
     content: string
     is_public: boolean
     is_protected: boolean
+    is_encrypted: boolean
+    password: string
     tags: string[]
     workspaces: string[]
 }>

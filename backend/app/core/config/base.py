@@ -18,6 +18,9 @@ class BaseAbstractSettings(AbstractSettings):
     MEILISEARCH_MASTER_KEY = os.environ.get("MEILISEARCH_MASTER_KEY", "")
     MEILISEARCH_INDEX_UID = os.environ.get("MEILISEARCH_INDEX_UID")
 
+    KEK = os.environ.get("KEK")
+    KEK_VERSION = os.environ.get("KEK_VERSION")
+
     # Celery / Redis settings
     REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 
