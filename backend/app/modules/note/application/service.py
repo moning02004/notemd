@@ -121,6 +121,9 @@ class NoteService(Service):
             if not user.is_superuser and not workspaces and note.user_id != user.pk:
                 raise HTTPException(status_code=404, detail="노트를 찾을 수 없습니다.")
 
+            if note.password:
+                note.password = self._decrypt_content(note.user, note.password)
+
         if note.is_encrypted:
             note.content = self._decrypt_content(note.user, note.content)
         return note
@@ -135,6 +138,10 @@ class NoteService(Service):
         if is_encrypted:
             content = self._encrypt_content(user, content)
 
+        password = None
+        if request.password:
+            password = self._encrypt_content(user, request.password)
+
         note = self.repository.update_note(user_id=user.pk,
                                            note=note,
                                            title=request.title,
@@ -142,12 +149,14 @@ class NoteService(Service):
                                            is_public=request.is_public,
                                            is_protected=request.is_protected,
                                            is_encrypted=request.is_encrypted,
-                                           password=request.password,
+                                           password=password,
                                            tags=request.tags,
                                            workspaces=request.workspaces)
         self.indexing_note(note)
         if request.is_encrypted:
             note.content = self._decrypt_content(user, content)
+        if request.password:
+            note.password = self._decrypt_content(user, password)
         return note
 
     def soft_delete_note(self, user_id: int, note_hashes: list):

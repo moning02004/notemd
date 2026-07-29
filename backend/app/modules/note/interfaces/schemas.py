@@ -63,6 +63,7 @@ class NoteDetailSchema(BaseModel):
     user_hash: str
     is_public: bool
     is_protected: bool
+    password: str | None
     tags: list = []
     workspaces: list = []
 
@@ -83,7 +84,7 @@ class NoteUpdateRequest(BaseModel):
     is_public: bool = None
     is_protected: bool = None
     is_encrypted: bool = None
-    password: str = None
+    password: str | None = None
     tags: list[str] = None
     workspaces: list[str] = None
 
