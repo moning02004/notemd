@@ -2,8 +2,6 @@ import type {Metadata, Viewport} from "next";
 import {Geist, Geist_Mono} from "next/font/google";
 import "./globals.css";
 import {Toaster} from "react-hot-toast";
-import {Providers} from "@/app/(main)/providers";
-import {RegisterServiceWorker} from "@/app/register-service-worker";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -50,7 +48,6 @@ export default function RootLayout({
         <Toaster position="bottom-center" containerStyle={{
             bottom: 80
         }}/>
-        <RegisterServiceWorker/>
         </body>
         </html>
     );
