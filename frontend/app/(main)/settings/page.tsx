@@ -255,7 +255,7 @@ export default function Page() {
                             onChange={(e) => updatePreference({trashPolicy: e.target.value})}
                             className={selectClassName}
                         >
-                            <option value="14_DAYS">14일 후</option>
+                            <option value="15_DAYS">15일 후</option>
                             <option value="30_DAYS">30일 후</option>
                             <option value="NEVER">삭제 안 함</option>
                         </select>
