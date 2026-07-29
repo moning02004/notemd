@@ -49,7 +49,7 @@ function NoteListContent() {
     }
 
     return (
-        <div className="h-[100%] bg-surface">
+        <div className="min-h-[100%] bg-surface">
             <div className="sticky top-0 z-10 bg-surface backdrop-blur">
                 <NoteFilterBar tags={tagsData ?? []}/>
             </div>

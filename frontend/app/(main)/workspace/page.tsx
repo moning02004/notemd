@@ -64,7 +64,7 @@ function WorkspaceNoteListContent() {
     }
 
     return (
-        <div className="h-[100%] bg-surface">
+        <div className="min-h-[100%] bg-surface">
             <div className="sticky top-0 z-10 backdrop-blur border-b border-border">
                 <NoteFilterBar tags={tagsData ?? []}/>
             </div>
