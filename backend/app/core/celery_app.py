@@ -15,6 +15,6 @@ celery_app.conf.timezone = "Asia/Seoul"
 celery_app.conf.beat_schedule = {
     "purge-expired-trash-notes": {
         "task": "app.modules.note.application.tasks.purge_expired_trash_notes",
-        "schedule": crontab(hour=3, minute=0),
+        "schedule": crontab(hour=24),
     },
 }
