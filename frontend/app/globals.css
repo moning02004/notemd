@@ -49,7 +49,9 @@
     --color-danger: var(--danger);
     --color-danger-soft: var(--danger-soft);
 }
-
+html, body {
+  overscroll-behavior-y: contain;
+}
 body {
     background: var(--background);
     color: var(--foreground);
