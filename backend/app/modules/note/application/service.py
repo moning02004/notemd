@@ -128,8 +128,11 @@ class NoteService(Service):
     def update_note(self, user: User, note_hash: str, request):
         note = self.repository.get_by_hash_id(hash_id=note_hash)
 
-        content = request.content
-        if request.is_encrypted or note.is_encrypted:
+        content = request.content or (
+            self._decrypt_content(user, note.content) if note.is_encrypted else note.content)
+
+        is_encrypted = request.is_encrypted if request.is_encrypted is not None else note.is_encrypted
+        if is_encrypted:
             content = self._encrypt_content(user, content)
 
         note = self.repository.update_note(user_id=user.pk,
