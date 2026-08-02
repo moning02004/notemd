@@ -13,6 +13,7 @@ export interface NoteCard {
     is_public: boolean;
     is_protected: boolean;
     is_shared: boolean;
+    is_password: boolean;
     created_at: string
 }
 
@@ -25,11 +26,13 @@ export interface CreateNoteImageResponse {
 }
 
 export interface NoteDetailResponse {
+    detail: object | null;
     title: string | null;
     content: string | null;
     is_public: boolean;
     is_protected: boolean;
     is_encrypted: boolean;
+    is_password: boolean;
     password: string | null;
     tags: string[];
     workspaces: NoteWorkspace[];

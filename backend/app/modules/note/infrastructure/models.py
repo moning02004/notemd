@@ -34,6 +34,10 @@ class Note(BaseModel):
         return self.user.hash_id
 
     @property
+    def is_password(self):
+        return (self.password or "") != ""
+
+    @property
     def owner_name(self):
         return self.user.name
 
