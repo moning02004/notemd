@@ -1,10 +1,10 @@
 import re
+from dataclasses import dataclass
 from datetime import datetime
 from typing import List
 
 from fastapi import Query
 from pydantic import BaseModel, ConfigDict, field_serializer
-from dataclasses import dataclass
 
 
 @dataclass
@@ -23,6 +23,7 @@ class NoteListSchema(BaseModel):
     is_public: bool
     is_protected: bool
     is_shared: bool
+    is_password: bool
     hash_id: str
     created_at: datetime
     tags: list = []
@@ -64,6 +65,7 @@ class NoteDetailSchema(BaseModel):
     is_public: bool
     is_protected: bool
     password: str | None
+    is_password: bool
     tags: list = []
     workspaces: list = []
 
@@ -76,6 +78,10 @@ class NoteDetailSchema(BaseModel):
     @field_serializer("workspaces")
     def serialize_workspaces(self, value, _info):
         return [{"hashId": x.hash_id, "name": x.name} for x in value]
+
+
+class NoteRequest(BaseModel):
+    password: str | None = None
 
 
 class NoteUpdateRequest(BaseModel):

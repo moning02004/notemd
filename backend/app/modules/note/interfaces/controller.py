@@ -7,7 +7,8 @@ from starlette.responses import Response
 from app.modules.note.application.service import NoteService
 from app.modules.note.interfaces.dependencies import get_note_service, get_note_service_with_storage
 from app.modules.note.interfaces.schemas import NoteListSchema, NoteCreateSchema, \
-    NoteDetailSchema, NoteUpdateRequest, QueryParams, NoteHashesRequest, SnapshotRequest, NoteSnapshotSchema
+    NoteDetailSchema, NoteUpdateRequest, QueryParams, NoteHashesRequest, SnapshotRequest, NoteSnapshotSchema, \
+    NoteRequest
 from app.core.dependancies import get_current_user, get_user_or_none
 
 router = APIRouter(prefix="/notes", tags=["Notes"])
@@ -80,6 +81,12 @@ async def upload_files_and_create_note(files: list[UploadFile] = File(...),
 @router.get("/{note_hash}", response_model=NoteDetailSchema | None)
 def get_note(note_hash: str, user=Depends(get_user_or_none), service: NoteService = Depends(get_note_service)):
     note = service.get_note_by_hash_id(user_id=user and user.pk, note_hash=note_hash)
+    return note
+
+
+@router.post("/{note_hash}", response_model=NoteDetailSchema | None)
+def get_note(request: NoteRequest, note_hash: str, user=Depends(get_user_or_none), service: NoteService = Depends(get_note_service)):
+    note = service.get_note_by_hash_id(user_id=user and user.pk, note_hash=note_hash, password=request.password)
     return note
 
 

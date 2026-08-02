@@ -3,6 +3,10 @@ LOG_SERVICE ?=
 SERVICE ?=
 
 # Docker Compose 실행
+.PHONY: up-main
+up-main:
+	docker-compose -f $(LOCAL_COMPOSE_FILE) up -d frontend backend meilisearch postgres redis
+
 up:
 	docker-compose -f $(LOCAL_COMPOSE_FILE) up -d --remove-orphans
 

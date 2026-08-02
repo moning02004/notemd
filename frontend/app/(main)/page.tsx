@@ -1,6 +1,6 @@
 "use client"
 
-import {Suspense, useEffect} from "react"
+import {Suspense, useEffect, useState} from "react"
 import {useRouter, useSearchParams} from "next/navigation"
 import {useAuthStore} from "@/store/auth"
 import {useNoteSelectStore} from "@/store/noteSelect"
@@ -15,6 +15,7 @@ import {apiRequest} from "@/lib/api";
 import toast from "react-hot-toast";
 import {SkeletonLoading} from "@/components/skeleton";
 import {useViewModeStore} from "@/store/viewMode";
+import NotePasswordModal from "@/components/note/password_modal";
 
 function NoteListContent() {
     const router = useRouter()
@@ -72,6 +73,7 @@ function NoteListContent() {
                             isPublic={note.is_public}
                             isProtected={note.is_protected}
                             isShared={note.is_shared}
+                            isPassword={note.is_password}
                             created_at={note.created_at}
                             noteMenu={!selectMode}
                             selectable={selectMode}

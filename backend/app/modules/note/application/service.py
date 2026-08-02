@@ -107,10 +107,18 @@ class NoteService(Service):
         self.indexing_note(note)
         return note
 
-    def get_note_by_hash_id(self, user_id: int | None, note_hash: str):
+    def get_note_by_hash_id(self, user_id: int | None, note_hash: str, password: str | None = None):
         note = self.repository.get_by_hash_id(hash_id=note_hash)
         if note is None or (not note.is_public and user_id is None):
             raise HTTPException(status_code=404, detail="노트를 찾을 수 없습니다.")
+
+        note_password = self._decrypt_content(note.user, note.password)
+        if note.user_id != user_id and note.password:
+            if note_password != password:
+                raise HTTPException(status_code=403, detail={
+                    "message": "비밀번호가 일치하지 않습니다.",
+                    "is_password": True
+                })
 
         if user_id:
             user = UserRepository(self.repository.db).get_by_pk(user_id)
@@ -122,7 +130,7 @@ class NoteService(Service):
                 raise HTTPException(status_code=404, detail="노트를 찾을 수 없습니다.")
 
             if note.password:
-                note.password = self._decrypt_content(note.user, note.password)
+                note.password = note_password
 
         if note.is_encrypted:
             note.content = self._decrypt_content(note.user, note.content)
