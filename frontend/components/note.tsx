@@ -4,7 +4,7 @@ import DOMPurify from "dompurify"
 import {FiCheck} from "react-icons/fi"
 import {LuEllipsisVertical} from "react-icons/lu"
 import {FaLink, FaLock} from "react-icons/fa";
-import {MdWorkspacesFilled} from "react-icons/md";
+import {MdOutlineSecurity, MdWorkspacesFilled} from "react-icons/md";
 import {TbLockPassword} from "react-icons/tb";
 
 type NoteType = {
@@ -16,6 +16,7 @@ type NoteType = {
     isPublic?: boolean
     isProtected?: boolean
     isShared?: boolean
+    isEncrypted?: boolean
     isPassword?: boolean
     created_at?: string
     noteMenu?: boolean
@@ -35,6 +36,7 @@ export const Note = ({
                          isPublic,
                          isProtected,
                          isShared,
+                         isEncrypted,
                          isPassword,
                          created_at,
                          noteMenu,
@@ -56,6 +58,7 @@ export const Note = ({
         isPublic && <FaLink size={12} key="public"/>,
         isProtected && <FaLock size={12} key="protected"/>,
         isShared && <MdWorkspacesFilled size={13} key="shared"/>,
+        isEncrypted && <MdOutlineSecurity size={13} key="shared"/>,
         isPassword && <TbLockPassword size={13} key="password"/>,
     ].filter(Boolean)
 

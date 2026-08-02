@@ -30,7 +30,7 @@ const toDraft = (response: NoteDetailResponse): NoteDraft => ({
     isPublic: response.is_public,
     isProtected: response.is_protected,
     isEncrypted: response.is_encrypted,
-    password: response.password,
+    password: response.password || "",
     tags: response.tags,
     workspaces: response.workspaces,
 })

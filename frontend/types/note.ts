@@ -13,6 +13,7 @@ export interface NoteCard {
     is_public: boolean;
     is_protected: boolean;
     is_shared: boolean;
+    is_encrypted: boolean;
     is_password: boolean;
     created_at: string
 }

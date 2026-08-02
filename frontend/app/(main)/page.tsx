@@ -73,6 +73,7 @@ function NoteListContent() {
                             isPublic={note.is_public}
                             isProtected={note.is_protected}
                             isShared={note.is_shared}
+                            isEncrypted={note.is_encrypted}
                             isPassword={note.is_password}
                             created_at={note.created_at}
                             noteMenu={!selectMode}

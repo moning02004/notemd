@@ -23,6 +23,7 @@ class NoteListSchema(BaseModel):
     is_public: bool
     is_protected: bool
     is_shared: bool
+    is_encrypted: bool | None
     is_password: bool
     hash_id: str
     created_at: datetime
@@ -51,6 +52,10 @@ class NoteListSchema(BaseModel):
     def serialize_created_at(self, value: datetime, _info):
         return value.strftime("%Y-%m-%d %H:%M")
 
+    @field_serializer("is_encrypted")
+    def serialize_is_encrypted(self, value, _info):
+        return value or False
+
 
 class NoteCreateSchema(BaseModel):
     hash_id: str
@@ -64,6 +69,7 @@ class NoteDetailSchema(BaseModel):
     user_hash: str
     is_public: bool
     is_protected: bool
+    is_encrypted: bool | None
     password: str | None
     is_password: bool
     tags: list = []
@@ -78,6 +84,10 @@ class NoteDetailSchema(BaseModel):
     @field_serializer("workspaces")
     def serialize_workspaces(self, value, _info):
         return [{"hashId": x.hash_id, "name": x.name} for x in value]
+
+    @field_serializer("is_encrypted")
+    def serialize_is_encrypted(self, value, _info):
+        return value or False
 
 
 class NoteRequest(BaseModel):
