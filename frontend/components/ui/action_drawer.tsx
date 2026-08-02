@@ -23,7 +23,7 @@ export function ActionDrawer({trigger, items, closeLabel = "취소"}: ActionDraw
                 {trigger ?? (
                     <div className="drawer-button">
                         <button className="drawer-menu">
-                            <LuEllipsisVertical size={22}/>
+                            <LuEllipsisVertical size={16}/>
                         </button>
                     </div>
                 )}
