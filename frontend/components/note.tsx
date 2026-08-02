@@ -117,8 +117,9 @@ export const Note = ({
                                 noteId={hashId}
                                 canDelete={!isProtected}
                                 trigger={
-                                    <button className="p-1 rounded hover:bg-accent-soft text-muted cursor-pointer">
-                                        <LuEllipsisVertical size={16}/>
+                                    <button
+                                        className="p-1 rounded hover:bg-accent-soft text-accent sm:text-muted cursor-pointer">
+                                        <LuEllipsisVertical size={13}/>
                                     </button>
                                 }
                             />
@@ -186,16 +187,11 @@ export const Note = ({
                 <span className="ml-auto text-[11px] text-subtle shrink-0">{created_at}</span>
             </div>
 
-            {!selectable && noteMenu && (
+            {!selectable && (
                 <div onClick={(e) => e.stopPropagation()}
-                     className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                    <NoteMenu noteId={hashId} canDelete={!isProtected}/>
-                </div>
-            )}
-            {!selectable && deletedMenu && (
-                <div onClick={(e) => e.stopPropagation()}
-                     className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                    <DeletedMenu noteId={hashId}/>
+                     className="absolute top-1.5 right-1.5 sm:opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                    {noteMenu ? <NoteMenu noteId={hashId} canDelete={!isProtected}/> : deletedMenu ?
+                        <DeletedMenu noteId={hashId}/> : ""}
                 </div>
             )}
         </div>
