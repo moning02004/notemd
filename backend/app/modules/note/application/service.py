@@ -112,7 +112,7 @@ class NoteService(Service):
         if note is None or (not note.is_public and user_id is None):
             raise HTTPException(status_code=404, detail="노트를 찾을 수 없습니다.")
 
-        note_password = self._decrypt_content(note.user, note.password)
+        note_password = self._decrypt_content(note.user, note.password) if note.password else None
         if note.user_id != user_id and note.password:
             if note_password != password:
                 raise HTTPException(status_code=403, detail={
