@@ -164,7 +164,7 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
                     : editor.chain().focus().setDetails().run(),
                 editor.isActive("details"),
                 <FaAnglesRight size={15}/>,
-                "펼침 블록"
+                "세부정보 블록"
             )}
             {button(
                 () => editor.chain().focus().toggleOrderedList().run(),
