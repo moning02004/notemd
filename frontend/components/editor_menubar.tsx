@@ -10,14 +10,13 @@ import {
     ChevronDown,
     Code2,
     Heading1,
-    Heading2, Heading3,
+    Heading2,
+    Heading3,
     Italic,
     Quote,
-    Redo2,
     Strikethrough,
     Table as TableIcon,
     Trash2,
-    Undo2,
 } from "lucide-react";
 import {FiImage} from "react-icons/fi";
 import {apiRequest} from "@/lib/api";
@@ -25,6 +24,7 @@ import {CreateNoteImageResponse} from "@/types/note";
 import {API_HOST} from "@/constants/api";
 import {GoListOrdered, GoListUnordered, GoTasklist} from "react-icons/go";
 import {useClickOutside} from "@/hooks/useClickOutside";
+import {FaAnglesRight} from "react-icons/fa6";
 
 interface Props {
     editor: Editor;
@@ -157,6 +157,14 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
                 editor.isActive("heading", {level: 3}),
                 <Heading3 size={18}/>,
                 "제목 3"
+            )}
+            {button(
+                () => editor.isActive("details")
+                    ? editor.chain().focus().unsetDetails().run()
+                    : editor.chain().focus().setDetails().run(),
+                editor.isActive("details"),
+                <FaAnglesRight size={15}/>,
+                "펼침 블록"
             )}
             {button(
                 () => editor.chain().focus().toggleOrderedList().run(),

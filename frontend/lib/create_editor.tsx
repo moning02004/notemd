@@ -4,6 +4,9 @@ import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import {createLowlight} from "lowlight";
 import Text from '@tiptap/extension-text'
 
+import {InputRule} from '@tiptap/core'
+import {Details, DetailsContent, DetailsSummary} from '@tiptap/extension-details'
+
 import Document from '@tiptap/extension-document'
 import javascript from 'highlight.js/lib/languages/javascript'
 import typescript from 'highlight.js/lib/languages/typescript'
@@ -72,6 +75,80 @@ const CodeBlockComponent = ({node}) => {
         </NodeViewWrapper>
     )
 }
+
+export const CustomDetails = Details.extend({
+    // open 어트리뷰트는 persist: true 일 때만 생기고 기본값이 false 라
+    // 새로 만든 details 가 접힌 채로 시작한다. 펼친 상태로 시작하도록 기본값을 뒤집는다.
+    // 저장은 getHTML() 로 하고 parseHTML 이 <details> 의 open 속성 유무를 읽으므로,
+    // 이미 저장된 노트의 접힘/펼침 상태는 영향받지 않는다.
+    addAttributes() {
+        const parent = (this.parent?.() ?? {}) as Record<string, any>
+
+        return {
+            ...parent,
+            open: {
+                ...parent.open,
+                default: true,
+            },
+        }
+    },
+    addInputRules() {
+        return [
+            new InputRule({
+                // 줄 시작에서 ">>" + 공백
+                find: /^\s*>>\s$/,
+                handler: ({chain, range, state, can}) => {
+                    if (!can().setDetails()) return null
+
+                    const {doc, selection} = state
+                    const {$from, $to} = selection
+
+                    // summary 안에서 또 >> 를 치는 경우는 무시
+                    if ($from.parent.type.name === 'detailsSummary') return null
+
+                    const blockRange = $from.blockRange($to)
+                    if (!blockRange) return null
+
+                    // ">> " 뒤에 이미 적혀 있던 내용.
+                    // 기본 setDetails() 는 이걸 전부 본문으로 넣고 summary 를 비워두는데,
+                    // 제목으로 쓰려던 텍스트일 때가 많으므로 summary 로 올린다.
+                    const inline = doc.slice(range.to, $from.end()).toJSON()?.content ?? []
+
+                    // detailsSummary 는 content 가 text* 라 텍스트 노드만 담을 수 있다.
+                    // 앞쪽 연속된 텍스트까지만 제목으로 올리고, hardBreak 등 그 뒤는 본문에 남긴다.
+                    const breakAt = inline.findIndex((node: any) => node.type !== 'text')
+                    const summaryContent = breakAt === -1 ? inline : inline.slice(0, breakAt)
+                    let bodyContent = breakAt === -1 ? [] : inline.slice(breakAt)
+
+                    // 제목과 본문을 가르던 줄바꿈은 본문 맨 앞에 빈 줄로 남지 않게 버린다
+                    if (bodyContent[0]?.type === 'hardBreak') bodyContent = bodyContent.slice(1)
+
+                    const summaryLength = summaryContent
+                        .reduce((sum: number, node: any) => sum + (node.text?.length ?? 0), 0)
+
+                    chain()
+                        .insertContentAt(
+                            {from: blockRange.start, to: blockRange.end},
+                            {
+                                type: this.name,
+                                content: [
+                                    {type: 'detailsSummary', content: summaryContent},
+                                    {
+                                        type: 'detailsContent',
+                                        content: [{type: 'paragraph', content: bodyContent}],
+                                    },
+                                ],
+                            },
+                        )
+                        // details(+1) > detailsSummary(+1) 안쪽이 제목 시작점
+                        .setTextSelection(blockRange.start + 2 + summaryLength)
+                        .run()
+                },
+            }),
+        ]
+    },
+})
+
 export const CustomCodeBlock = CodeBlockLowlight.extend({
     addKeyboardShortcuts() {
         return {
@@ -263,6 +340,12 @@ export function useEditorInstance({initialContent, setContent, uploadFile}: {
             Strike,
             Code,
             Gapcursor,
+            CustomDetails.configure({
+                persist: true,                      // 열림/닫힘 상태를 문서에 저장
+                HTMLAttributes: {class: 'details'},
+            }),
+            DetailsSummary,
+            DetailsContent,
         ],
         content: initialContent,
         onUpdate: ({editor}) => {

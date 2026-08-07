@@ -1,7 +1,11 @@
 FROM node:22-slim AS builder
 
 WORKDIR /app
-COPY package.json package-lock.json ./
+# package-lock.json 은 호스트(macOS)에서 생성되어 darwin 바이너리만 기록하므로
+# 복사하지 않는다. 복사하면 npm 이 lockfile 트리를 그대로 따라가며
+# lightningcss / @tailwindcss/oxide 의 linux 네이티브 바이너리를 설치하지 않아
+# globals.css 처리 시 "Cannot find module '../lightningcss.linux-*.node'" 가 발생한다.
+COPY package.json ./
 RUN npm install
 
 ARG NEXT_PUBLIC_API_HOST
