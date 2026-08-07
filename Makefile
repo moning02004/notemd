@@ -15,9 +15,17 @@ upa:
 
 # Docker Compose 실행
 up-build:
-	docker compose -f $(LOCAL_COMPOSE_FILE) build --build-arg NEXT_PUBLIC_API_URL=http://localhost:8002 frontend
+	docker compose -f $(LOCAL_COMPOSE_FILE) build --build-arg NEXT_PUBLIC_API=http://localhost:8002 frontend
 	docker compose -f $(LOCAL_COMPOSE_FILE) build backend
 	docker compose -f $(LOCAL_COMPOSE_FILE) up -d
+
+# 프론트 의존성을 바꿨을 때(package.json 수정 등) 쓰는 재빌드.
+# compose 의 익명 볼륨(/app/node_modules, /app/.next)은 up 할 때 이전 컨테이너 것을
+# 그대로 재사용하므로, 그냥 --build 만 하면 새 이미지의 node_modules 가 반영되지 않는다.
+# --renew-anon-volumes 로 익명 볼륨까지 새로 만들어야 한다.
+.PHONY: fe-rebuild
+fe-rebuild:
+	docker compose -f $(LOCAL_COMPOSE_FILE) up -d --build --force-recreate --renew-anon-volumes frontend
 
 # Docker Compose 중지
 down:

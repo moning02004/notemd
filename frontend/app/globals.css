@@ -177,7 +177,7 @@ body * {
     text-decoration: underline;
 }
 
-.ProseMirror p:not(table p, blockquote p, li p) {
+.ProseMirror p:not(table p, blockquote p, li p, .details p) {
     padding: 0.25rem;
 }
 
@@ -425,4 +425,50 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
 
 .ProseMirror ul[data-type="taskList"] li div {
     width: 100%;
+}
+
+.tiptap .details {
+    display: flex;
+    gap: 0.25rem;
+    margin: 1rem 0;
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+}
+
+.tiptap .details > button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.5rem;
+    flex-shrink: 0;
+    background: transparent;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.tiptap .details > button::before {
+    content: '▶';
+    font-size: 0.625rem;
+    transition: transform 0.15s ease;
+}
+
+.tiptap .details.is-open > button::before {
+    transform: rotate(90deg);
+}
+
+.tiptap .details > div {
+    flex: 1;
+    min-width: 0;
+}
+
+.tiptap .details summary {
+    font-weight: 600;
+    list-style: none;
+    margin-bottom: 0.5rem;
+}
+
+.tiptap .details [data-type='detailsContent'] > :last-child {
+    margin-bottom: 0;
 }
