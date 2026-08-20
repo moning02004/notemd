@@ -62,7 +62,7 @@ export function MarkdownEditor({
             formData.append("file", file);
             try {
                 const response = await apiRequest
-                    .post<CreateNoteImageResponse>(`/notes/${paramsNoteId}/images`, {body: formData}, null)
+                    .post<CreateNoteImageResponse>(`/notes/${paramsNoteId}/images`, {body: formData}, {isMime: true})
                     .catch((err) => {
                         throw err;
                     });
