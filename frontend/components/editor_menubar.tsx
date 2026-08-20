@@ -71,7 +71,7 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
         formData.append("file", file);
         try {
             const response = await apiRequest
-                .post<CreateNoteImageResponse>(`/notes/${noteId}/images`, {body: formData}, null)
+                .post<CreateNoteImageResponse>(`/notes/${noteId}/images`, {body: formData}, {isMime: true})
                 .catch((err) => {
                     throw err;
                 });
