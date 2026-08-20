@@ -27,6 +27,7 @@ class NoteListSchema(BaseModel):
     is_password: bool
     hash_id: str
     created_at: datetime
+    deleted_at: datetime | None
     tags: list = []
 
     model_config = ConfigDict(from_attributes=True)
@@ -47,6 +48,10 @@ class NoteListSchema(BaseModel):
 
         value = re.sub(r'\n{3,}', '\n\n', "\n".join(values))
         return value.strip()
+
+    @field_serializer('deleted_at')
+    def serialize_deleted_at(self, value: datetime, _info):
+        return value and value.strftime("%Y-%m-%d %H:%M")
 
     @field_serializer('created_at')
     def serialize_created_at(self, value: datetime, _info):

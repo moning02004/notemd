@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Any
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -130,7 +130,9 @@ class NoteRepository(Repository):
         return instances
 
     def soft_delete_note(self, user_id: int, note_hashes: List[str]):
-        current_date = datetime.now()
+        # naive 값을 timestamptz 컬럼에 넣으면 Postgres 가 세션 타임존으로 해석해버려
+        # created_at(서버의 now())과 9시간 어긋난다. offset 을 붙여서 보낸다.
+        current_date = datetime.now(timezone.utc)
         notes = self.db.query(self.DB_MODEL).filter(self.DB_MODEL.user_id == user_id,
                                                     self.DB_MODEL.hash_id.in_(note_hashes)).all()
         for note in notes:

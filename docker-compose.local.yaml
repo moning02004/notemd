@@ -77,6 +77,9 @@ services:
       SETTINGS_FILE: "local"
       SECRET_KEY: "c4a4211e8ec70dcea5234660a2c269de280b456e9f8c9714007d7badcd2bbd66"
 
+      KEK: "TLDcEswH87ZHq40sDFe+VWyGUVvcMzF36JUpRMse704="
+      KEK_VERSION: "1"
+
       FRONTEND_URL: "http://localhost:3000"
 
       DB_NAME: "notemd"
@@ -106,7 +109,8 @@ services:
     environment:
       SETTINGS_FILE: "local"
       SECRET_KEY: "c4a4211e8ec70dcea5234660a2c269de280b456e9f8c9714007d7badcd2bbd66"
-
+      KEK: "TLDcEswH87ZHq40sDFe+VWyGUVvcMzF36JUpRMse704="
+      KEK_VERSION: "1"
       FRONTEND_URL: "http://localhost:3000"
 
       DB_NAME: "notemd"
