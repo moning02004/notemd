@@ -64,7 +64,7 @@ function NoteListContent() {
                             data-note-id={note.hash_id}
                             title={note.title || "제목 없음"}
                             content={note.content}
-                            created_at={note.created_at}
+                            deleted_at={note.deleted_at}
                             deletedMenu={!selectMode}
                             selectable={selectMode}
                             selected={selectedIds.has(note.hash_id)}

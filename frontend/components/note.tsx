@@ -19,6 +19,7 @@ type NoteType = {
     isEncrypted?: boolean
     isPassword?: boolean
     created_at?: string
+    deleted_at?: string
     noteMenu?: boolean
     deletedMenu?: boolean
     selectable?: boolean
@@ -39,6 +40,7 @@ export const Note = ({
                          isEncrypted,
                          isPassword,
                          created_at,
+                         deleted_at,
                          noteMenu,
                          deletedMenu,
                          selectable,
@@ -110,7 +112,7 @@ export const Note = ({
                 )}
 
                 <span className="shrink-0 w-20 sm:w-24 text-right text-xs text-subtle">
-                    {created_at}
+                    {created_at || deleted_at}
                 </span>
 
                 {!selectable && (noteMenu || deletedMenu) && (
@@ -187,7 +189,7 @@ export const Note = ({
                 {ownerName && (
                     <span className="text-[11px] text-subtle truncate max-w-[7rem]">{ownerName}</span>
                 )}
-                <span className="ml-auto text-[11px] text-subtle shrink-0">{created_at}</span>
+                <span className="ml-auto text-[11px] text-subtle shrink-0">{created_at || deleted_at}</span>
             </div>
 
             {!selectable && (

@@ -16,6 +16,7 @@ export interface NoteCard {
     is_encrypted: boolean;
     is_password: boolean;
     created_at: string
+    deleted_at: string | null
 }
 
 export interface CreateNoteResponse {
