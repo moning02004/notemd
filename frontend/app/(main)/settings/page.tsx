@@ -22,18 +22,6 @@ import {LoadingPage} from "@/components/loading";
 
 type MemberTab = "users" | "workspaces";
 
-const STACK_INFO = {
-    version: "v2.0.3",
-    frontend: "Next.js (TypeScript)",
-    backend: "FastAPI (Python)",
-    deployment: "Docker Compose",
-    links: {
-        github: "https://github.com/moning02004/notemd",
-        dockerhub: "https://hub.docker.com/r/moning02004/notemd",
-        issues: "https://github.com/moning02004/notemd/issues",
-    },
-}
-
 interface Preference {
     isSuperuser: boolean;
     trashPolicy: string;
@@ -403,44 +391,6 @@ export default function Page() {
                         )}
                     </SettingsCard>
                 }
-
-                {/* 정보 */}
-                <SettingsCard title="정보" icon={<FiPackage size={11}/>}>
-                    <div className="flex items-center gap-2 py-1">
-                        <p className="text-[15px] font-medium text-foreground">note.md</p>
-                        <span
-                            className="text-[11px] px-2 py-0.5 rounded-full bg-accent-soft text-accent">{STACK_INFO.version}</span>
-                    </div>
-
-                    <dl className="grid grid-cols-[92px_1fr] gap-y-1.5 text-[13px] mt-2">
-                        <dt className="text-subtle">Frontend</dt>
-                        <dd className="text-muted">{STACK_INFO.frontend}</dd>
-
-                        <dt className="text-subtle">Backend</dt>
-                        <dd className="text-muted">{STACK_INFO.backend}</dd>
-
-                        <dt className="text-subtle">Deployment</dt>
-                        <dd className="text-muted">{STACK_INFO.deployment}</dd>
-                    </dl>
-
-                    <div className="flex flex-wrap gap-2 pt-3 mt-3 border-t border-border">
-                        <a href={STACK_INFO.links.github} target="_blank" rel="noopener noreferrer"
-                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-strong text-[13px] text-muted hover:border-accent hover:text-accent hover:bg-accent-soft transition-colors duration-150">
-                            <FiGithub size={13}/>
-                            GitHub
-                        </a>
-                        <a href={STACK_INFO.links.dockerhub} target="_blank" rel="noopener noreferrer"
-                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-strong text-[13px] text-muted hover:border-accent hover:text-accent hover:bg-accent-soft transition-colors duration-150">
-                            <FiPackage size={13}/>
-                            Docker Hub
-                        </a>
-                        <a href={STACK_INFO.links.issues} target="_blank" rel="noopener noreferrer"
-                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-strong text-[13px] text-muted hover:border-accent hover:text-accent hover:bg-accent-soft transition-colors duration-150">
-                            <FiExternalLink size={13}/>
-                            이슈 리포트
-                        </a>
-                    </div>
-                </SettingsCard>
             </div>
 
             {(preference.isSuperuser && openWorkspace) && (
