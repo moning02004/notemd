@@ -14,6 +14,9 @@ import {API_HOST} from "@/constants/api";
 import toast from "react-hot-toast";
 import {BubbleMenu} from "@tiptap/react/menus";
 import {useAuthStore} from "@/store/auth";
+import EditorLinkModal from "@/components/editor_link_modal";
+import EditorLinkBubble from "@/components/editor_link_bubble";
+import {Link as LinkIcon} from "lucide-react";
 
 interface EditorProps {
     setOpenedSetting: Dispatch<SetStateAction<boolean>>;
@@ -48,6 +51,7 @@ export function MarkdownEditor({
             ((statusType == "warning") ? <Warning/> :
                 ""));
     const [tableMenuOpen, setTableMenuOpen] = useState(false)
+    const [linkModalOpen, setLinkModalOpen] = useState(false)
     const {token} = useAuthStore.getState();
 
     const editor = useEditorInstance({
@@ -134,13 +138,15 @@ export function MarkdownEditor({
                     <div className="flex-1">
                         <MenuBar editor={editor} noteId={paramsNoteId}
                                  tableMenuOpen={tableMenuOpen}
-                                 setTableMenuOpen={setTableMenuOpen}/>
+                                 setTableMenuOpen={setTableMenuOpen}
+                                 openLinkModal={() => setLinkModalOpen(true)}/>
                     </div>
                     <div className="mb-auto pt-3 md:p-0 md:my-auto text-right">{status}</div>
                 </div>
             }
             {
-                !isReadonly &&
+                /* 버블 메뉴의 z-index 가 모달보다 높아서, 링크 모달이 떠 있는 동안에는 감춘다 */
+                !isReadonly && !linkModalOpen &&
                 <BubbleMenu editor={editor} options={{placement: "top", offset: 8}} style={{
                     zIndex: 9999,
                 }}>
@@ -169,8 +175,30 @@ export function MarkdownEditor({
                                 ${editor.isActive("code") ? "bg-surface text-foreground" : "text-white hover:bg-surface/10"}`}>
                             {"</>"}
                         </button>
+                        <button
+                            onClick={() => setLinkModalOpen(true)}
+                            title="링크"
+                            className={`px-2 py-1 rounded cursor-pointer transition-colors duration-150
+                                ${editor.isActive("link") ? "bg-surface text-foreground" : "text-white hover:bg-surface/10"}`}>
+                            <LinkIcon size={14}/>
+                        </button>
                     </div>
                 </BubbleMenu>
+            }
+
+            {
+                !isReadonly && !linkModalOpen &&
+                <EditorLinkBubble
+                    editor={editor}
+                    onEdit={() => setLinkModalOpen(true)}/>
+            }
+
+            {
+                !isReadonly &&
+                <EditorLinkModal
+                    editor={editor}
+                    open={linkModalOpen}
+                    onClose={() => setLinkModalOpen(false)}/>
             }
 
             <div className={`flex-20 bg-surface ${widthClass} mx-auto`}>

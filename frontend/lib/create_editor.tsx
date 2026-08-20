@@ -36,6 +36,7 @@ import Bold from '@tiptap/extension-bold'
 import Italic from '@tiptap/extension-italic'
 import Strike from '@tiptap/extension-strike'
 import Code from '@tiptap/extension-code'
+import Link from '@tiptap/extension-link'
 
 // 기능
 import Gapcursor from '@tiptap/extension-gapcursor'
@@ -213,6 +214,14 @@ export const CustomCodeBlock = CodeBlockLowlight.extend({
     },
 })
 
+// 링크 마크의 inclusive 기본값은 autolink 옵션을 그대로 따라간다(= autolink 켜면 true).
+// 그러면 링크 끝에 커서를 두고 이어서 타이핑할 때 링크가 계속 늘어나므로 꺼둔다.
+// 자동 링크는 "변경 범위가 공백으로 끝날 때" 단어 전체에 마크를 붙이는 방식이라
+// inclusive 와 무관하게 그대로 동작한다.
+export const CustomLink = Link.extend({
+    inclusive: false,
+})
+
 const CustomTableCell = TableCell.extend({
     addAttributes() {
         return {
@@ -339,6 +348,19 @@ export function useEditorInstance({initialContent, setContent, uploadFile}: {
             Italic,
             Strike,
             Code,
+            // openOnClick: false 여도 읽기 전용일 때는 클릭 핸들러가 빠지므로
+            // 공유 화면에서는 링크가 그대로 열린다. 편집 중에는 열리지 않는다.
+            CustomLink.configure({
+                openOnClick: false,
+                autolink: true,
+                linkOnPaste: true,
+                defaultProtocol: "https",
+                protocols: ["http", "https", "mailto"],
+                HTMLAttributes: {
+                    target: "_blank",
+                    rel: "noopener noreferrer nofollow",
+                },
+            }),
             Gapcursor,
             CustomDetails.configure({
                 persist: true,                      // 열림/닫힘 상태를 문서에 저장

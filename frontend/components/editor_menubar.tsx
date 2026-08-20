@@ -13,6 +13,7 @@ import {
     Heading2,
     Heading3,
     Italic,
+    Link as LinkIcon,
     Quote,
     Strikethrough,
     Table as TableIcon,
@@ -31,9 +32,10 @@ interface Props {
     noteId: string;
     tableMenuOpen: boolean;
     setTableMenuOpen: Dispatch<SetStateAction<boolean>>;
+    openLinkModal: () => void;
 }
 
-export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen}: Props) {
+export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen, openLinkModal}: Props) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [tableRows, setTableRows] = useState(3);
     const [tableCols, setTableCols] = useState(3);
@@ -113,6 +115,12 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
                 editor.isActive("strike"),
                 <Strikethrough size={18}/>,
                 "취소선"
+            )}
+            {button(
+                openLinkModal,
+                editor.isActive("link"),
+                <LinkIcon size={18}/>,
+                "링크"
             )}
 
             <div className="w-px h-6 bg-border-strong mx-1 my-auto"/>

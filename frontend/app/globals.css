@@ -172,7 +172,8 @@ body * {
     padding: 1rem;
 }
 
-.ProseMirror p a {
+/* 문단뿐 아니라 목록·제목·표 안의 링크에도 동일하게 적용한다 */
+.ProseMirror a {
     @apply cursor-pointer;
     color: var(--accent);
     text-decoration: underline;
