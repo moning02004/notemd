@@ -17,11 +17,13 @@ import {useAuthStore} from "@/store/auth";
 import EditorLinkModal from "@/components/editor_link_modal";
 import EditorLinkBubble from "@/components/editor_link_bubble";
 import {Link as LinkIcon} from "lucide-react";
+import {MdWorkspacesFilled} from "react-icons/md";
 
 interface EditorProps {
     setOpenedSetting: Dispatch<SetStateAction<boolean>>;
     isReadonly: boolean;
     isOwner: boolean;
+    isEditable: boolean;
     title: string;
     content: string;
     setTitle: (value: string) => void;
@@ -37,6 +39,7 @@ export function MarkdownEditor({
                                    title,
                                    content,
                                    isOwner,
+                                   isEditable,
                                    setTitle,
                                    setContent,
                                    isReadonly,
@@ -123,12 +126,12 @@ export function MarkdownEditor({
                 />
 
                 {
-                    isOwner &&
-                    <div
-                        className="my-auto p-3 rounded-lg cursor-pointer text-muted hover:bg-background hover:text-foreground transition-colors duration-200"
-                        onClick={() => setOpenedSetting(true)}>
-                        <FiMenu size={24}/>
-                    </div>
+                    isOwner ?
+                        <div
+                            className="my-auto p-3 rounded-lg cursor-pointer text-muted hover:bg-background hover:text-foreground transition-colors duration-200"
+                            onClick={() => setOpenedSetting(true)}>
+                            <FiMenu size={24}/>
+                        </div> : !isReadonly ? <div className="text-sm"><MdWorkspacesFilled/></div> : <div></div>
                 }
             </div>
 

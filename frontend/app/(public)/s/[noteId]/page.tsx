@@ -30,12 +30,12 @@ export default function Page() {
     const [editorWidth, setEditorWidth] = useState(DEFAULT_EDITOR_WIDTH)
     const [statusType, setStatusType] = useState("")
 
-    const {state, draft, isOwner, setters, unlock} = useNoteDetail(noteId)
+    const {state, draft, isOwner, isEditable, setters, unlock} = useNoteDetail(noteId)
 
     useNoteAutosave({
         noteId,
         draft,
-        enabled: isOwner && state.status === "ready",
+        enabled: isEditable && state.status === "ready",
         setStatusType,
     })
 
@@ -74,8 +74,9 @@ export default function Page() {
             <div className="flex h-full w-full">
                 <MarkdownEditor setOpenedSetting={setOpenedSetting}
                                 isReadonly={isReadonly}
-                                paramsNoteId={noteId}
                                 isOwner={isOwner}
+                                isEditable={isEditable}
+                                paramsNoteId={noteId}
                                 title={draft.title}
                                 content={draft.content}
                                 setTitle={setters.setTitle}

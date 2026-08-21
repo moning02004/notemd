@@ -35,6 +35,7 @@ export interface NoteDetailResponse {
     is_protected: boolean;
     is_encrypted: boolean;
     is_password: boolean;
+    is_editable: boolean;
     password: string | null;
     tags: string[];
     workspaces: NoteWorkspace[];

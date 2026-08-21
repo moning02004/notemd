@@ -120,6 +120,7 @@ class NoteService(Service):
                     "is_password": True
                 })
 
+        note.is_editable = False
         if user_id:
             user = UserRepository(self.repository.db).get_by_pk(user_id)
             workspaces = self.repository.get_shared_workspace(
@@ -131,6 +132,7 @@ class NoteService(Service):
 
             if note.password:
                 note.password = note_password
+            note.is_editable = note.user_id == user.pk or user.is_superuser or bool(workspaces)
 
         if note.is_encrypted:
             note.content = self._decrypt_content(note.user, note.content)
@@ -146,6 +148,19 @@ class NoteService(Service):
         if is_encrypted:
             content = self._encrypt_content(user, content)
 
+        workspaces = self.repository.get_shared_workspace(
+            workspace_hashes=[x.hash_id for x in note.workspaces],
+            user_id=user.pk)
+
+        if not user.is_superuser and not workspaces and note.user_id != user.pk:
+            raise HTTPException(status_code=404, detail="노트를 찾을 수 없습니다.")
+
+        is_editable = note.user_id == user.pk or user.is_superuser or bool(workspaces)
+        if not is_editable:
+            raise HTTPException(status_code=403, detail="수정 권한이 없습니다.")
+
+        note.is_editable = is_editable
+
         password = None
         if request.password:
             password = self._encrypt_content(user, request.password)
@@ -160,9 +175,12 @@ class NoteService(Service):
                                            password=password,
                                            tags=request.tags,
                                            workspaces=request.workspaces)
-        snapshot_policy = user.preference.snapshot_policy
-        if (snapshot_policy == "ON_FIRST_EDIT" and is_first_edit) or snapshot_policy == "ON_EVERY_EDIT":
-            self.repository.add_note_snapshot(description=f"auto_{int(note.updated_at.timestamp() * 1000)}", note=note)
+        snapshot_policy = note.user.preference.snapshot_policy
+        if ((snapshot_policy == "ON_FIRST_EDIT" and is_first_edit)
+                or snapshot_policy == "ON_EVERY_EDIT"
+                or bool(workspaces)):
+            self.repository.add_note_snapshot(description=f"auto_{int(note.updated_at.timestamp())}_by_{user.name}",
+                                              note=note)
 
         self.indexing_note(note)
         if request.is_encrypted:

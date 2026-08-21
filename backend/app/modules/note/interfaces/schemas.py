@@ -77,6 +77,7 @@ class NoteDetailSchema(BaseModel):
     is_encrypted: bool | None
     password: str | None
     is_password: bool
+    is_editable: bool
     tags: list = []
     workspaces: list = []
 

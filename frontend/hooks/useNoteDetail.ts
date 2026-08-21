@@ -44,16 +44,18 @@ const getStatusCode = (error: unknown): number =>
     error instanceof ApiError ? error.status : 500
 
 export function useNoteDetail(noteId: string) {
-    const userHash = useAuthStore(state => state.userHash)
+    const {userHash} = useAuthStore.getState()
 
     const [state, setState] = useState<NoteLoadState>({status: "loading"})
     const [draft, setDraft] = useState<NoteDraft | null>(null)
     const [isOwner, setIsOwner] = useState(false)
+    const [isEditable, setIsEditable] = useState(false)
 
     // 최초 조회와 비밀번호 해제 응답을 동일하게 처리한다(기존 중복 로직 통합).
     const applyNote = useCallback((response: NoteDetailResponse) => {
         setDraft(toDraft(response))
         setIsOwner(response.user_hash === userHash)
+        setIsEditable(response.is_editable)
         setState({status: "ready"})
     }, [userHash])
 
@@ -114,5 +116,5 @@ export function useNoteDetail(noteId: string) {
         setSelectedWorkspaces: makeSetter("workspaces"),
     }), [makeSetter])
 
-    return {state, draft, isOwner, setters, unlock}
+    return {state, draft, isOwner, isEditable, setters, unlock}
 }
