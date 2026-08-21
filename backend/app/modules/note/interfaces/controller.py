@@ -9,7 +9,7 @@ from app.modules.note.application.service import NoteService
 from app.modules.note.interfaces.dependencies import get_note_service, get_note_service_with_storage
 from app.modules.note.interfaces.schemas import NoteListSchema, NoteCreateSchema, \
     NoteDetailSchema, NoteUpdateRequest, QueryParams, NoteHashesRequest, SnapshotRequest, NoteSnapshotSchema, \
-    NoteRequest
+    NoteRequest, NoteDownloadRequest
 
 router = APIRouter(prefix="/notes", tags=["Notes"])
 
@@ -54,9 +54,11 @@ def bulk_restore_note(request: NoteHashesRequest, user=Depends(get_current_user)
 
 
 @router.post("/download")
-async def download_note(request: NoteHashesRequest, user=Depends(get_current_user),
+async def download_note(request: NoteDownloadRequest, user=Depends(get_current_user),
                         service: NoteService = Depends(get_note_service)):
-    result = await service.download_note(user_hash=user.hash_id, note_hashes=request.note_hashes)
+    result = await service.download_note(user_hash=user.hash_id,
+                                         note_hashes=request.note_hashes,
+                                         file_format=request.file_format)
     encoded_filename = quote(result.filename)
 
     return Response(

@@ -15,6 +15,7 @@ from markdown import markdown
 from markdownify import markdownify
 
 from app.core.config import settings
+from app.core.pdf_renderer import render_note_pdf
 from app.modules.note.domain.entity import NoteEntity, NoteDocument, DownloadResult
 from app.modules.note.infrastructure.models import Note, NoteSnapshot
 from app.modules.user.infrastructure.models import User
@@ -90,7 +91,7 @@ class NoteService(Service):
             notes = self.repository.list_note_by_user_hash(user_hash, is_deleted, tag, sort, page)
         else:
             note_hashes = self.search_service.find_documents(keyword, user_hash, sort, page)
-            notes = self.repository.get_by_hash_ids_and_user_id(user_hash, note_hashes)
+            notes = self.repository.get_by_hash_ids_and_user_id(note_hashes=note_hashes, user_hash=user_hash)
 
         for note in notes:
             if note.is_encrypted:
@@ -242,18 +243,18 @@ class NoteService(Service):
 
         return ["filepath"]
 
-    async def download_note(self, user_hash: str, note_hashes: list):
-        notes = self.repository.get_by_hash_ids_and_user_id(note_hashes=note_hashes)
+    async def download_note(self, user_hash: str, note_hashes: list, file_format: str = "md"):
+        notes = self.repository.get_by_hash_ids_and_user_id(note_hashes=note_hashes, user_hash=user_hash)
 
         if not notes:
-            raise ValueError("No notes found")  # 또는 커스텀 예외
+            raise HTTPException(status_code=404, detail="노트를 찾을 수 없습니다.")
 
         if len(notes) == 1:
             note = notes[0]
             return DownloadResult(
-                content=markdownify(note.content).encode("utf-8"),
-                media_type="text/markdown",
-                filename=self._safe_filename(note.title),
+                content=self._render_note(note, file_format),
+                media_type=self.MEDIA_TYPES[file_format],
+                filename=self._safe_filename(note.title, file_format),
             )
 
         # 둘 이상 -> zip
@@ -261,8 +262,8 @@ class NoteService(Service):
         with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
             used_names = set()
             for note in notes:
-                filename = self._unique_filename(note.title, used_names)
-                zf.writestr(filename, note.content)
+                filename = self._unique_filename(note.title, file_format, used_names)
+                zf.writestr(filename, self._render_note(note, file_format))
 
         buffer.seek(0)
         return DownloadResult(
@@ -271,22 +272,36 @@ class NoteService(Service):
             filename="notes.zip",
         )
 
+    MEDIA_TYPES = {
+        "md": "text/markdown",
+        "pdf": "application/pdf",
+    }
+
+    def _render_note(self, note, file_format: str) -> bytes:
+        """노트 본문을 요청한 형식의 바이트로 만든다. 암호화된 노트는 먼저 복호화한다."""
+        content = self._decrypt_content(note.user, note.content) if note.is_encrypted else note.content
+
+        if file_format == "pdf":
+            return render_note_pdf(title=note.title, content=content)
+        return markdownify(content or "").encode("utf-8")
+
     @staticmethod
-    def _safe_filename(title: str) -> str:
+    def _safe_filename(title: str, file_format: str = "md") -> str:
         # 파일명에 쓸 수 없는 문자 제거 (간단 버전)
         invalid_chars = '/\\:*?"<>|'
         cleaned = "".join(c for c in title if c not in invalid_chars).strip() or "제목없음"
-        if cleaned.endswith(".md"):
-            cleaned = cleaned[:-3]
-        return f"{cleaned}.md"
+        suffix = f".{file_format}"
+        if cleaned.endswith(suffix):
+            cleaned = cleaned[:-len(suffix)]
+        return f"{cleaned}{suffix}"
 
     @classmethod
-    def _unique_filename(cls, title: str, used_names: set) -> str:
-        base = cls._safe_filename(title)
-        filename = f"{base}.md"
+    def _unique_filename(cls, title: str, file_format: str, used_names: set) -> str:
+        filename = cls._safe_filename(title, file_format)
+        base = filename[:-len(file_format) - 1]
         i = 1
         while filename in used_names:
-            filename = f"{base}_{i}.md"
+            filename = f"{base}_{i}.{file_format}"
             i += 1
         used_names.add(filename)
         return filename

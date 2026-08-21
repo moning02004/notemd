@@ -14,9 +14,11 @@ export const gotoNote = async ({id, router}: {
     router.push(`/s/${id}`)
 }
 
-export const downloadNoteRequest = async (noteHashes: Array<string>) => {
+export type DownloadFormat = "md" | "pdf"
+
+export const downloadNoteRequest = async (noteHashes: Array<string>, format: DownloadFormat = "md") => {
     const res = await apiRequest.post<Response>("/notes/download",
-        {body: JSON.stringify({note_hashes: noteHashes})},
+        {body: JSON.stringify({note_hashes: noteHashes, file_format: format})},
         {isDownloadFile: true}
     );
 

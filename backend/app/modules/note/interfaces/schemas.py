@@ -1,7 +1,7 @@
 import re
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List
+from typing import List, Literal
 
 from fastapi import Query
 from pydantic import BaseModel, ConfigDict, field_serializer
@@ -114,6 +114,10 @@ class NoteUpdateRequest(BaseModel):
 
 class NoteHashesRequest(BaseModel):
     note_hashes: List[str]
+
+
+class NoteDownloadRequest(NoteHashesRequest):
+    file_format: Literal["md", "pdf"] = "md"
 
 
 class DefaultNoteRequest(BaseModel):

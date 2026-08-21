@@ -1,4 +1,4 @@
-import {FiCopy, FiLayout, FiX} from "react-icons/fi";
+import {FiCopy, FiFileText, FiLayout, FiX} from "react-icons/fi";
 import {apiRequest} from "@/lib/api";
 import toast from "react-hot-toast";
 import NoteTagInput from "@/components/note_tag_input";
@@ -10,6 +10,7 @@ import {ToggleSwitch} from "@/components/ui/toggle_switch";
 import {SettingsCard} from "@/components/ui/settings_card";
 import SettingsWorkspaceInput from "@/components/settings_workspace_input";
 import {NoteWorkspace} from "@/types/workspace";
+import {downloadNoteRequest} from "@/lib/note";
 
 interface SettingsProps {
     noteId: string,
@@ -71,6 +72,19 @@ export const NoteSettings = ({
     const [password, setPassword] = useState<string | null>(notePassword)
     const [passwordInput, setPasswordInput] = useState(notePassword !== "")
 
+    const [isExporting, setIsExporting] = useState(false)
+
+    const exportPdf = async () => {
+        setIsExporting(true)
+        try {
+            await downloadNoteRequest([noteId], "pdf")
+        } catch {
+            toast.error("PDF 내보내기에 실패했습니다.")
+        } finally {
+            setIsExporting(false)
+        }
+    }
+
     const deleteNote = async () => {
         await apiRequest.delete(`/notes/${noteId}`).then(() => {
             toast.success("노트가 삭제되었습니다.")
@@ -96,6 +110,20 @@ export const NoteSettings = ({
                     </div>
 
                     <div className="flex flex-col gap-4 px-5 py-5 flex-1">
+
+                        {/* 내보내기 */}
+                        <SettingsCard title="내보내기">
+                            <button
+                                onClick={exportPdf}
+                                disabled={isExporting}
+                                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-border-strong bg-background text-muted hover:border-accent hover:bg-accent-soft hover:text-accent transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-border-strong disabled:hover:bg-background disabled:hover:text-muted"
+                            >
+                                <FiFileText size={18} className="text-accent"/>
+                                <span className="text-[13px] font-medium">
+                                    {isExporting ? "PDF 만드는 중..." : "PDF로 내보내기"}
+                                </span>
+                            </button>
+                        </SettingsCard>
 
                         {/* 공유 및 보안 */}
                         <SettingsCard title="기본 설정">
