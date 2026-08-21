@@ -32,7 +32,7 @@ export default function Page() {
     const [name, setName] = useState<string | null>(null)
     const [workspaces, setWorkspaces] = useState<Workspace[]>([])
     const [workspaceLoading, setWorkspaceLoading] = useState(true)
-    const userHash = useAuthStore((state) => state.userHash)
+    const {userHash} = useAuthStore.getState()
 
     useEffect(() => {
         apiRequest.get<UserInfoResponse>(`/users/${userHash}`).then((res) => {
@@ -43,7 +43,7 @@ export default function Page() {
             authLogout()
         })
 
-        apiRequest.get<WorkspaceResponse[]>("/workspaces").then((res) => {
+        apiRequest.get<WorkspaceResponse[]>(`/users/${userHash}/workspaces`).then((res) => {
             setWorkspaces(res.map(w => ({
                 hashId: w.hash_id,
                 name: w.name,
