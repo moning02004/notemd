@@ -12,6 +12,7 @@ import {apiRequest} from "@/lib/api";
 import toast from "react-hot-toast";
 import {SkeletonLoading} from "@/components/skeleton";
 import {useViewModeStore} from "@/store/viewMode";
+import NoteFilterBar from "@/components/note_filterbar";
 import ViewModeToggle from "@/components/view_mode_toggle";
 
 function NoteListContent() {
@@ -45,15 +46,17 @@ function NoteListContent() {
     }
 
     return (
-        <>
-            <div className="sticky top-0 z-10 backdrop-blur border-b border-border bg-surface/80 flex items-center justify-end px-4 h-11">
+        <div className="bg-white min-h-[100%]">
+            <div
+                className="sticky top-0 z-10 backdrop-blur border-b border-border bg-surface/80 flex items-center justify-end px-4 h-11">
                 <ViewModeToggle/>
             </div>
 
+
             <div
                 className={viewMode === "list"
-                    ? `flex flex-col p-4 md:p-6 ${selectMode ? "pb-20" : ""}`
-                    : `grid grid-cols-2 sm:grid-cols-2 md:grid-cols-5 pt-5 ${selectMode ? "pb-20" : ""}`
+                    ? "flex flex-col p-4 md:p-6 pb-24"
+                    : "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-4 md:p-6 pb-24"
                 }>
                 {isLoading
                     ? <SkeletonLoading count={4}/>
@@ -86,7 +89,7 @@ function NoteListContent() {
                     onDelete={handleDeleteSelected}
                 />
             )}
-        </>
+        </div>
     )
 }
 
