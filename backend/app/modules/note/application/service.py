@@ -101,7 +101,7 @@ class NoteService(Service):
         default_note = NoteEntity(
             user_id=user_id,
             title="",
-            content=""
+            content="<p></p>"
         )
         note = self.repository.create_note(default_note)
         self.indexing_note(note)
