@@ -5,6 +5,7 @@ import {ApiError, apiRequest} from "@/lib/api";
 import {useAuthStore} from "@/store/auth";
 import {NoteDetailResponse} from "@/types/note";
 import {NoteWorkspace} from "@/types/workspace";
+import Cookies from "js-cookie";
 
 /** 화면이 편집하는 노트 상태. 서버 응답(snake_case)과 분리해서 관리한다. */
 export type NoteDraft = {
@@ -62,6 +63,9 @@ export function useNoteDetail(noteId: string) {
         const load = async () => {
             try {
                 const response = await apiRequest.get<NoteDetailResponse>(`/notes/${noteId}`)
+                if (Cookies.get('is_first_edit') === undefined) {
+                    Cookies.set('is_first_edit', '1')
+                }
                 if (!aborted) applyNote(response)
             } catch (error) {
                 if (aborted) return

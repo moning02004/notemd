@@ -1,15 +1,15 @@
 from typing import List
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, UploadFile, File, Cookie
 from starlette.responses import Response
 
+from app.core.dependancies import get_current_user, get_user_or_none
 from app.modules.note.application.service import NoteService
 from app.modules.note.interfaces.dependencies import get_note_service, get_note_service_with_storage
 from app.modules.note.interfaces.schemas import NoteListSchema, NoteCreateSchema, \
     NoteDetailSchema, NoteUpdateRequest, QueryParams, NoteHashesRequest, SnapshotRequest, NoteSnapshotSchema, \
     NoteRequest
-from app.core.dependancies import get_current_user, get_user_or_none
 
 router = APIRouter(prefix="/notes", tags=["Notes"])
 
@@ -85,15 +85,19 @@ def get_note(note_hash: str, user=Depends(get_user_or_none), service: NoteServic
 
 
 @router.post("/{note_hash}", response_model=NoteDetailSchema | None)
-def get_note(request: NoteRequest, note_hash: str, user=Depends(get_user_or_none), service: NoteService = Depends(get_note_service)):
+def get_note(request: NoteRequest, note_hash: str, user=Depends(get_user_or_none),
+             service: NoteService = Depends(get_note_service)):
     note = service.get_note_by_hash_id(user_id=user and user.pk, note_hash=note_hash, password=request.password)
     return note
 
 
 @router.patch("/{note_hash}", response_model=NoteDetailSchema)
-def update_note(note_hash: str, request: NoteUpdateRequest, user=Depends(get_current_user),
+def update_note(note_hash: str,
+                request: NoteUpdateRequest,
+                is_first_edit: int | None = Cookie(default=0),
+                user=Depends(get_current_user),
                 service: NoteService = Depends(get_note_service)):
-    note = service.update_note(user=user, note_hash=note_hash, request=request)
+    note = service.update_note(user=user, note_hash=note_hash, request=request, is_first_edit=bool(is_first_edit))
     return note
 
 

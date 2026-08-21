@@ -4,7 +4,7 @@ import {Dispatch, SetStateAction, useEffect, useRef} from "react";
 import {useNotePatch} from "@/hooks/useNotePatch";
 import {NoteDraft} from "@/hooks/useNoteDetail";
 
-const TEXT_DEBOUNCE_MS = 300
+const TEXT_DEBOUNCE_MS = 500
 
 const sameList = (a: readonly string[], b: readonly string[]) =>
     a.length === b.length && a.every((value, index) => value === b[index])

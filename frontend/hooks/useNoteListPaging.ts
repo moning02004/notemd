@@ -1,6 +1,7 @@
 import {useEffect, useRef} from "react"
 import {useInfiniteNotes} from "@/hooks/useNotes"
 import {useNotesStore} from "@/store/notes"
+import Cookies from "js-cookie";
 
 export function useNoteListPaging(query: string, endPoint: string = "/notes", enabled: boolean = true) {
     const {notes, setNotes} = useNotesStore()
@@ -30,6 +31,7 @@ export function useNoteListPaging(query: string, endPoint: string = "/notes", en
     }, [hasNextPage, fetchNextPage])
 
     useEffect(() => {
+        Cookies.remove('is_first_edit')
         if (data) {
             const allNotes = data.pages.flat()
             setNotes(allNotes)

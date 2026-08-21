@@ -1,4 +1,5 @@
 import {apiRequest} from "@/lib/api"
+import Cookies from "js-cookie";
 
 type NotePatchData = Partial<{
     title: string | null
@@ -18,6 +19,7 @@ export function useNotePatch(setStatusType: (status: string) => void) {
             body: JSON.stringify(data)
         }).then(() => {
             setStatusType("complete")
+            Cookies.set('is_first_edit', '0')
         }).catch(() => {
             setStatusType("warning")
         })
