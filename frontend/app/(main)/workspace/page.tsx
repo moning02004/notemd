@@ -84,6 +84,7 @@ function WorkspaceNoteListContent() {
                             onClick={() => gotoNote({id: note.hash_id, router})}
                             title={note.title || "제목 없음"}
                             content={note.content}
+                            isOwner={note.user_hash === userHash}
                             ownerName={note.owner_name}
                             created_at={note.created_at}
                             noteMenu={!selectMode}

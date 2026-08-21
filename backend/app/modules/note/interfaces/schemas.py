@@ -19,6 +19,7 @@ class QueryParams:
 class NoteListSchema(BaseModel):
     title: str
     content: str
+    user_hash: str
     owner_name: str
     is_public: bool
     is_protected: bool

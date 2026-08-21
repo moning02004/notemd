@@ -10,6 +10,7 @@ export const NoteMenu = ({noteId, canDelete, trigger}: {
     trigger?: React.ReactNode
 }) => {
     const {notes, setNotes} = useNotesStore();
+    console.log(canDelete)
 
     const deleteNote = () => {
         apiRequest.delete(`/notes/${noteId}`)

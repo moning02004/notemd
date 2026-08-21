@@ -243,7 +243,7 @@ class NoteService(Service):
         return ["filepath"]
 
     async def download_note(self, user_hash: str, note_hashes: list):
-        notes = self.repository.get_by_hash_ids_and_user_id(user_hash=user_hash, note_hashes=note_hashes)
+        notes = self.repository.get_by_hash_ids_and_user_id(note_hashes=note_hashes)
 
         if not notes:
             raise ValueError("No notes found")  # 또는 커스텀 예외

@@ -9,6 +9,7 @@ export interface NoteCard {
     hash_id: string,
     title: string;
     content: string;
+    user_hash: string;
     owner_name: string;
     is_public: boolean;
     is_protected: boolean;

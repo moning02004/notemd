@@ -122,16 +122,18 @@ class NoteRepository(Repository):
                                                        self.DB_MODEL.hash_id == hash_id).first()
         return instance
 
-    def get_by_hash_ids_and_user_id(self, user_hash: str, note_hashes: List[str]):
+    def get_by_hash_ids_and_user_id(self, note_hashes: List[str], user_hash: str | None = None):
+        filter_criterion = [self.DB_MODEL.hash_id.in_(note_hashes)]
+        if user_hash:
+            filter_criterion.append(
+                User.hash_id == user_hash
+            )
         instances = self.db.query(self.DB_MODEL).join(self.DB_MODEL.user).filter(
-            User.hash_id == user_hash,
-            self.DB_MODEL.hash_id.in_(note_hashes)
+            *filter_criterion
         ).all()
         return instances
 
     def soft_delete_note(self, user_id: int, note_hashes: List[str]):
-        # naive 값을 timestamptz 컬럼에 넣으면 Postgres 가 세션 타임존으로 해석해버려
-        # created_at(서버의 now())과 9시간 어긋난다. offset 을 붙여서 보낸다.
         current_date = datetime.now(timezone.utc)
         notes = self.db.query(self.DB_MODEL).filter(self.DB_MODEL.user_id == user_id,
                                                     self.DB_MODEL.hash_id.in_(note_hashes)).all()

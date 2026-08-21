@@ -13,6 +13,7 @@ type NoteType = {
     title: string
     content: string
     ownerName?: string
+    isOwner?: boolean
     isPublic?: boolean
     isProtected?: boolean
     isShared?: boolean
@@ -34,6 +35,7 @@ export const Note = ({
                          title,
                          content,
                          ownerName,
+                         isOwner,
                          isPublic,
                          isProtected,
                          isShared,
@@ -120,7 +122,7 @@ export const Note = ({
                         {noteMenu && (
                             <NoteMenu
                                 noteId={hashId}
-                                canDelete={!isProtected}
+                                canDelete={!isProtected && isOwner}
                                 trigger={
                                     <button
                                         className="p-1 rounded hover:bg-accent-soft text-accent sm:text-muted cursor-pointer">
@@ -195,8 +197,9 @@ export const Note = ({
             {!selectable && (
                 <div onClick={(e) => e.stopPropagation()}
                      className="absolute top-1.5 right-1.5 sm:opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                    {noteMenu ? <NoteMenu noteId={hashId} canDelete={!isProtected}/> : deletedMenu ?
-                        <DeletedMenu noteId={hashId}/> : ""}
+                    {noteMenu ? <NoteMenu noteId={hashId}
+                                          canDelete={!isProtected && isOwner} />
+                        : deletedMenu ? <DeletedMenu noteId={hashId}/> : ""}
                 </div>
             )}
         </div>
