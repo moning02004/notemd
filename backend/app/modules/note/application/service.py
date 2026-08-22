@@ -188,7 +188,6 @@ class NoteService(Service):
         if request.password:
             note.password = self._decrypt_content(user, password)
 
-        print(note.content)
         self.indexing_note(note)
         return note
 

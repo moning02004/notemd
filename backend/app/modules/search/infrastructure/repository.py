@@ -16,7 +16,6 @@ class SearchRepository:
         try:
             search_engine.client.get_index(settings.MEILISEARCH_INDEX_UID)
         except Exception as e:
-            print(f"Error ensuring Meilisearch index: {e}")
             search_engine.client.create_index(
                 settings.MEILISEARCH_INDEX_UID, {"primaryKey": "id"}
             )
