@@ -87,7 +87,7 @@ body * {
 }
 
 .drawer-button {
-    @apply absolute flex right-0 px-3 top-3 opacity-100 md:opacity-0 group-hover:opacity-100;
+    @apply absolute flex right-0 px-3 top-3 opacity-100 lg:opacity-0 group-hover:opacity-100;
 }
 
 .drawer-menu {

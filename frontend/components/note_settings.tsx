@@ -197,7 +197,7 @@ export const NoteSettings = ({
                                 <div className="pr-3">
                                     <p className="text-[15px] font-medium text-foreground">암호화 저장</p>
                                     <p className="text-[13px] text-muted mt-0.5">
-                                        노트가 암호화되어 저장되고, 검색에서 제외됩니다.
+                                        노트가 암호화되어 저장됩니다.
                                     </p>
                                 </div>
                                 <ToggleSwitch checked={isEncrypted} activeColor="bg-accent" onClick={() => {

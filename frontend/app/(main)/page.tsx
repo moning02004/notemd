@@ -22,6 +22,7 @@ function NoteListContent() {
     const searchParams = useSearchParams()
     const {data: tagsData} = useTags()
     const {viewMode} = useViewModeStore()
+    const {userHash} = useAuthStore.getState()
 
     const {notes, isLoading, isFetchingNextPage, sentinelRef, removeNotes} =
         useNoteListPaging(searchParams.toString())
@@ -70,6 +71,7 @@ function NoteListContent() {
                             onClick={() => gotoNote({id: note.hash_id, router})}
                             title={note.title || "제목 없음"}
                             content={note.content}
+                            isOwner={note.user_hash == userHash}
                             isPublic={note.is_public}
                             isProtected={note.is_protected}
                             isShared={note.is_shared}

@@ -85,7 +85,7 @@ class NoteService(Service):
             raise ValueError("노트를 찾을 수 없습니다.")
         return note_snapshot
 
-    def list_notes(self, user_hash: str, keyword: str, is_deleted: bool, page: int, tag: str | None = None,
+    def list_notes(self, user_hash: str, keyword: str | None, is_deleted: bool, page: int, tag: str | None = None,
                    sort: str | None = None) -> \
             List[NoteEntity]:
         if keyword is None:
@@ -183,12 +183,13 @@ class NoteService(Service):
                 or bool(workspaces)):
             self.repository.add_note_snapshot(description=f"auto_{int(note.updated_at.timestamp())}_by_{user.name}",
                                               note=note)
-
-        self.indexing_note(note)
         if request.is_encrypted:
             note.content = self._decrypt_content(user, content)
         if request.password:
             note.password = self._decrypt_content(user, password)
+
+        print(note.content)
+        self.indexing_note(note)
         return note
 
     def soft_delete_note(self, user_id: int, note_hashes: list):
