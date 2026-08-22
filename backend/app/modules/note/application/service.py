@@ -140,7 +140,8 @@ class NoteService(Service):
             note.content = self._decrypt_content(note.user, note.content)
         return note
 
-    def update_note(self, user: User, note_hash: str, request, is_first_edit: bool = False):
+    def update_note(self, user: User, note_hash: str, request,
+                    is_first_edit: bool = False):
         note = self.repository.get_by_hash_id(hash_id=note_hash)
 
         content = request.content or (

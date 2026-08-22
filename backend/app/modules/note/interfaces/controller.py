@@ -96,10 +96,10 @@ def get_note(request: NoteRequest, note_hash: str, user=Depends(get_user_or_none
 @router.patch("/{note_hash}", response_model=NoteDetailSchema)
 def update_note(note_hash: str,
                 request: NoteUpdateRequest,
-                is_first_edit: int | None = Cookie(default=0),
+                is_first_edit: str | None = Cookie(default="0"),
                 user=Depends(get_current_user),
                 service: NoteService = Depends(get_note_service)):
-    note = service.update_note(user=user, note_hash=note_hash, request=request, is_first_edit=bool(is_first_edit))
+    note = service.update_note(user=user, note_hash=note_hash, request=request, is_first_edit=bool(int(is_first_edit)))
     return note
 
 
