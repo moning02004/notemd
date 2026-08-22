@@ -123,6 +123,7 @@ export const Note = ({
                             <NoteMenu
                                 noteId={hashId}
                                 canDelete={!isProtected && isOwner}
+                                canDownload={isOwner}
                                 trigger={
                                     <button
                                         className="p-1 rounded hover:bg-accent-soft text-accent sm:text-muted cursor-pointer">
@@ -198,7 +199,9 @@ export const Note = ({
                 <div onClick={(e) => e.stopPropagation()}
                      className="absolute top-1.5 right-1.5 sm:opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                     {noteMenu ? <NoteMenu noteId={hashId}
-                                          canDelete={!isProtected && isOwner} />
+                                          canDelete={!isProtected && isOwner}
+                                          canDownload={isOwner}
+                        />
                         : deletedMenu ? <DeletedMenu noteId={hashId}/> : ""}
                 </div>
             )}

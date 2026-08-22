@@ -4,13 +4,13 @@ import {useNotesStore} from "@/store/notes";
 import {downloadNoteRequest} from "@/lib/note";
 import {ActionDrawer} from "@/components/ui/action_drawer";
 
-export const NoteMenu = ({noteId, canDelete, trigger}: {
+export const NoteMenu = ({noteId, canDelete, canDownload, trigger}: {
     noteId: string,
-    canDelete: boolean,
+    canDelete?: boolean,
+    canDownload?: boolean,
     trigger?: React.ReactNode
 }) => {
     const {notes, setNotes} = useNotesStore();
-    console.log(canDelete)
 
     const deleteNote = () => {
         apiRequest.delete(`/notes/${noteId}`)
@@ -28,8 +28,17 @@ export const NoteMenu = ({noteId, canDelete, trigger}: {
             trigger={trigger}
             items={[
                 {label: "수정"},
-                {label: "다운로드", onClick: downloadNote},
-                ...(canDelete ? [{label: "삭제", onClick: deleteNote, danger: true}] : []),
+                {
+                    label: canDownload ? "다운로드" : "다운로드 불가",
+                    onClick: canDownload ? downloadNote : () => alert("다운로드 권한이 없습니다."),
+                    extraClass: !canDownload && "cursor-not-allowed text-muted"
+                },
+                {
+                    label: canDelete ? "삭제" : "삭제 불가",
+                    onClick: canDelete ? deleteNote : () => alert("삭제 권한이 없습니다."),
+                    danger: true,
+                    extraClass: !canDelete && "cursor-not-allowed text-muted"
+                },
             ]}
         />
     );

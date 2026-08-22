@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import List
 
 import fitz
+from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from fastapi import HTTPException
 from fastapi_clean_archi.core.commons.service import Service
@@ -320,6 +321,11 @@ class NoteService(Service):
     def get_note_snapshots(self, user_id, note_hash):
         note = self._get_owned_note(user_id, note_hash)
         snapshots = self.repository.find_note_snapshots(note_hash=note.hash_id)
+        for snapshot in snapshots:
+            try:
+                snapshot.content = self._decrypt_content(note.user, snapshot.content)
+            except InvalidTag:
+                pass
         return snapshots
 
     def create_note_snapshot(self, user_id, note_hash, description) -> NoteSnapshot:

@@ -6,6 +6,7 @@ import {Drawer} from "vaul"
 interface ActionDrawerItem {
     label: string
     onClick?: () => void
+    extraClass?: string
     danger?: boolean
 }
 
@@ -40,9 +41,8 @@ export function ActionDrawer({trigger, items, closeLabel = "취소"}: ActionDraw
                             <button
                                 key={i}
                                 onClick={item.onClick}
-                                className={`w-full p-3 text-left hover:bg-background cursor-pointer rounded border-b border-border ${
-                                    item.danger ? "text-danger" : ""
-                                }`}
+                                className={`w-full p-3 text-left hover:bg-background rounded border-b border-border 
+                                ${item.danger ? "text-danger" : ""} ${item.extraClass ?? "cursor-pointer"}`}
                             >
                                 {item.label}
                             </button>
