@@ -3,6 +3,7 @@
 import {Dispatch, SetStateAction, useEffect, useRef} from "react";
 import {useNotePatch} from "@/hooks/useNotePatch";
 import {NoteDraft} from "@/hooks/useNoteDetail";
+import Cookies from "js-cookie";
 
 const TEXT_DEBOUNCE_MS = 500
 
@@ -21,6 +22,7 @@ function buildPatch(saved: NoteDraft, next: NoteDraft): Record<string, unknown> 
     if (saved.isProtected !== next.isProtected) patch.is_protected = next.isProtected
     if (saved.isEncrypted !== next.isEncrypted) patch.is_encrypted = next.isEncrypted
     if (saved.password !== next.password) patch.password = next.password
+    patch.is_first_edit = Cookies.get("is_first_edit") === "1"
     if (!sameList(saved.tags, next.tags)) patch.tags = next.tags
     if (!sameList(workspaceIds(saved), workspaceIds(next))) patch.workspaces = workspaceIds(next)
 

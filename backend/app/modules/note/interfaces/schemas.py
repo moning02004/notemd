@@ -102,14 +102,15 @@ class NoteRequest(BaseModel):
 
 
 class NoteUpdateRequest(BaseModel):
-    title: str = None
-    content: str = None
-    is_public: bool = None
-    is_protected: bool = None
-    is_encrypted: bool = None
-    password: str | None = None
-    tags: list[str] = None
-    workspaces: list[str] = None
+    title: str | None = None
+    content: str | None = None
+    is_public: bool | None = None
+    is_protected: bool | None = None
+    is_encrypted: bool | None = None
+    password: str | None | None = None
+    tags: list[str] | None = None
+    workspaces: list[str] | None = None
+    is_first_edit: bool | None = None
 
 
 class NoteHashesRequest(BaseModel):

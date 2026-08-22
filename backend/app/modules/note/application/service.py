@@ -140,8 +140,7 @@ class NoteService(Service):
             note.content = self._decrypt_content(note.user, note.content)
         return note
 
-    def update_note(self, user: User, note_hash: str, request,
-                    is_first_edit: bool = False):
+    def update_note(self, user: User, note_hash: str, request):
         note = self.repository.get_by_hash_id(hash_id=note_hash)
 
         content = request.content or (
@@ -179,7 +178,7 @@ class NoteService(Service):
                                            tags=request.tags,
                                            workspaces=request.workspaces)
         snapshot_policy = note.user.preference.snapshot_policy
-        if ((snapshot_policy == "ON_FIRST_EDIT" and is_first_edit)
+        if ((snapshot_policy == "ON_FIRST_EDIT" and request.is_first_edit)
                 or snapshot_policy == "ON_EVERY_EDIT"
                 or bool(workspaces)):
             self.repository.add_note_snapshot(description=f"auto_{int(note.updated_at.timestamp())}_by_{user.name}",

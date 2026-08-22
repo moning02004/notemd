@@ -10,6 +10,7 @@ type NotePatchData = Partial<{
     password: string
     tags: string[]
     workspaces: string[]
+    is_first_edit: boolean
 }>
 
 /** 노트 PATCH + 상태 반영(complete/warning) 공통 로직. 디바운스 여부는 호출부가 결정. */
