@@ -57,28 +57,6 @@ export function FolderTree() {
 
     return (
         <div className="flex flex-col gap-0.5">
-            <button
-                onClick={() => goTo({folder: null, unfiled: "1"})}
-                className={rowClass(unfiledSelected)}
-                style={{paddingLeft: 22}}
-            >
-                <span className="w-3.5 shrink-0"/>
-                <FiInbox size={13} className="shrink-0"/>
-                <span className="flex-1 truncate text-left">미분류</span>
-                <span className="text-[10px] tabular-nums shrink-0">{data?.unfiled_count ?? 0}</span>
-            </button>
-
-            {(data?.folders ?? []).map(folder => (
-                <FolderRow
-                    key={folder.hash_id}
-                    folder={folder}
-                    selected={selected}
-                    expanded={expanded}
-                    onToggle={toggleExpanded}
-                    onSelect={hashId => goTo({folder: hashId, unfiled: null})}
-                />
-            ))}
-
             {creating ? (
                 <div className="px-2 py-1 pl-6">
                     <input
@@ -111,6 +89,27 @@ export function FolderTree() {
                     <span className="truncate">새 폴더</span>
                 </button>
             )}
+            <button
+                onClick={() => goTo({folder: null, unfiled: "1"})}
+                className={rowClass(unfiledSelected)}
+                style={{paddingLeft: 22}}
+            >
+                <span className="w-3.5 shrink-0"/>
+                <FiInbox size={13} className="shrink-0"/>
+                <span className="flex-1 truncate text-left">미분류</span>
+                <span className="text-[10px] tabular-nums shrink-0">{data?.unfiled_count ?? 0}</span>
+            </button>
+
+            {(data?.folders ?? []).map(folder => (
+                <FolderRow
+                    key={folder.hash_id}
+                    folder={folder}
+                    selected={selected}
+                    expanded={expanded}
+                    onToggle={toggleExpanded}
+                    onSelect={hashId => goTo({folder: hashId, unfiled: null})}
+                />
+            ))}
 
         </div>
     )
