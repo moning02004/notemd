@@ -1,16 +1,19 @@
 "use client"
 
 import {usePathname, useRouter, useSearchParams} from "next/navigation"
-import {useState} from "react"
+import {useEffect, useRef, useState} from "react"
 import {LuBookText} from "react-icons/lu"
-import {FiChevronRight, FiFolder, FiFolderPlus, FiInbox, FiMoreHorizontal} from "react-icons/fi"
+import {FiChevronRight, FiFolder, FiInbox, FiMoreHorizontal} from "react-icons/fi"
 import {useCreateFolder, useDeleteFolder, useFolders, useMoveFolder, useMoveNotes, useRenameFolder} from "@/hooks/useFolders"
 import {useFolderUiStore} from "@/store/folderUi"
 import {FolderNode} from "@/types/folder"
 import {useClickOutside} from "@/hooks/useClickOutside"
 import {readDragPayload, startFolderDrag} from "@/lib/note_drag"
 
-export function FolderTree() {
+export function FolderTree({creating, onCreatingChange}: {
+    creating: boolean
+    onCreatingChange: (value: boolean) => void
+}) {
     const router = useRouter()
     const pathname = usePathname()
     const searchParams = useSearchParams()
@@ -18,7 +21,6 @@ export function FolderTree() {
     const {expanded, toggleExpanded} = useFolderUiStore()
 
     const createFolder = useCreateFolder()
-    const [creating, setCreating] = useState(false)
     const [draftName, setDraftName] = useState("")
 
     const onNoteList = pathname === "/"
@@ -38,14 +40,14 @@ export function FolderTree() {
 
     const submitDraft = async () => {
         const name = draftName.trim()
-        setCreating(false)
+        onCreatingChange(false)
         setDraftName("")
         if (name) await createFolder.mutateAsync({name})
     }
 
     return (
         <div className="flex flex-col gap-0.5">
-            {creating ? (
+            {creating && (
                 <div className="px-2 py-1 pl-6">
                     <input
                         id="new-folder-name"
@@ -56,7 +58,7 @@ export function FolderTree() {
                         onKeyDown={event => {
                             if (event.key === "Enter") submitDraft()
                             if (event.key === "Escape") {
-                                setCreating(false)
+                                onCreatingChange(false)
                                 setDraftName("")
                             }
                         }}
@@ -65,17 +67,6 @@ export function FolderTree() {
                                    text-foreground outline-none"
                     />
                 </div>
-            ) : (
-                <button
-                    onClick={() => setCreating(true)}
-                    className="flex items-center gap-1.5 py-1.5 rounded-lg text-[12.5px] text-subtle
-                               hover:text-accent hover:bg-background cursor-pointer transition-colors duration-150"
-                    style={{paddingLeft: 22}}
-                >
-                    <span className="w-3.5 shrink-0"/>
-                    <FiFolderPlus size={13} className="shrink-0"/>
-                    <span className="truncate">새 폴더</span>
-                </button>
             )}
             <button
                 onClick={() => goTo({folder: null, unfiled: "1"})}
@@ -121,11 +112,41 @@ function FolderRow({folder, selected, expanded, onToggle, onSelect}: {
     const isActive = selected === folder.hash_id
 
     const [dropping, setDropping] = useState(false)
-    const [menuOpen, setMenuOpen] = useState(false)
+    // 메뉴는 위치를 계산해 position:fixed 로 띄운다. 폴더 목록이 max-height 로
+    // 잘리는 영역이라, absolute 로 두면 아래쪽 폴더의 메뉴가 잘려 보이지 않는다.
+    const [menuPos, setMenuPos] = useState<{ top: number, left: number } | null>(null)
+    const menuOpen = menuPos !== null
+    const triggerRef = useRef<HTMLButtonElement>(null)
     const [renaming, setRenaming] = useState(false)
     const [draftName, setDraftName] = useState(folder.name)
 
-    const menuRef = useClickOutside<HTMLDivElement>(() => setMenuOpen(false))
+    const menuRef = useClickOutside<HTMLDivElement>(() => setMenuPos(null))
+
+    const openMenu = () => {
+        const rect = triggerRef.current?.getBoundingClientRect()
+        if (!rect) return
+
+        const WIDTH = 144
+        const HEIGHT = 104
+        // 화면 아래에 자리가 없으면 위로 펼친다.
+        const flipUp = rect.bottom + HEIGHT > window.innerHeight - 8
+        setMenuPos({
+            top: flipUp ? Math.max(8, rect.top - HEIGHT - 4) : rect.bottom + 4,
+            left: Math.min(rect.right - WIDTH, window.innerWidth - WIDTH - 8),
+        })
+    }
+
+    // 목록을 스크롤하면 계산해둔 좌표가 어긋난다. 따라다니게 만드는 대신 닫는다.
+    useEffect(() => {
+        if (!menuOpen) return
+        const close = () => setMenuPos(null)
+        window.addEventListener("scroll", close, true)
+        window.addEventListener("resize", close)
+        return () => {
+            window.removeEventListener("scroll", close, true)
+            window.removeEventListener("resize", close)
+        }
+    }, [menuOpen])
     const renameFolder = useRenameFolder()
     const moveFolder = useMoveFolder()
     const deleteFolder = useDeleteFolder()
@@ -211,30 +232,33 @@ function FolderRow({folder, selected, expanded, onToggle, onSelect}: {
                     </button>
                 )}
 
-                <span className="relative flex items-center shrink-0" ref={menuRef}>
+                <span className="flex items-center shrink-0" ref={menuRef}>
                     <span className="text-[10px] tabular-nums group-hover:hidden">{count}</span>
                     <button
-                        onClick={() => setMenuOpen(open => !open)}
+                        ref={triggerRef}
+                        onClick={() => (menuOpen ? setMenuPos(null) : openMenu())}
                         aria-label={`${folder.name} 폴더 메뉴`}
                         className="hidden group-hover:flex p-0.5 rounded hover:bg-border cursor-pointer"
                     >
                         <FiMoreHorizontal size={13}/>
                     </button>
 
-                    {menuOpen && (
-                        <div className="absolute right-0 top-5 z-30 w-36 bg-surface border border-border rounded-lg
-                                        shadow-lg py-1 text-[12.5px]">
+                    {menuPos && (
+                        <div
+                            style={{position: "fixed", top: menuPos.top, left: menuPos.left}}
+                            className="z-50 w-36 bg-surface border border-border rounded-lg
+                                       shadow-lg py-1 text-[12.5px]">
                             <MenuItem label="이름 바꾸기" onClick={() => {
-                                setMenuOpen(false)
+                                setMenuPos(null)
                                 setRenaming(true)
                             }}/>
                             <MenuItem label="하위 폴더 추가" disabled={folder.depth >= 2} onClick={async () => {
-                                setMenuOpen(false)
+                                setMenuPos(null)
                                 await createFolder.mutateAsync({name: "새 폴더", parent: folder.hash_id})
                                 expand([folder.hash_id])
                             }}/>
                             <MenuItem label="삭제" danger onClick={() => {
-                                setMenuOpen(false)
+                                setMenuPos(null)
                                 if (confirm(`'${folder.name}' 폴더를 지웁니다. 안에 있는 노트는 휴지통으로 갑니다.`)) {
                                     deleteFolder.mutate(folder.hash_id)
                                 }

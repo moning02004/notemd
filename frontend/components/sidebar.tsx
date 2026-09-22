@@ -1,7 +1,7 @@
 "use client"
 
 import {usePathname, useRouter} from "next/navigation"
-import {FiChevronRight, FiPlus} from "react-icons/fi"
+import {FiPlus} from "react-icons/fi"
 import {LuBookText, LuUser} from "react-icons/lu"
 import {MdOutlineSettings, MdWorkspacesFilled} from "react-icons/md"
 import {GrTrash} from "react-icons/gr"
@@ -30,6 +30,8 @@ export function Sidebar() {
 
     const onNoteList = pathname === "/"
     const [foldersOpen, setFoldersOpen] = useState(onNoteList)
+    // '새 폴더' 입력 상태. ＋ 가 개인 노트 줄에 있어 여기서 들고 트리로 내려준다.
+    const [creatingFolder, setCreatingFolder] = useState(false)
 
     // 다른 메뉴로 가면 폴더는 접는다. 사이드바에 한 번에 한 덩어리만 펼쳐져 있게.
     useEffect(() => {
@@ -58,29 +60,39 @@ export function Sidebar() {
                 </button>
 
                 <nav className="flex flex-col gap-0.5">
-                    <button
-                        onClick={() => {
-                            if (onNoteList) setFoldersOpen(open => !open)
-                            else {
-                                setFoldersOpen(true)
-                                router.push("/")
-                            }
-                        }}
-                        aria-expanded={foldersOpen}
-                        className={`${navItemClass(onNoteList)} group`}
-                    >
+                    <div className={navItemClass(onNoteList)}>
                         <LuBookText size={15} className="shrink-0"/>
-                        <span className="flex-1 truncate">개인 노트</span>
-                        <FiChevronRight
-                            size={12}
-                            className={`shrink-0 transition-transform duration-150 ${foldersOpen ? "rotate-90" : ""}`}
-                        />
-                    </button>
+                        <button
+                            onClick={() => {
+                                if (onNoteList) setFoldersOpen(open => !open)
+                                else {
+                                    setFoldersOpen(true)
+                                    router.push("/")
+                                }
+                            }}
+                            aria-expanded={foldersOpen}
+                            className="flex-1 min-w-0 truncate text-left cursor-pointer"
+                        >
+                            개인 노트
+                        </button>
+                        <button
+                            onClick={() => {
+                                setFoldersOpen(true)
+                                setCreatingFolder(true)
+                            }}
+                            aria-label="새 폴더"
+                            title="새 폴더"
+                            className="shrink-0 p-0.5 -mr-0.5 rounded text-subtle hover:text-accent
+                                       hover:bg-accent-soft cursor-pointer transition-colors duration-150"
+                        >
+                            <FiPlus size={14}/>
+                        </button>
+                    </div>
 
                     {/* 폴더가 늘어나도 이 영역만 스크롤한다. 아래 메뉴는 제자리에 남는다. */}
                     {foldersOpen && (
                         <div className="max-h-[38vh] overflow-y-auto overscroll-contain -mx-1 px-1 pb-1">
-                            <FolderTree/>
+                            <FolderTree creating={creatingFolder} onCreatingChange={setCreatingFolder}/>
                         </div>
                     )}
 
