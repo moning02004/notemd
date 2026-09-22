@@ -16,7 +16,7 @@ import toast from "react-hot-toast";
 import {SkeletonLoading} from "@/components/skeleton";
 import {useViewModeStore} from "@/store/viewMode";
 import NotePasswordModal from "@/components/note/password_modal";
-import {FolderBar} from "@/components/folder/folder_bar";
+import {FolderBar, FolderDrilldown} from "@/components/folder/folder_bar";
 import {UnfiledBanner} from "@/components/folder/unfiled_banner";
 import {useMoveSheetStore} from "@/store/moveSheet";
 import {useFolderUiStore} from "@/store/folderUi";
@@ -82,6 +82,9 @@ function NoteListContent() {
                 <FolderBar/>
                 <NoteFilterBar tags={tagsData ?? []}/>
             </div>
+
+            {/* 폴더도 노트와 같은 목록에 두되 맨 위에 모은다. */}
+            <FolderDrilldown/>
 
             {isUnfiled && <UnfiledBanner count={notes.length}/>}
 
