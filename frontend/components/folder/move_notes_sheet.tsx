@@ -2,7 +2,7 @@
 
 import {useEffect, useMemo, useRef, useState} from "react"
 import {FiCornerDownLeft, FiFolder, FiInbox, FiPlus, FiSearch} from "react-icons/fi"
-import {useCreateFolder, useFolders} from "@/hooks/useFolders"
+import {useCreateFolder, useFolderInvalidate, useFolders} from "@/hooks/useFolders"
 import {useNotesStore} from "@/store/notes"
 import {moveNotesWithUndo} from "@/lib/folder"
 import {flattenFolders} from "@/types/folder"
@@ -28,6 +28,7 @@ type Target = { hashId: string | null, name: string, path: string }
 export function MoveNotesSheet({open, onClose, noteHashes, currentFolder, onMoved}: Props) {
     const {data} = useFolders(open)
     const createFolder = useCreateFolder()
+    const invalidate = useFolderInvalidate()
     const notes = useNotesStore(state => state.notes)
 
     const [query, setQuery] = useState("")
@@ -79,6 +80,7 @@ export function MoveNotesSheet({open, onClose, noteHashes, currentFolder, onMove
                 folder: target.hashId,
                 folderName: target.path,
                 notes,
+                invalidate,
                 onDone: () => onMoved?.(target.hashId ? {hashId: target.hashId, name: target.name} : null),
             })
             onClose()

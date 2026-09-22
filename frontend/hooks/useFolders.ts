@@ -15,7 +15,7 @@ export function useFolders(enabled: boolean = true) {
 }
 
 /** 폴더가 바뀌면 노트 목록의 개수·소속도 같이 흔들리므로 둘 다 무효화한다. */
-function useFolderInvalidate() {
+export function useFolderInvalidate() {
     const queryClient = useQueryClient()
     return () => {
         queryClient.invalidateQueries({queryKey: FOLDERS_KEY})

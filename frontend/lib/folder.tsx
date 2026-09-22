@@ -8,6 +8,11 @@ type MoveArgs = {
     folderName: string
     /** 되돌릴 때 필요한 이동 전 위치. 노트 목록에서 그대로 읽어 넘긴다. */
     notes: NoteCard[]
+    /**
+     * 캐시 무효화. 이 헬퍼는 훅 밖(실행 취소 토스트 안)에서도 요청을 보내야 해서
+     * mutation 대신 apiRequest 를 직접 쓴다. 그래서 갱신을 호출부가 넘겨줘야 한다.
+     */
+    invalidate: () => void
     onDone?: () => void
 }
 
@@ -23,7 +28,7 @@ async function sendMove(noteHashes: string[], folder: string | null) {
  * 정리는 연속 동작이라 한 번은 반드시 잘못 놓는다. 되돌릴 수 있다는 걸 알면
  * 망설임이 줄어 정리 속도가 올라간다.
  */
-export async function moveNotesWithUndo({noteHashes, folder, folderName, notes, onDone}: MoveArgs) {
+export async function moveNotesWithUndo({noteHashes, folder, folderName, notes, invalidate, onDone}: MoveArgs) {
     // 이동 전 위치를 노트별로 기록해 둔다. 검색 결과처럼 출처가 섞여 있어도 각자 제자리로 돌아간다.
     const previous = new Map<string | null, string[]>()
     noteHashes.forEach(hash => {
@@ -33,6 +38,7 @@ export async function moveNotesWithUndo({noteHashes, folder, folderName, notes, 
     })
 
     await sendMove(noteHashes, folder)
+    invalidate()
     onDone?.()
 
     const label = noteHashes.length === 1 ? "노트를" : `노트 ${noteHashes.length}개를`
@@ -47,6 +53,7 @@ export async function moveNotesWithUndo({noteHashes, folder, folderName, notes, 
                     for (const [from, hashes] of previous) {
                         await sendMove(hashes, from)
                     }
+                    invalidate()
                     onDone?.()
                 }}
             >
