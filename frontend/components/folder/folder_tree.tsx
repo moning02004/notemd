@@ -97,7 +97,7 @@ export function FolderTree({creating, onCreatingChange}: {
 function rowClass(active: boolean) {
     return `group flex items-center gap-1.5 pr-2 py-1.5 rounded-lg text-[12.5px] font-medium cursor-pointer
             transition-colors duration-150 border border-transparent w-full
-            ${active ? "bg-accent-soft text-accent" : "text-muted hover:text-foreground hover:bg-background"}`
+            ${active ? "bg-accent-menu text-accent" : "text-muted hover:text-foreground hover:bg-background"}`
 }
 
 function FolderRow({folder, selected, expanded, onToggle, onSelect}: {

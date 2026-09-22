@@ -20,6 +20,7 @@
     --accent: #1F6650;
     --accent-hover: #164B3B;
     --accent-soft: #E7EFEB;
+    --accent-menu: #dfdfdf;
 
     --danger: #B3261E;
     --danger-soft: #FBEAE8;
@@ -45,6 +46,7 @@
     --color-accent: var(--accent);
     --color-accent-hover: var(--accent-hover);
     --color-accent-soft: var(--accent-soft);
+    --color-accent-menu: var(--accent-menu);
 
     --color-danger: var(--danger);
     --color-danger-soft: var(--danger-soft);
