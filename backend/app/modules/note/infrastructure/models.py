@@ -27,7 +27,7 @@ class Note(BaseModel):
     tags = relationship("Tag", secondary="notetag", back_populates="notes")
     workspaces = relationship("Workspace", secondary="workspace_note", back_populates="notes")
 
-    snapshot = relationship("NoteSnapshot", back_populates="note", uselist=False, cascade="all, delete-orphan")
+    snapshots = relationship("NoteSnapshot", back_populates="note", cascade="all, delete-orphan")
 
     @property
     def user_hash(self):
@@ -54,4 +54,4 @@ class NoteSnapshot(BaseModel):
     content = Column(Text)
 
     # relationships
-    note = relationship("Note", back_populates="snapshot")
+    note = relationship("Note", back_populates="snapshots")

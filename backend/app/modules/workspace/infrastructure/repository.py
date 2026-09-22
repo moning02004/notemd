@@ -91,4 +91,4 @@ class WorkspaceRepository(Repository):
         ).first():
             raise HTTPException(status_code=403, detail="사용자가 워크스페이스에 속해있지 않습니다.")
 
-        return workspace.notes
+        return [note for note in workspace.notes if note.deleted_at is None]

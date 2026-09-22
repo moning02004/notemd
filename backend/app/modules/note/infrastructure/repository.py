@@ -122,11 +122,17 @@ class NoteRepository(Repository):
                                                        self.DB_MODEL.hash_id == hash_id).first()
         return instance
 
-    def get_by_hash_ids_and_user_id(self, note_hashes: List[str], user_hash: str | None = None):
+    def get_by_hash_ids_and_user_id(self, note_hashes: List[str], user_hash: str | None = None,
+                                    is_deleted: bool | None = None):
         filter_criterion = [self.DB_MODEL.hash_id.in_(note_hashes)]
         if user_hash:
             filter_criterion.append(
                 User.hash_id == user_hash
+            )
+        if is_deleted is not None:
+            filter_criterion.append(
+                self.DB_MODEL.deleted_at.isnot(None) if is_deleted
+                else self.DB_MODEL.deleted_at.is_(None)
             )
         instances = self.db.query(self.DB_MODEL).join(self.DB_MODEL.user).filter(
             *filter_criterion
@@ -147,7 +153,7 @@ class NoteRepository(Repository):
 
     def hard_delete_note(self, user_id: int, note_hashes: List[str]):
         notes = self.db.query(self.DB_MODEL).options(
-            joinedload(self.DB_MODEL.snapshot)
+            joinedload(self.DB_MODEL.snapshots)
         ).filter(
             self.DB_MODEL.user_id == user_id,
             self.DB_MODEL.hash_id.in_(note_hashes)
@@ -158,7 +164,7 @@ class NoteRepository(Repository):
 
     def find_expired_trash_notes(self, user, cutoff: datetime):
         return self.db.query(self.DB_MODEL).options(
-            joinedload(self.DB_MODEL.snapshot)
+            joinedload(self.DB_MODEL.snapshots)
         ).filter(
             self.DB_MODEL.user_id == user.pk,
             self.DB_MODEL.deleted_at.isnot(None),

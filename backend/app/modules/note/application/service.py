@@ -24,6 +24,7 @@ from app.modules.user.infrastructure.repository import UserRepository
 
 
 class NoteService(Service):
+    NotFoundNote = HTTPException(status_code=404, detail="노트를 찾을 수 없습니다.")
 
     def __init__(self, repository, search_service=None, storage=None):
         super().__init__(repository)
@@ -45,10 +46,8 @@ class NoteService(Service):
 
     def _get_owned_note(self, user_id, note_hash: str) -> Note:
         note = self.repository.get_by_hash_id(hash_id=note_hash)
-        if note is None:
-            raise ValueError("노트를 찾을 수 없습니다.")
-        if note.user_id != user_id:
-            raise ValueError("노트를 찾을 수 없습니다.")
+        if note is None or note.user_id != user_id:
+            raise self.NotFoundNote
         return note
 
     @classmethod
@@ -82,7 +81,7 @@ class NoteService(Service):
     def _get_owned_snapshot(self, user_id, note_snapshot_hash: str) -> Note:
         note_snapshot = self.repository.get_note_snapshot_by_hash_id(user_id=user_id, hash_id=note_snapshot_hash)
         if note_snapshot is None:
-            raise ValueError("노트를 찾을 수 없습니다.")
+            raise self.NotFoundNote
         return note_snapshot
 
     def list_notes(self, user_hash: str, keyword: str | None, is_deleted: bool, page: int, tag: str | None = None,
@@ -92,7 +91,10 @@ class NoteService(Service):
             notes = self.repository.list_note_by_user_hash(user_hash, is_deleted, tag, sort, page)
         else:
             note_hashes = self.search_service.find_documents(keyword, user_hash, sort, page)
-            notes = self.repository.get_by_hash_ids_and_user_id(note_hashes=note_hashes, user_hash=user_hash)
+            # 색인은 휴지통 여부를 걸러주지 않으므로 조회 단계에서 목록과 같은 조건으로 맞춘다.
+            notes = self.repository.get_by_hash_ids_and_user_id(note_hashes=note_hashes,
+                                                                user_hash=user_hash,
+                                                                is_deleted=is_deleted)
 
         for note in notes:
             if note.is_encrypted:
@@ -112,7 +114,7 @@ class NoteService(Service):
     def get_note_by_hash_id(self, user_id: int | None, note_hash: str, password: str | None = None):
         note = self.repository.get_by_hash_id(hash_id=note_hash)
         if note is None or (not note.is_public and user_id is None):
-            raise HTTPException(status_code=404, detail="노트를 찾을 수 없습니다.")
+            raise self.NotFoundNote
 
         note_password = self._decrypt_content(note.user, note.password) if note.password else None
         if note.user_id != user_id and note.password:
@@ -129,8 +131,9 @@ class NoteService(Service):
                 workspace_hashes=[x.hash_id for x in note.workspaces],
                 user_id=user.pk)
 
-            if not user.is_superuser and not workspaces and note.user_id != user.pk:
-                raise HTTPException(status_code=404, detail="노트를 찾을 수 없습니다.")
+            # 공개 노트는 로그인 여부와 무관하게 열람할 수 있어야 한다.
+            if not note.is_public and not user.is_superuser and not workspaces and note.user_id != user.pk:
+                raise self.NotFoundNote
 
             if note.password:
                 note.password = note_password
@@ -143,19 +146,21 @@ class NoteService(Service):
     def update_note(self, user: User, note_hash: str, request):
         note = self.repository.get_by_hash_id(hash_id=note_hash)
 
+        # 본문 키는 언제나 노트 소유자의 것이다. 공유 멤버가 편집해도 소유자가 읽을 수 있어야 한다.
+        owner = note.user
         content = request.content or (
-            self._decrypt_content(user, note.content) if note.is_encrypted else note.content)
+            self._decrypt_content(owner, note.content) if note.is_encrypted else note.content)
 
         is_encrypted = request.is_encrypted if request.is_encrypted is not None else note.is_encrypted
         if is_encrypted:
-            content = self._encrypt_content(user, content)
+            content = self._encrypt_content(owner, content)
 
         workspaces = self.repository.get_shared_workspace(
             workspace_hashes=[x.hash_id for x in note.workspaces],
             user_id=user.pk)
 
         if not user.is_superuser and not workspaces and note.user_id != user.pk:
-            raise HTTPException(status_code=404, detail="노트를 찾을 수 없습니다.")
+            raise self.NotFoundNote
 
         is_editable = note.user_id == user.pk or user.is_superuser or bool(workspaces)
         if not is_editable:
@@ -164,8 +169,9 @@ class NoteService(Service):
         note.is_editable = is_editable
 
         password = None
-        if request.password:
-            password = self._encrypt_content(user, request.password)
+        if request.password is not None:
+            # 빈 문자열은 '잠금 해제' 다. 여기서 None 으로 뭉개면 비밀번호를 영영 못 지운다.
+            password = self._encrypt_content(owner, request.password) if request.password else ""
 
         note = self.repository.update_note(user_id=user.pk,
                                            note=note,
@@ -177,16 +183,19 @@ class NoteService(Service):
                                            password=password,
                                            tags=request.tags,
                                            workspaces=request.workspaces)
-        snapshot_policy = note.user.preference.snapshot_policy
+        preference = owner.preference
+        snapshot_policy = preference.snapshot_policy if preference else "MANUAL"
+        # 공유 중인 노트는 정책과 무관하게 매 편집을 남긴다. 편집자가 멤버인지가 아니라
+        # 노트가 공유 중인지가 기준이어야 소유자의 편집도 이력에 남는다.
         if ((snapshot_policy == "ON_FIRST_EDIT" and request.is_first_edit)
                 or snapshot_policy == "ON_EVERY_EDIT"
-                or bool(workspaces)):
+                or bool(note.workspaces)):
             self.repository.add_note_snapshot(description=f"auto_{int(note.updated_at.timestamp())}_by_{user.name}",
                                               note=note)
         if request.is_encrypted:
-            note.content = self._decrypt_content(user, content)
-        if request.password:
-            note.password = self._decrypt_content(user, password)
+            note.content = self._decrypt_content(owner, content)
+        if password:
+            note.password = self._decrypt_content(owner, password)
 
         self.indexing_note(note)
         return note
@@ -248,7 +257,7 @@ class NoteService(Service):
         notes = self.repository.get_by_hash_ids_and_user_id(note_hashes=note_hashes, user_hash=user_hash)
 
         if not notes:
-            raise HTTPException(status_code=404, detail="노트를 찾을 수 없습니다.")
+            raise self.NotFoundNote
 
         if len(notes) == 1:
             note = notes[0]
