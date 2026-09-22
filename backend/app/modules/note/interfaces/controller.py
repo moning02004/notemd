@@ -9,7 +9,7 @@ from app.modules.note.application.service import NoteService
 from app.modules.note.interfaces.dependencies import get_note_service, get_note_service_with_storage
 from app.modules.note.interfaces.schemas import NoteListSchema, NoteCreateSchema, \
     NoteDetailSchema, NoteUpdateRequest, QueryParams, NoteHashesRequest, SnapshotRequest, NoteSnapshotSchema, \
-    NoteRequest, NoteDownloadRequest
+    NoteRequest, NoteDownloadRequest, NoteCreateRequest
 
 router = APIRouter(prefix="/notes", tags=["Notes"])
 
@@ -22,13 +22,18 @@ def list_notes(user=Depends(get_current_user), query: QueryParams = Depends(),
                                is_deleted=bool(query.is_deleted),
                                tag=query.tag,
                                sort=query.sort,
-                               page=query.page)
+                               page=query.page,
+                               folder=query.folder,
+                               include_sub=bool(query.include_sub),
+                               unfiled=bool(query.unfiled))
     return notes
 
 
 @router.post("", response_model=NoteCreateSchema)
-def create_note(user=Depends(get_current_user), service: NoteService = Depends(get_note_service)):
-    note = service.create_default_note(user_id=user.pk)
+def create_note(request: NoteCreateRequest | None = None, user=Depends(get_current_user),
+                service: NoteService = Depends(get_note_service)):
+    """폴더 화면에서 새 노트를 만들면 그 폴더 안에서 시작한다."""
+    note = service.create_default_note(user_id=user.pk, folder_hash=request.folder if request else None)
     return note
 
 

@@ -9,6 +9,7 @@ from sqlalchemy.orm import joinedload
 
 from app.core.config import settings
 from app.modules.note.domain.entity import SnapshotEntity
+from app.modules.folder.infrastructure.models import Folder
 from app.modules.note.infrastructure.models import Note
 from app.modules.note.infrastructure.models import NoteSnapshot
 from app.modules.tag.infrastructure.models import Tag
@@ -20,12 +21,21 @@ class NoteRepository(Repository):
     DB_MODEL = Note
     PAGE_SIZE = 20
 
-    def list_note_by_user_hash(self, user_hash: int, is_deleted=False, tag=None, sort=None, page=1):
+    def list_note_by_user_hash(self, user_hash: int, is_deleted=False, tag=None, sort=None, page=1,
+                               folder_hash=None, include_sub=False, unfiled=False):
         queryset = self.db.query(self.DB_MODEL).join(self.DB_MODEL.user).options(
-            joinedload(self.DB_MODEL.tags)
+            joinedload(self.DB_MODEL.tags),
+            joinedload(self.DB_MODEL.folder),
         ).filter(
             User.hash_id == user_hash,
         )
+
+        if unfiled:
+            queryset = queryset.filter(self.DB_MODEL.folder_id.is_(None))
+        elif folder_hash:
+            folder_ids = self.folder_ids_for(user_hash=user_hash, folder_hash=folder_hash,
+                                             include_sub=include_sub)
+            queryset = queryset.filter(self.DB_MODEL.folder_id.in_(folder_ids))
 
         queryset = queryset.filter(self.DB_MODEL.deleted_at.isnot(None) if is_deleted
                                    else self.DB_MODEL.deleted_at.is_(None))
@@ -46,10 +56,39 @@ class NoteRepository(Repository):
 
         return queryset.offset(offset).limit(self.PAGE_SIZE).all()
 
+    def folder_ids_for(self, user_hash: str, folder_hash: str, include_sub: bool) -> List[int]:
+        """폴더 hash 하나를 pk 목록으로 바꾼다. include_sub 면 하위 폴더까지 펼친다.
+
+        폴더는 많아야 수십 개라 재귀 CTE 대신 한 번 읽어 파이썬에서 펼치는 편이
+        SQLite/Postgres 양쪽에서 똑같이 동작해 단순하다.
+        """
+        folders = (self.db.query(Folder.pk, Folder.parent_id, Folder.hash_id)
+                   .join(User, User.pk == Folder.user_id)
+                   .filter(User.hash_id == user_hash)
+                   .all())
+
+        target = next((pk for pk, _, hash_id in folders if hash_id == folder_hash), None)
+        if target is None:
+            return [-1]  # 없는 폴더 -> 빈 결과
+        if not include_sub:
+            return [target]
+
+        children = {}
+        for pk, parent_id, _ in folders:
+            children.setdefault(parent_id, []).append(pk)
+
+        ids, stack = [target], [target]
+        while stack:
+            for child in children.get(stack.pop(), []):
+                ids.append(child)
+                stack.append(child)
+        return ids
+
     def create_note(self, note_entity) -> Note:
         new_note = self.DB_MODEL(user_id=note_entity.user_id,
                                  title=note_entity.title,
-                                 content=note_entity.content)
+                                 content=note_entity.content,
+                                 folder_id=note_entity.folder_id)
         self.db.add(new_note)
         self.db.commit()
         self.db.refresh(new_note)
@@ -79,7 +118,8 @@ class NoteRepository(Repository):
                     is_encrypted=None,
                     password=None,
                     tags=None,
-                    workspaces=None):
+                    workspaces=None,
+                    folder_id=-1):
         if title is not None:
             note.title = title
         if content is not None:
@@ -92,6 +132,9 @@ class NoteRepository(Repository):
             note.is_encrypted = is_encrypted
         if password is not None:
             note.password = password
+        # -1 은 '요청에 folder 가 없었다'는 뜻. None 은 미분류로 옮기라는 뜻이다.
+        if folder_id != -1:
+            note.folder_id = folder_id
 
         if tags is not None:
             existing_tags = self.db.query(Tag).filter(Tag.keyword.in_(tags)).all()

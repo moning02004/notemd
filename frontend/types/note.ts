@@ -1,4 +1,5 @@
 import {NoteWorkspace} from "@/types/workspace";
+import {NoteFolder} from "@/types/folder";
 
 export interface Tag {
     keyword: string;
@@ -18,6 +19,7 @@ export interface NoteCard {
     is_password: boolean;
     created_at: string
     deleted_at: string | null
+    folder: NoteFolder | null
 }
 
 export interface CreateNoteResponse {
@@ -40,6 +42,7 @@ export interface NoteDetailResponse {
     password: string | null;
     tags: string[];
     workspaces: NoteWorkspace[];
+    folder: NoteFolder | null;
     user_hash: string;
 }
 

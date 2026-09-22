@@ -9,6 +9,8 @@ import {Providers} from "@/app/(main)/providers";
 import {usePathname} from "next/navigation";
 import {useSearchModalStore} from "@/store/searchModal";
 import {SearchModal} from "@/components/search_modal";
+import {MoveNotesSheet} from "@/components/folder/move_notes_sheet";
+import {useMoveSheetStore} from "@/store/moveSheet";
 
 export default function MainLayout({children}: {
     children: React.ReactNode;
@@ -18,6 +20,7 @@ export default function MainLayout({children}: {
     const token = useAuthStore(state => state.token)
     const pathname = usePathname()
     const {isOpen: isSearchOpen, close: closeSearch} = useSearchModalStore()
+    const moveSheet = useMoveSheetStore()
 
     useEffect(() => {
         setMounted(true)
@@ -37,25 +40,33 @@ export default function MainLayout({children}: {
     const isTrashPage = pathname.startsWith("/deleted")
 
     return (
-        <div className="flex h-screen bg-background">
-            <Sidebar/>
+        <Providers>
+            <div className="flex h-screen bg-background">
+                <Sidebar/>
 
-            <div className="flex flex-col flex-1 min-w-0">
-                <Topbar/>
-                <div className="flex-1 overflow-y-auto">
-                    <Providers>
+                <div className="flex flex-col flex-1 min-w-0">
+                    <Topbar/>
+                    <div className="flex-1 overflow-y-auto">
                         {children}
-                    </Providers>
+                    </div>
+
+                    {(!isSettingsPage && !isTrashPage) && (
+                        <div className="md:hidden border-t border-border bg-surface">
+                            <Bottombar/>
+                        </div>
+                    )}
                 </div>
 
-                {(!isSettingsPage && !isTrashPage) && (
-                    <div className="md:hidden border-t border-border bg-surface">
-                        <Bottombar/>
-                    </div>
-                )}
-            </div>
+                {isSearchOpen && <SearchModal isOpen={isSearchOpen} onClose={closeSearch}/>}
 
-            {isSearchOpen && <SearchModal isOpen={isSearchOpen} onClose={closeSearch}/>}
-        </div>
+                <MoveNotesSheet
+                    open={moveSheet.open}
+                    onClose={moveSheet.closeSheet}
+                    noteHashes={moveSheet.noteHashes}
+                    currentFolder={moveSheet.currentFolder}
+                    onMoved={moveSheet.onMoved}
+                />
+            </div>
+        </Providers>
     );
 }

@@ -6,6 +6,8 @@ import {LuEllipsisVertical} from "react-icons/lu"
 import {FaLink, FaLock} from "react-icons/fa";
 import {MdOutlineSecurity, MdWorkspacesFilled} from "react-icons/md";
 import {TbLockPassword} from "react-icons/tb";
+import {FiFolder} from "react-icons/fi";
+import {FOLDER_DRAG_TYPE} from "@/components/folder/folder_tree";
 
 type NoteType = {
     onClick?: React.MouseEventHandler<HTMLDivElement>
@@ -27,6 +29,10 @@ type NoteType = {
     selected?: boolean
     onSelect?: (id: string) => void
     viewMode?: "card" | "list"
+    /** 목록이 여러 폴더를 섞어 보여줄 때만 경로를 붙인다(검색, 하위 포함). */
+    folderPath?: string | null
+    folderHash?: string | null
+    draggable?: boolean
 }
 
 export const Note = ({
@@ -49,6 +55,9 @@ export const Note = ({
                          selected,
                          onSelect,
                          viewMode = "card",
+                         folderPath,
+                         folderHash,
+                         draggable,
                      }: NoteType) => {
     const isUntitled = !title?.trim()
     const displayTitle = isUntitled ? "제목 없음" : title
@@ -79,6 +88,11 @@ export const Note = ({
             <div
                 data-note-id={hashId}
                 onClick={handleClick}
+                draggable={draggable && !selectable}
+                onDragStart={event => {
+                    event.dataTransfer.setData(FOLDER_DRAG_TYPE, JSON.stringify({kind: "note", id: hashId}))
+                    event.dataTransfer.effectAllowed = "move"
+                }}
                 className={`
                     flex items-center gap-3 px-3 py-2.5 border-b border-border
                     transition-colors cursor-pointer
@@ -107,6 +121,14 @@ export const Note = ({
                     </p>
                 </div>
 
+                {folderPath && (
+                    <span className="shrink-0 hidden sm:flex items-center gap-1 max-w-[9rem] truncate
+                                     text-[11px] text-accent bg-accent-soft px-2 py-0.5 rounded">
+                        <FiFolder size={10} className="shrink-0"/>
+                        <span className="truncate">{folderPath}</span>
+                    </span>
+                )}
+
                 {ownerName && (
                     <span className="shrink-0 hidden sm:block w-24 truncate text-right text-xs text-subtle">
                         {ownerName}
@@ -124,6 +146,7 @@ export const Note = ({
                                 noteId={hashId}
                                 canDelete={!isProtected && isOwner}
                                 canDownload={isOwner}
+                                currentFolder={folderHash}
                                 trigger={
                                     <button
                                         className="p-1 rounded hover:bg-accent-soft text-accent sm:text-muted cursor-pointer">
@@ -152,6 +175,11 @@ export const Note = ({
         <div
             data-note-id={hashId}
             onClick={handleClick}
+            draggable={draggable && !selectable}
+            onDragStart={event => {
+                event.dataTransfer.setData(FOLDER_DRAG_TYPE, JSON.stringify({kind: "note", id: hashId}))
+                event.dataTransfer.effectAllowed = "move"
+            }}
             className={`
                 group relative flex flex-col min-h-[11.5rem] p-3.5 rounded-xl border bg-surface
                 transition-all duration-150 cursor-pointer
@@ -189,6 +217,13 @@ export const Note = ({
             </p>
 
             <div className="flex items-center gap-2 mt-3">
+                {folderPath && (
+                    <span className="flex items-center gap-1 min-w-0 text-[11px] text-accent bg-accent-soft
+                                     px-2 py-0.5 rounded">
+                        <FiFolder size={10} className="shrink-0"/>
+                        <span className="truncate">{folderPath}</span>
+                    </span>
+                )}
                 {ownerName && (
                     <span className="text-[11px] text-subtle truncate max-w-[7rem]">{ownerName}</span>
                 )}
@@ -201,6 +236,7 @@ export const Note = ({
                     {noteMenu ? <NoteMenu noteId={hashId}
                                           canDelete={!isProtected && isOwner}
                                           canDownload={isOwner}
+                                          currentFolder={folderHash}
                         />
                         : deletedMenu ? <DeletedMenu noteId={hashId}/> : ""}
                 </div>

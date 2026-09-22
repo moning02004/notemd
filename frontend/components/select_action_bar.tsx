@@ -1,9 +1,10 @@
 "use client"
 
-import {FiDownload, FiTrash2} from "react-icons/fi"
+import {FiDownload, FiFolder, FiTrash2} from "react-icons/fi"
 
 interface SelectActionBarProps {
     selectedCount: number
+    onMove?: () => void
     onDownload?: () => void
     onRestore?: () => void
     onDelete?: () => void
@@ -11,6 +12,7 @@ interface SelectActionBarProps {
 
 export default function SelectActionBar({
                                             selectedCount,
+                                            onMove,
                                             onDownload,
                                             onRestore,
                                             onDelete,
@@ -20,6 +22,12 @@ export default function SelectActionBar({
     return (
         <div
             className="fixed bottom-0 left-0 right-0 bg-surface border-t border-border px-4 py-4 flex items-center gap-2 z-40 safe-area-inset-bottom">
+            {onMove && <ActionBtn
+                icon={<FiFolder size={16}/>}
+                label="이동"
+                onClick={onMove}
+                disabled={disabled}
+            />}
             {onDownload && <ActionBtn
                 icon={<FiDownload size={16}/>}
                 label="다운로드"

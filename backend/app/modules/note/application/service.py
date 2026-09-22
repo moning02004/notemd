@@ -17,7 +17,8 @@ from markdownify import markdownify
 
 from app.core.config import settings
 from app.core.pdf_renderer import render_note_pdf
-from app.modules.note.domain.entity import NoteEntity, NoteDocument, DownloadResult
+from app.modules.note.domain.entity import NoteEntity, DownloadResult, build_note_document
+from app.modules.folder.infrastructure.repository import FolderRepository
 from app.modules.note.infrastructure.models import Note, NoteSnapshot
 from app.modules.user.infrastructure.models import User
 from app.modules.user.infrastructure.repository import UserRepository
@@ -32,17 +33,7 @@ class NoteService(Service):
         self.search_service = search_service
 
     def indexing_note(self, note):
-        note_document = NoteDocument(
-            id=note.hash_id,
-            title=note.title,
-            content=re.sub(r"<[^>]+>", "", note.content or ""),
-            tags=[x.keyword for x in note.tags],
-            user_hash=note.user.hash_id,
-            is_deleted=note.deleted_at is not None,
-            created_at=note.created_at.strftime("%Y-%m-%d %H:%M:%S"),
-            updated_at=note.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
-        )
-        self.search_service.add_to_index(asdict(note_document))
+        self.search_service.add_to_index(asdict(build_note_document(note)))
 
     def _get_owned_note(self, user_id, note_hash: str) -> Note:
         note = self.repository.get_by_hash_id(hash_id=note_hash)
@@ -85,10 +76,14 @@ class NoteService(Service):
         return note_snapshot
 
     def list_notes(self, user_hash: str, keyword: str | None, is_deleted: bool, page: int, tag: str | None = None,
-                   sort: str | None = None) -> \
+                   sort: str | None = None, folder: str | None = None, include_sub: bool = False,
+                   unfiled: bool = False) -> \
             List[NoteEntity]:
         if keyword is None:
-            notes = self.repository.list_note_by_user_hash(user_hash, is_deleted, tag, sort, page)
+            notes = self.repository.list_note_by_user_hash(user_hash, is_deleted, tag, sort, page,
+                                                           folder_hash=folder,
+                                                           include_sub=include_sub,
+                                                           unfiled=unfiled)
         else:
             note_hashes = self.search_service.find_documents(keyword, user_hash, sort, page)
             # 색인은 휴지통 여부를 걸러주지 않으므로 조회 단계에서 목록과 같은 조건으로 맞춘다.
@@ -101,11 +96,12 @@ class NoteService(Service):
                 note.content = self._decrypt_content(note.user, note.content)
         return notes
 
-    def create_default_note(self, user_id: int):
+    def create_default_note(self, user_id: int, folder_hash: str | None = None):
         default_note = NoteEntity(
             user_id=user_id,
             title="",
-            content="<p></p>"
+            content="<p></p>",
+            folder_id=self._folder_pk(user_id, folder_hash),
         )
         note = self.repository.create_note(default_note)
         self.indexing_note(note)
@@ -143,6 +139,14 @@ class NoteService(Service):
             note.content = self._decrypt_content(note.user, note.content)
         return note
 
+    def _folder_pk(self, user_id: int, folder_hash: str | None) -> int | None:
+        """폴더 hash 를 pk 로 바꾼다. 남의 폴더를 가리키면 폴더 없이 만든다."""
+        if not folder_hash:
+            return None
+        folder = FolderRepository(self.repository.db).get_by_hash_id_and_user_id(
+            user_id=user_id, hash_id=folder_hash)
+        return folder.pk if folder else None
+
     def update_note(self, user: User, note_hash: str, request):
         note = self.repository.get_by_hash_id(hash_id=note_hash)
 
@@ -173,6 +177,11 @@ class NoteService(Service):
             # 빈 문자열은 '잠금 해제' 다. 여기서 None 으로 뭉개면 비밀번호를 영영 못 지운다.
             password = self._encrypt_content(owner, request.password) if request.password else ""
 
+        # -1 은 '요청에 folder 키가 없었다'. None 이면 미분류로 옮긴다.
+        folder_id = -1
+        if "folder" in request.model_fields_set:
+            folder_id = self._folder_pk(note.user_id, request.folder)
+
         note = self.repository.update_note(user_id=user.pk,
                                            note=note,
                                            title=request.title,
@@ -182,7 +191,8 @@ class NoteService(Service):
                                            is_encrypted=request.is_encrypted,
                                            password=password,
                                            tags=request.tags,
-                                           workspaces=request.workspaces)
+                                           workspaces=request.workspaces,
+                                           folder_id=folder_id)
         preference = owner.preference
         snapshot_policy = preference.snapshot_policy if preference else "MANUAL"
         # 공유 중인 노트는 정책과 무관하게 매 편집을 남긴다. 편집자가 멤버인지가 아니라

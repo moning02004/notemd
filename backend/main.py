@@ -9,6 +9,7 @@ from starlette.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.middlewares.token import AuthTokenMiddleware
+from app.modules.folder.interfaces.controller import router as folder_router
 from app.modules.note.interfaces.controller import router as note_router
 from app.modules.preference.interfaces.controller import router as preference_router
 from app.modules.search.infrastructure.repository import SearchRepository
@@ -58,6 +59,7 @@ routers = [
     auth_router,
     user_router,
     note_router,
+    folder_router,
     template_router,
     tag_router,
     workspace_router,

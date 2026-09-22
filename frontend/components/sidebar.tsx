@@ -8,6 +8,7 @@ import {GrTrash} from "react-icons/gr"
 import {gotoNote} from "@/lib/note"
 import React, {useState} from "react";
 import {LoadingPage} from "@/components/loading";
+import {FolderTree} from "@/components/folder/folder_tree";
 
 const navItems = [
     {name: "개인 노트", icon: LuBookText, path: "/"},
@@ -42,7 +43,7 @@ export function Sidebar() {
                     새 노트
                 </button>
 
-                <nav className="flex flex-col gap-0.5">
+                <nav className="flex flex-col gap-0.5 overflow-y-auto min-h-0">
                     {navItems.map(item => {
                         const active = pathname === item.path
                         return (
@@ -57,6 +58,9 @@ export function Sidebar() {
                             </button>
                         )
                     })}
+
+                    {/* 폴더는 '개인 노트' 안쪽 계층이다. 최상위 메뉴를 늘리지 않는다. */}
+                    {pathname === "/" && <FolderTree/>}
                 </nav>
 
                 <button

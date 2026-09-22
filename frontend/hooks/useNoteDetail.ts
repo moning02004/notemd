@@ -5,6 +5,7 @@ import {ApiError, apiRequest} from "@/lib/api";
 import {useAuthStore} from "@/store/auth";
 import {NoteDetailResponse} from "@/types/note";
 import {NoteWorkspace} from "@/types/workspace";
+import {NoteFolder} from "@/types/folder";
 import Cookies from "js-cookie";
 
 /** 화면이 편집하는 노트 상태. 서버 응답(snake_case)과 분리해서 관리한다. */
@@ -17,6 +18,7 @@ export type NoteDraft = {
     password: string | null
     tags: string[]
     workspaces: NoteWorkspace[]
+    folder: NoteFolder | null
 }
 
 export type NoteLoadState =
@@ -34,6 +36,7 @@ const toDraft = (response: NoteDetailResponse): NoteDraft => ({
     password: response.password || "",
     tags: response.tags,
     workspaces: response.workspaces,
+    folder: response.folder,
 })
 
 /** 비밀번호 보호 노트인지 확인 */
@@ -114,6 +117,7 @@ export function useNoteDetail(noteId: string) {
         setNotePassword: makeSetter("password"),
         setSelectedTags: makeSetter("tags"),
         setSelectedWorkspaces: makeSetter("workspaces"),
+        setFolder: makeSetter("folder"),
     }), [makeSetter])
 
     return {state, draft, isOwner, isEditable, setters, unlock}

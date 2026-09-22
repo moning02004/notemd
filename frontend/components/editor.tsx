@@ -30,6 +30,8 @@ interface EditorProps {
     setContent: (value: string) => void;
     paramsNoteId: string;
     statusType: string;
+    /** 제목 아래에 붙는 현재 폴더 줄 */
+    folderSlot?: React.ReactNode;
     widthClass: string;
 }
 
@@ -44,6 +46,7 @@ export function MarkdownEditor({
                                    setContent,
                                    isReadonly,
                                    statusType,
+                                   folderSlot,
                                    widthClass
                                }: EditorProps
 ) {
@@ -134,6 +137,8 @@ export function MarkdownEditor({
                         </div> : !isReadonly ? <div className="text-sm"><MdWorkspacesFilled/></div> : <div></div>
                 }
             </div>
+
+            {folderSlot}
 
             {
                 !isReadonly &&

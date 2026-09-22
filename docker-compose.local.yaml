@@ -10,6 +10,11 @@ services:
       - ./frontend:/app
       - /app/node_modules
       - /app/.next
+    environment:
+      # 백엔드와 같은 이유 — macOS Docker Desktop 의 bind mount 는 inotify 이벤트를
+      # 안정적으로 전달하지 않아 next dev 가 파일 변경을 놓친다. 폴링으로 강제한다.
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
     restart: always
     ports:
       - "3000:3000"

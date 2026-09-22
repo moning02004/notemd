@@ -12,6 +12,7 @@ class User(BaseModel):
 
     # relationships
     notes = relationship("Note", back_populates="user", cascade="all, delete-orphan")
+    folders = relationship("Folder", back_populates="user", cascade="all, delete-orphan")
     templates = relationship("Template", back_populates="user", cascade="all, delete-orphan")
     workspaces = relationship("Workspace", secondary="workspace_member", back_populates="users")
     preference = relationship("Preference", back_populates="user", uselist=False, cascade="all, delete-orphan")

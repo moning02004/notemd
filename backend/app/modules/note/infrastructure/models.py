@@ -22,8 +22,12 @@ class Note(BaseModel):
     password = Column(String, nullable=True)
     is_encrypted = Column(Boolean, default=False)
 
+    # 폴더가 없으면 '미분류'. 폴더를 지우면 SET NULL 로 비워져 복구 시 미분류로 돌아간다.
+    folder_id = Column(Integer, ForeignKey("folder.id", ondelete="SET NULL"), nullable=True, index=True)
+
     # relationships
     user = relationship("User", back_populates="notes")
+    folder = relationship("Folder", back_populates="notes")
     tags = relationship("Tag", secondary="notetag", back_populates="notes")
     workspaces = relationship("Workspace", secondary="workspace_note", back_populates="notes")
 

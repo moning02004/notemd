@@ -16,6 +16,10 @@ import toast from "react-hot-toast";
 import {SkeletonLoading} from "@/components/skeleton";
 import {useViewModeStore} from "@/store/viewMode";
 import NotePasswordModal from "@/components/note/password_modal";
+import {FolderBar, FolderDrilldown} from "@/components/folder/folder_bar";
+import {UnfiledBanner} from "@/components/folder/unfiled_banner";
+import {useMoveSheetStore} from "@/store/moveSheet";
+import {useFolderUiStore} from "@/store/folderUi";
 
 function NoteListContent() {
     const router = useRouter()
@@ -24,8 +28,25 @@ function NoteListContent() {
     const {viewMode} = useViewModeStore()
     const {userHash} = useAuthStore.getState()
 
+    const openMoveSheet = useMoveSheetStore(state => state.openSheet)
+    const includeSub = useFolderUiStore(state => state.includeSub)
+
+    const folderHash = searchParams.get("folder")
+    const isUnfiled = searchParams.get("unfiled") === "1"
+
+    // 하위 포함 토글은 URL 로 넘겨야 서버가 같은 조건으로 조회한다.
+    const query = (() => {
+        const params = new URLSearchParams(searchParams.toString())
+        if (folderHash && includeSub) params.set("include_sub", "1")
+        else params.delete("include_sub")
+        return params.toString()
+    })()
+
     const {notes, isLoading, isFetchingNextPage, sentinelRef, removeNotes} =
-        useNoteListPaging(searchParams.toString())
+        useNoteListPaging(query)
+
+    // 여러 폴더가 섞여 보이는 목록에서만 경로를 붙인다. 한 폴더만 보고 있을 때는 군더더기다.
+    const showFolderPath = Boolean(searchParams.get("keyword")) || (Boolean(folderHash) && includeSub)
 
     const {
         selectMode,
@@ -36,6 +57,11 @@ function NoteListContent() {
 
     async function handleDownloadSelected() {
         await downloadNoteRequest([...selectedIds])
+    }
+
+    function handleMoveSelected() {
+        openMoveSheet([...selectedIds], folderHash)
+        exitSelectMode()
     }
 
     function handleDeleteSelected() {
@@ -53,8 +79,12 @@ function NoteListContent() {
     return (
         <div className="min-h-[100%] bg-surface">
             <div className="sticky top-0 z-10 bg-surface backdrop-blur">
+                <FolderBar/>
                 <NoteFilterBar tags={tagsData ?? []}/>
             </div>
+
+            <FolderDrilldown/>
+            {isUnfiled && <UnfiledBanner count={notes.length}/>}
 
             <div
                 className={viewMode === "list"
@@ -78,6 +108,9 @@ function NoteListContent() {
                             isEncrypted={note.is_encrypted}
                             isPassword={note.is_password}
                             created_at={note.created_at}
+                            folderPath={showFolderPath ? (note.folder?.name ?? "미분류") : null}
+                            folderHash={note.folder?.hashId ?? null}
+                            draggable
                             noteMenu={!selectMode}
                             selectable={selectMode}
                             selected={selectedIds.has(note.hash_id)}
@@ -95,6 +128,7 @@ function NoteListContent() {
             {selectMode && (
                 <SelectActionBar
                     selectedCount={selectedIds.size}
+                    onMove={handleMoveSelected}
                     onDownload={handleDownloadSelected}
                     onDelete={handleDeleteSelected}
                 />

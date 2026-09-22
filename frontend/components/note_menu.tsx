@@ -3,14 +3,17 @@ import toast from "react-hot-toast";
 import {useNotesStore} from "@/store/notes";
 import {downloadNoteRequest} from "@/lib/note";
 import {ActionDrawer} from "@/components/ui/action_drawer";
+import {useMoveSheetStore} from "@/store/moveSheet";
 
-export const NoteMenu = ({noteId, canDelete, canDownload, trigger}: {
+export const NoteMenu = ({noteId, canDelete, canDownload, currentFolder, trigger}: {
     noteId: string,
     canDelete?: boolean,
     canDownload?: boolean,
+    currentFolder?: string | null,
     trigger?: React.ReactNode
 }) => {
     const {notes, setNotes} = useNotesStore();
+    const openMoveSheet = useMoveSheetStore(state => state.openSheet);
 
     const deleteNote = () => {
         apiRequest.delete(`/notes/${noteId}`)
@@ -28,6 +31,10 @@ export const NoteMenu = ({noteId, canDelete, canDownload, trigger}: {
             trigger={trigger}
             items={[
                 {label: "수정"},
+                {
+                    label: "폴더 이동",
+                    onClick: () => openMoveSheet([noteId], currentFolder ?? null),
+                },
                 {
                     label: canDownload ? "다운로드" : "다운로드 불가",
                     onClick: canDownload ? downloadNote : () => alert("다운로드 권한이 없습니다."),
