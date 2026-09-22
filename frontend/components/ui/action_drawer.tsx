@@ -37,15 +37,18 @@ export function ActionDrawer({trigger, items, closeLabel = "취소"}: ActionDraw
                     <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-border-strong"/>
 
                     <div className="flex flex-col p-4">
+                        {/* Drawer.Close 로 감싸지 않으면 항목을 눌러도 드로어가 남는다.
+                            '폴더 이동' 처럼 다른 시트를 여는 항목에서 두 겹으로 쌓인다. */}
                         {items.map((item, i) => (
-                            <button
-                                key={i}
-                                onClick={item.onClick}
-                                className={`w-full p-3 text-left hover:bg-background rounded border-b border-border 
-                                ${item.danger ? "text-danger" : ""} ${item.extraClass ?? "cursor-pointer"}`}
-                            >
-                                {item.label}
-                            </button>
+                            <Drawer.Close asChild key={i}>
+                                <button
+                                    onClick={item.onClick}
+                                    className={`w-full p-3 text-left hover:bg-background rounded border-b border-border 
+                                    ${item.danger ? "text-danger" : ""} ${item.extraClass ?? "cursor-pointer"}`}
+                                >
+                                    {item.label}
+                                </button>
+                            </Drawer.Close>
                         ))}
                         <Drawer.Close className="w-full p-3 hover:bg-background rounded cursor-pointer text-left">
                             {closeLabel}

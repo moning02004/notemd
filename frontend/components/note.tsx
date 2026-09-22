@@ -197,7 +197,8 @@ export const Note = ({
                 </div>
             )}
 
-            <div className="flex items-start gap-1.5 mb-1.5 pr-5">
+            {/* 케밥 버튼(약 27px)이 절대 위치로 떠 있다. 여백이 모자라면 제목 위로 겹친다. */}
+            <div className="flex items-start gap-1.5 mb-1.5 pr-7">
                 {icons.length > 0 && (
                     <div className="shrink-0 flex items-center gap-1.5 mt-0.5 text-accent">{icons}</div>
                 )}
@@ -213,7 +214,7 @@ export const Note = ({
             <div className="flex flex-col gap-1 mt-3">
                 {/* 날짜와 같은 줄에 두면 좁은 카드에서 폴더 이름이 통째로 밀려 사라진다. */}
                 {folderPath && (
-                    <span className="flex items-center gap-1 self-start max-w-full text-[11px] text-accent
+                    <span className="flex items-center gap-1 self-end max-w-full text-[11px] text-accent
                                      bg-accent-soft px-2 py-0.5 rounded">
                         <FiFolder size={10} className="shrink-0"/>
                         <span className="min-w-0 truncate">{folderPath}</span>
