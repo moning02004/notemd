@@ -33,3 +33,13 @@ export function findFolder(folders: FolderNode[], hashId: string | null): Folder
     if (!hashId) return null
     return flattenFolders(folders).find(folder => folder.hash_id === hashId) ?? null
 }
+
+/**
+ * 폴더 경로를 주소처럼 보여줄 문자열. "프로젝트 / notemd" -> "/프로젝트/notemd".
+ * 폴더가 없는 노트는 "/" 하나로 충분하다.
+ */
+export function folderPathLabel(folders: FolderNode[], hashId: string | null | undefined): string {
+    const folder = findFolder(folders, hashId ?? null)
+    if (!folder) return "/"
+    return "/" + folder.path.split(" / ").join("/")
+}

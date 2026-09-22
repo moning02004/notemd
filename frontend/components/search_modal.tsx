@@ -1,11 +1,13 @@
 import {useEffect, useRef, useState} from "react";
-import {FiArrowLeft, FiFolder, FiX} from "react-icons/fi";
+import {FiArrowLeft, FiX} from "react-icons/fi";
 import {apiRequest} from "@/lib/api";
 import DOMPurify from "dompurify";
 import {gotoNote} from "@/lib/note";
 import {useRouter} from "next/navigation";
 import {Modal} from "@/components/ui/modal";
 import {NoteSearchResult} from "@/types/note";
+import {useFolders} from "@/hooks/useFolders";
+import {folderPathLabel} from "@/types/folder";
 
 interface Props {
     isOpen: boolean;
@@ -33,6 +35,8 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
     const keywordRef = useRef(null)
     const [keyword, setKeyword] = useState("")
     const [results, setResults] = useState<NoteSearchResult[]>([])
+    // 경로는 이미 받아둔 폴더 트리에서 만든다. 검색 응답에 경로를 더 달 필요가 없다.
+    const {data: folderData} = useFolders(isOpen)
     const [isLoading, setIsLoading] = useState(false)
     const [searched, setSearched] = useState(false)
 
@@ -81,7 +85,7 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
                     >
                         <FiArrowLeft size={20}/>
                     </button>
-                    <div className="w-full py-2 border-b mx-3 relative group">
+                    <div className="w-full py-2 mx-2 relative group border border-border rounded-xl px-3">
                         <input
                             ref={keywordRef}
                             onKeyUp={(e) => setKeyword(e.currentTarget.value.trim())}
@@ -115,17 +119,12 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
                                 onClick={() => gotoNote({id: note.hash_id, router})}
                             >
                                 <div className="flex flex-row">
-                                    <div className="border-r border-border flex-1 pr-2">
-                                        <div className="flex items-center gap-1.5 min-w-0">
-                                            <div className="font-bold truncate">{note.title || "제목 없음"}</div>
-                                            {/* 검색은 폴더를 가로지르므로, 찾은 노트가 어디 있는지 여기서 알려준다. */}
-                                            <span className="shrink-0 flex items-center gap-1 max-w-[9rem]
-                                                             text-[11px] text-accent bg-accent-soft
-                                                             px-1.5 py-0.5 rounded">
-                                                <FiFolder size={9} className="shrink-0"/>
-                                                <span className="truncate">{note.folder?.name ?? "미분류"}</span>
-                                            </span>
+                                    <div className="border-r border-border flex-1 pr-2 min-w-0">
+                                        {/* 검색은 폴더를 가로지르므로, 찾은 노트가 어디 있는지 경로로 알려준다. */}
+                                        <div className="text-[11px] leading-tight text-subtle truncate">
+                                            {folderPathLabel(folderData?.folders ?? [], note.folder?.hashId)}
                                         </div>
+                                        <div className="font-bold truncate">{note.title || "제목 없음"}</div>
                                         <div className="overflow-hidden h-[3rem] pr-1 text-sm text-muted line-clamp-2"
                                              dangerouslySetInnerHTML={{__html: note.content}}
                                          />
