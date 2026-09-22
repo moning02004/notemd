@@ -1,6 +1,6 @@
 "use client"
 
-import {usePathname, useRouter} from "next/navigation"
+import {usePathname, useRouter, useSearchParams} from "next/navigation"
 import {FiPlus} from "react-icons/fi"
 import {LuBookText, LuUser} from "react-icons/lu"
 import {MdOutlineSettings, MdWorkspacesFilled} from "react-icons/md"
@@ -26,6 +26,7 @@ const navItemClass = (active: boolean) => `
 export function Sidebar() {
     const pathname = usePathname()
     const router = useRouter()
+    const searchParams = useSearchParams()
     const [newNote, setNewNote] = useState(false)
 
     const onNoteList = pathname === "/"
@@ -51,7 +52,8 @@ export function Sidebar() {
                 <button
                     onClick={() => {
                         setNewNote(true)
-                        gotoNote({id: null, router})
+                        // 보고 있던 폴더에서 시작한다. 개인 노트 상위면 미분류.
+                        gotoNote({id: null, router, folder: onNoteList ? searchParams.get("folder") : null})
                     }}
                     className="flex items-center justify-center gap-1.5 py-2 rounded-lg bg-accent text-white text-[13px] font-semibold cursor-pointer hover:bg-accent-hover transition-colors duration-150 mb-4"
                 >

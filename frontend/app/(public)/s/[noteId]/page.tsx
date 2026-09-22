@@ -7,7 +7,6 @@ import toast from "react-hot-toast";
 import {MarkdownEditor} from "@/components/editor";
 import {LoadingPage} from "@/components/loading";
 import {NoteSettings} from "@/components/note_settings";
-import {NoteFolderChip} from "@/components/folder/note_folder_chip";
 import NotePasswordModal from "@/components/note/password_modal";
 import {useAuthStore} from "@/store/auth";
 import {useNoteDetail} from "@/hooks/useNoteDetail";
@@ -83,14 +82,6 @@ export default function Page() {
                                 setTitle={setters.setTitle}
                                 setContent={setters.setContent}
                                 statusType={statusType}
-                                folderSlot={token && (
-                                    <NoteFolderChip
-                                        folder={draft.folder}
-                                        noteId={noteId}
-                                        editable={isEditable && !isReadonly}
-                                        onMoved={setters.setFolder}
-                                    />
-                                )}
                                 widthClass={EDITOR_WIDTH_CLASSES[editorWidth] ?? EDITOR_WIDTH_CLASSES[DEFAULT_EDITOR_WIDTH]}
                 />
             </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import {usePathname, useRouter} from "next/navigation"
+import {usePathname, useRouter, useSearchParams} from "next/navigation"
 import {FiPlus, FiSearch} from "react-icons/fi"
 import {menuItems} from "@/constants/menus"
 import {gotoNote} from "@/lib/note"
@@ -9,6 +9,7 @@ import {useSearchModalStore} from "@/store/searchModal"
 export function Bottombar() {
     const router = useRouter()
     const pathname = usePathname()
+    const searchParams = useSearchParams()
     const openSearch = useSearchModalStore(state => state.open)
 
     const [personal, workspace, myInfo] = menuItems
@@ -32,7 +33,12 @@ export function Bottombar() {
 
             <div className="flex-1 flex justify-center">
                 <button
-                    onClick={() => gotoNote({id: null, router})}
+                    onClick={() => gotoNote({
+                        id: null,
+                        router,
+                        // 보고 있던 폴더에서 시작한다. 개인 노트 상위면 미분류.
+                        folder: pathname === "/" ? searchParams.get("folder") : null,
+                    })}
                     aria-label="새 노트"
                     className="w-13 h-13 -mt-5 rounded-full bg-accent text-white flex items-center justify-center
                                shadow-lg border-4 border-surface cursor-pointer hover:bg-accent-hover transition-colors duration-150"
