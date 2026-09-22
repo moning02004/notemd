@@ -89,7 +89,7 @@ export const Note = ({
                 data-note-id={hashId}
                 onClick={handleClick}
                 draggable={draggable && !selectable}
-                onDragStart={event => startNoteDrag(event, hashId, displayTitle)}
+                onDragStart={event => startNoteDrag(event, hashId, displayTitle, preview)}
                 className={`
                     flex items-center gap-3 px-3 py-2.5 border-b border-border
                     transition-colors cursor-pointer
@@ -173,7 +173,7 @@ export const Note = ({
             data-note-id={hashId}
             onClick={handleClick}
             draggable={draggable && !selectable}
-            onDragStart={event => startNoteDrag(event, hashId, displayTitle)}
+            onDragStart={event => startNoteDrag(event, hashId, displayTitle, preview)}
             className={`
                 group relative flex flex-col min-h-[11.5rem] p-3.5 rounded-xl border bg-surface
                 transition-all duration-150 cursor-pointer

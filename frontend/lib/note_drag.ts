@@ -13,37 +13,59 @@ export function readDragPayload(event: DragEvent): DragPayload | null {
     }
 }
 
+function line(text: string, styles: Partial<CSSStyleDeclaration>): HTMLElement {
+    const el = document.createElement("div")
+    el.textContent = text
+    Object.assign(el.style, {
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+    }, styles)
+    return el
+}
+
 /**
- * 끌고 다니는 동안 커서를 따라올 작은 라벨.
+ * 끌고 다니는 동안 커서를 따라올 작은 노트.
  *
  * 기본 드래그 이미지는 끌기 시작한 요소를 그대로 찍어서, 노트 카드처럼 큰 요소를
- * 잡으면 사이드바의 폴더가 가려 어디에 놓는지 안 보인다. 커서보다 조금 큰 칩으로 바꾼다.
+ * 잡으면 사이드바의 폴더가 가려 어디에 놓는지 안 보인다. 그렇다고 글자만 남기면
+ * 알약처럼 보여 무엇을 들고 있는지 알기 어렵다. 카드 모양은 유지한 채 줄인다.
  */
-function buildDragGhost(label: string): HTMLElement {
+function buildDragGhost(title: string, excerpt?: string): HTMLElement {
     const ghost = document.createElement("div")
-    ghost.textContent = label
 
     Object.assign(ghost.style, {
         position: "fixed",
         // 화면 밖에 두되 렌더는 되어야 setDragImage 가 찍을 수 있다.
         top: "-1000px",
         left: "0",
-        maxWidth: "180px",
-        height: "26px",
-        padding: "0 10px",
+        boxSizing: "border-box",
+        width: "150px",
+        padding: "7px 9px",
         display: "flex",
-        alignItems: "center",
-        borderRadius: "7px",
+        flexDirection: "column",
+        gap: "2px",
+        borderRadius: "8px",
         background: "var(--surface)",
-        color: "var(--foreground)",
-        border: "1px solid var(--accent)",
-        boxShadow: "0 4px 12px -4px rgba(0, 0, 0, 0.25)",
-        font: "600 12px/1 var(--font-sans), -apple-system, sans-serif",
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
+        border: "1px solid var(--border-strong)",
+        boxShadow: "0 6px 16px -8px rgba(0, 0, 0, 0.35)",
+        fontFamily: "var(--font-sans), -apple-system, sans-serif",
         pointerEvents: "none",
     })
+
+    ghost.appendChild(line(title, {
+        fontSize: "12px",
+        fontWeight: "500",
+        lineHeight: "1.35",
+        color: "var(--foreground)",
+    }))
+    if (excerpt) {
+        ghost.appendChild(line(excerpt, {
+            fontSize: "11px",
+            lineHeight: "1.35",
+            color: "var(--subtle)",
+        }))
+    }
 
     document.body.appendChild(ghost)
     // 드래그가 시작되고 나면 원본은 필요 없다. 다음 틱에 치운다.
@@ -51,15 +73,15 @@ function buildDragGhost(label: string): HTMLElement {
     return ghost
 }
 
-function startDrag(event: DragEvent, payload: DragPayload, label: string) {
+function startDrag(event: DragEvent, payload: DragPayload, title: string, excerpt?: string) {
     event.dataTransfer.setData(NOTE_DRAG_TYPE, JSON.stringify(payload))
     event.dataTransfer.effectAllowed = "move"
-    // 커서가 칩의 왼쪽 위 근처에 오도록. 칩이 커서를 가리지 않는다.
-    event.dataTransfer.setDragImage(buildDragGhost(label), 10, 13)
+    // 커서가 카드 왼쪽 위 안쪽에 오도록. 집어 든 자리처럼 보인다.
+    event.dataTransfer.setDragImage(buildDragGhost(title, excerpt), 12, 14)
 }
 
-export function startNoteDrag(event: DragEvent, noteId: string, title: string) {
-    startDrag(event, {kind: "note", id: noteId}, title.trim() || "제목 없음")
+export function startNoteDrag(event: DragEvent, noteId: string, title: string, excerpt?: string) {
+    startDrag(event, {kind: "note", id: noteId}, title.trim() || "제목 없음", excerpt?.trim() || undefined)
 }
 
 export function startFolderDrag(event: DragEvent, folderId: string, name: string) {
