@@ -119,10 +119,10 @@ export const Note = ({
                 </div>
 
                 {folderPath && (
-                    <span className="shrink-0 hidden sm:flex items-center gap-1 max-w-[9rem] truncate
-                                     text-[11px] text-accent bg-accent-soft px-2 py-0.5 rounded">
+                    <span className="flex items-center gap-1 max-w-[6rem] sm:max-w-[9rem] text-[11px]
+                                     text-accent bg-accent-soft px-2 py-0.5 rounded">
                         <FiFolder size={10} className="shrink-0"/>
-                        <span className="truncate">{folderPath}</span>
+                        <span className="min-w-0 truncate">{folderPath}</span>
                     </span>
                 )}
 
@@ -210,18 +210,21 @@ export const Note = ({
                 {preview || "아직 아무것도 쓰지 않았어요"}
             </p>
 
-            <div className="flex items-center gap-2 mt-3">
+            <div className="flex flex-col gap-1 mt-3">
+                {/* 날짜와 같은 줄에 두면 좁은 카드에서 폴더 이름이 통째로 밀려 사라진다. */}
                 {folderPath && (
-                    <span className="flex items-center gap-1 min-w-0 text-[11px] text-accent bg-accent-soft
-                                     px-2 py-0.5 rounded">
+                    <span className="flex items-center gap-1 self-start max-w-full text-[11px] text-accent
+                                     bg-accent-soft px-2 py-0.5 rounded">
                         <FiFolder size={10} className="shrink-0"/>
-                        <span className="truncate">{folderPath}</span>
+                        <span className="min-w-0 truncate">{folderPath}</span>
                     </span>
                 )}
-                {ownerName && (
-                    <span className="text-[11px] text-subtle truncate max-w-[7rem]">{ownerName}</span>
-                )}
-                <span className="ml-auto text-[11px] text-subtle shrink-0">{created_at || deleted_at}</span>
+                <div className="flex items-center gap-2">
+                    {ownerName && (
+                        <span className="text-[11px] text-subtle truncate max-w-[7rem]">{ownerName}</span>
+                    )}
+                    <span className="ml-auto text-[11px] text-subtle shrink-0">{created_at || deleted_at}</span>
+                </div>
             </div>
 
             {!selectable && (
