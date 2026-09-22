@@ -15,7 +15,6 @@ class FolderRepository(Repository):
     def list_by_user_id(self, user_id: int) -> List[Folder]:
         return (self.db.query(self.DB_MODEL)
                 .filter(self.DB_MODEL.user_id == user_id)
-                .order_by(self.DB_MODEL.name)
                 .all())
 
     def get_by_hash_id_and_user_id(self, user_id: int, hash_id: str) -> Folder | None:

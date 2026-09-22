@@ -32,6 +32,11 @@ class FolderService(Service):
             by_parent.setdefault(folder.parent_id, []).append(folder)
             by_pk[folder.pk] = folder
 
+        # 이름 정렬은 DB 콜레이션에 맡기지 않는다. 셀프호스팅이라 배포마다 콜레이션이
+        # 다를 수 있는데, 한글 음절은 코드포인트 순서가 곧 가나다순이라 파이썬 정렬이 맞다.
+        for siblings in by_parent.values():
+            siblings.sort(key=lambda folder: folder.name)
+
         def build(folder, depth, parent_path):
             path = f"{parent_path} / {folder.name}" if parent_path else folder.name
             node = FolderNode(

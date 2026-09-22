@@ -452,3 +452,23 @@ def test_trashed_notes_are_not_pulled_into_folders(client, auth_headers):
 def test_from_tags_requires_at_least_one_keyword(client, auth_headers):
     assert from_tags(client, auth_headers, []).status_code == 400
     assert from_tags(client, auth_headers, ["  "]).status_code == 400
+
+
+def test_folders_are_sorted_in_korean_alphabetical_order(client, auth_headers):
+    """DB 콜레이션에 맡기면 배포마다 순서가 달라진다. 가나다순이 보장돼야 한다."""
+    for name in ["회고", "레시피", "개인", "프로젝트", "업무"]:
+        create_folder(client, auth_headers, name=name)
+
+    names = [folder["name"] for folder in tree(client, auth_headers)["folders"]]
+
+    assert names == ["개인", "레시피", "업무", "프로젝트", "회고"]
+
+
+def test_subfolders_are_sorted_too(client, auth_headers):
+    parent = create_folder(client, auth_headers, name="프로젝트")
+    for name in ["하늘", "가람", "나무"]:
+        create_folder(client, auth_headers, name=name, parent=parent)
+
+    children = tree(client, auth_headers)["folders"][0]["children"]
+
+    assert [child["name"] for child in children] == ["가람", "나무", "하늘"]

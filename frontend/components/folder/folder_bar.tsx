@@ -1,7 +1,8 @@
 "use client"
 
+import {useState} from "react"
 import {useRouter, useSearchParams} from "next/navigation"
-import {FiChevronLeft, FiChevronRight, FiFolder, FiInbox} from "react-icons/fi"
+import {FiChevronDown, FiChevronLeft, FiChevronRight, FiFolder, FiInbox} from "react-icons/fi"
 import {useFolders} from "@/hooks/useFolders"
 import {useFolderUiStore} from "@/store/folderUi"
 import {findFolder, FolderNode} from "@/types/folder"
@@ -118,6 +119,9 @@ function Separator() {
  * 좁은 화면에 트리를 욱여넣으면 들여쓰기 때문에 이름이 남지 않는다. 한 번에 한 층만
  * 보여주고, 하위 폴더를 노트 위에 두어 "폴더 먼저, 그다음 노트" 순서로 읽히게 했다.
  */
+/** 이 개수를 넘으면 접은 채로 시작한다. 노트를 보러 온 사람이 폴더를 헤치고 가지 않도록. */
+const COLLAPSE_THRESHOLD = 4
+
 export function FolderDrilldown() {
     const {data} = useFolders()
     const {goTo, folderHash, unfiled} = useFolderNavigation()
@@ -127,10 +131,28 @@ export function FolderDrilldown() {
     const current = findFolder(folders, folderHash)
     const children = current ? current.children : folders
     const unfiledCount = data?.unfiled_count ?? 0
+    const rowCount = children.length + (!current && unfiledCount > 0 ? 1 : 0)
+
+    const [open, setOpen] = useState(false)
+    const collapsible = rowCount > COLLAPSE_THRESHOLD
 
     // 하위 포함을 켜면 그 노트들이 이미 아래 목록에 있으므로 폴더 줄을 또 보여주지 않는다.
     if (unfiled || (includeSub && current)) return null
-    if (children.length === 0 && !(!current && unfiledCount > 0)) return null
+    if (rowCount === 0) return null
+
+    if (collapsible && !open) {
+        return (
+            <button
+                onClick={() => setOpen(true)}
+                className="md:hidden flex items-center gap-2 w-full px-4 h-12 border-b border-border
+                           bg-surface cursor-pointer active:bg-background text-left"
+            >
+                <FiFolder size={15} className="text-accent shrink-0"/>
+                <span className="text-[13px] font-medium text-foreground">폴더 {rowCount}개</span>
+                <FiChevronDown size={15} className="text-subtle shrink-0 ml-auto"/>
+            </button>
+        )
+    }
 
     return (
         <div className="md:hidden flex flex-col border-b border-border bg-surface">
@@ -160,6 +182,17 @@ export function FolderDrilldown() {
                     <span className="flex-1 min-w-0 truncate text-[14px] font-medium text-foreground">미분류</span>
                     <span className="text-[12px] text-subtle tabular-nums shrink-0">{unfiledCount}</span>
                     <FiChevronRight size={15} className="text-subtle shrink-0"/>
+                </button>
+            )}
+
+            {collapsible && (
+                <button
+                    onClick={() => setOpen(false)}
+                    className="flex items-center justify-center gap-1 h-10 text-[12px] text-muted
+                               cursor-pointer active:bg-background"
+                >
+                    폴더 접기
+                    <FiChevronDown size={13} className="rotate-180"/>
                 </button>
             )}
         </div>

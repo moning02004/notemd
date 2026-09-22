@@ -1,5 +1,5 @@
 import {useEffect, useRef, useState} from "react";
-import {FiArrowLeft, FiX} from "react-icons/fi";
+import {FiArrowLeft, FiFolder, FiX} from "react-icons/fi";
 import {apiRequest} from "@/lib/api";
 import DOMPurify from "dompurify";
 import {gotoNote} from "@/lib/note";
@@ -116,7 +116,16 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
                             >
                                 <div className="flex flex-row">
                                     <div className="border-r border-border flex-1 pr-2">
-                                        <div className="font-bold truncate">{note.title || "제목 없음"}</div>
+                                        <div className="flex items-center gap-1.5 min-w-0">
+                                            <div className="font-bold truncate">{note.title || "제목 없음"}</div>
+                                            {/* 검색은 폴더를 가로지르므로, 찾은 노트가 어디 있는지 여기서 알려준다. */}
+                                            <span className="shrink-0 flex items-center gap-1 max-w-[9rem]
+                                                             text-[11px] text-accent bg-accent-soft
+                                                             px-1.5 py-0.5 rounded">
+                                                <FiFolder size={9} className="shrink-0"/>
+                                                <span className="truncate">{note.folder?.name ?? "미분류"}</span>
+                                            </span>
+                                        </div>
                                         <div className="overflow-hidden h-[3rem] pr-1 text-sm text-muted line-clamp-2"
                                              dangerouslySetInnerHTML={{__html: note.content}}
                                          />

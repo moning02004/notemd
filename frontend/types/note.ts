@@ -51,4 +51,5 @@ export interface NoteSearchResult {
     title: string | null;
     content: string | null;
     created_at: string;
+    folder: NoteFolder | null;
 }

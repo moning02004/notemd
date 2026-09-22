@@ -2,7 +2,7 @@
 
 import {usePathname, useRouter} from "next/navigation"
 import {FiPlus} from "react-icons/fi"
-import {LuBookText, LuUser} from "react-icons/lu"
+import {LuUser} from "react-icons/lu"
 import {MdOutlineSettings, MdWorkspacesFilled} from "react-icons/md"
 import {GrTrash} from "react-icons/gr"
 import {gotoNote} from "@/lib/note"
@@ -10,8 +10,8 @@ import React, {useState} from "react";
 import {LoadingPage} from "@/components/loading";
 import {FolderTree} from "@/components/folder/folder_tree";
 
+// '개인 노트' 는 여기 없다. 폴더 트리의 뿌리 행이 그 역할을 겸한다.
 const navItems = [
-    {name: "개인 노트", icon: LuBookText, path: "/"},
     {name: "워크스페이스", icon: MdWorkspacesFilled, path: "/workspace"},
     {name: "휴지통", icon: GrTrash, path: "/deleted"},
     {name: "설정", icon: MdOutlineSettings, path: "/settings"},
@@ -43,7 +43,12 @@ export function Sidebar() {
                     새 노트
                 </button>
 
-                <nav className="flex flex-col gap-0.5 overflow-y-auto min-h-0">
+                {/* 폴더만 스크롤한다. 아래 고정 메뉴는 폴더가 몇 개든 제자리에 남는다. */}
+                <div className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1">
+                    <FolderTree/>
+                </div>
+
+                <nav className="flex flex-col gap-0.5 shrink-0 pt-2 mt-2 border-t border-border">
                     {navItems.map(item => {
                         const active = pathname === item.path
                         return (
@@ -58,14 +63,11 @@ export function Sidebar() {
                             </button>
                         )
                     })}
-
-                    {/* 폴더는 '개인 노트' 안쪽 계층이다. 최상위 메뉴를 늘리지 않는다. */}
-                    {pathname === "/" && <FolderTree/>}
                 </nav>
 
                 <button
                     onClick={() => router.push("/my-info")}
-                    className={`mt-auto flex items-center gap-2.5 px-2 py-2 rounded-lg cursor-pointer transition-colors duration-150 text-left
+                    className={`mt-1 shrink-0 flex items-center gap-2.5 px-2 py-2 rounded-lg cursor-pointer transition-colors duration-150 text-left
                     ${pathname === "/my-info" ? "bg-accent-soft text-accent" : "hover:bg-background"}`}
                 >
                 <span

@@ -1,7 +1,8 @@
 "use client"
 
-import {useRouter, useSearchParams} from "next/navigation"
+import {usePathname, useRouter, useSearchParams} from "next/navigation"
 import {useState} from "react"
+import {LuBookText} from "react-icons/lu"
 import {FiChevronRight, FiFolder, FiFolderPlus, FiInbox, FiMoreHorizontal} from "react-icons/fi"
 import {useCreateFolder, useDeleteFolder, useFolders, useMoveFolder, useMoveNotes, useRenameFolder} from "@/hooks/useFolders"
 import {useFolderUiStore} from "@/store/folderUi"
@@ -23,6 +24,7 @@ export function readDragPayload(event: React.DragEvent): DragPayload | null {
 
 export function FolderTree() {
     const router = useRouter()
+    const pathname = usePathname()
     const searchParams = useSearchParams()
     const {data} = useFolders()
     const {expanded, toggleExpanded} = useFolderUiStore()
@@ -31,12 +33,14 @@ export function FolderTree() {
     const [creating, setCreating] = useState(false)
     const [draftName, setDraftName] = useState("")
 
-    const selected = searchParams.get("folder")
-    const unfiledSelected = searchParams.get("unfiled") === "1"
+    const onNoteList = pathname === "/"
+    const selected = onNoteList ? searchParams.get("folder") : null
+    const unfiledSelected = onNoteList && searchParams.get("unfiled") === "1"
+    const rootSelected = onNoteList && !selected && !unfiledSelected
 
     const goTo = (params: Record<string, string | null>) => {
-        const next = new URLSearchParams(searchParams.toString())
-        // 폴더를 고르면 태그·검색어는 유지하되 페이지 위치만 초기화한다.
+        // 노트 목록 밖(휴지통·설정)에서 눌렀다면 필터를 끌고 오지 않는다.
+        const next = new URLSearchParams(onNoteList ? searchParams.toString() : "")
         Object.entries(params).forEach(([key, value]) => {
             if (value === null) next.delete(key)
             else next.set(key, value)
@@ -52,14 +56,20 @@ export function FolderTree() {
     }
 
     return (
-        <div className="flex flex-col gap-0.5 mt-3">
-            <div className="flex items-center justify-between px-2 pb-1">
-                <span className="text-[10px] font-semibold tracking-wider uppercase text-subtle">폴더</span>
+        <div className="flex flex-col gap-0.5">
+            {/* 트리의 뿌리이자 '개인 노트' 메뉴. 같은 곳으로 가는 항목을 둘로 나누지 않는다. */}
+            <div className={`${rowClass(rootSelected)} !font-semibold`} style={{paddingLeft: 8}}>
+                <span className="w-3.5 shrink-0"/>
+                <LuBookText size={13} className="shrink-0"/>
+                <button onClick={() => goTo({folder: null, unfiled: null})}
+                        className="flex-1 min-w-0 text-left truncate cursor-pointer">
+                    개인 노트
+                </button>
                 <button
                     onClick={() => setCreating(true)}
                     aria-label="폴더 추가"
-                    className="p-1 rounded text-subtle hover:text-accent hover:bg-accent-soft cursor-pointer
-                               transition-colors duration-150"
+                    className="shrink-0 p-0.5 rounded text-subtle hover:text-accent hover:bg-accent-soft
+                               cursor-pointer transition-colors duration-150"
                 >
                     <FiFolderPlus size={13}/>
                 </button>
@@ -68,7 +78,7 @@ export function FolderTree() {
             <button
                 onClick={() => goTo({folder: null, unfiled: "1"})}
                 className={rowClass(unfiledSelected)}
-                style={{paddingLeft: 8}}
+                style={{paddingLeft: 20}}
             >
                 <span className="w-3.5 shrink-0"/>
                 <FiInbox size={13} className="shrink-0"/>
@@ -110,7 +120,7 @@ export function FolderTree() {
             )}
 
             {!creating && (data?.folders ?? []).length === 0 && (
-                <p className="px-2 py-2 text-[11.5px] leading-relaxed text-subtle">
+                <p className="px-2 py-2 pl-6 text-[11.5px] leading-relaxed text-subtle">
                     아직 폴더가 없습니다. 위 <span className="text-muted">＋</span> 로 만들거나,
                     노트를 여기로 끌어다 놓으세요.
                 </p>
@@ -179,7 +189,7 @@ function FolderRow({folder, selected, expanded, onToggle, onSelect}: {
         <>
             <div
                 className={`${rowClass(isActive)} ${dropping ? "border-accent bg-accent-soft" : ""}`}
-                style={{paddingLeft: 8 + folder.depth * 12}}
+                style={{paddingLeft: 20 + folder.depth * 12}}
                 draggable={!renaming}
                 onDragStart={event => {
                     event.dataTransfer.setData(FOLDER_DRAG_TYPE,
