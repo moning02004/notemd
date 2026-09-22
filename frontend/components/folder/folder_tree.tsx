@@ -183,7 +183,7 @@ function FolderRow({folder, selected, expanded, onToggle, onSelect}: {
     return (
         <>
             <div
-                className={`${rowClass(isActive)} ${dropping ? "border-accent bg-accent-soft" : ""}`}
+                className={`${rowClass(isActive)} ${dropping ? "ring-1 ring-accent bg-accent-menu text-accent" : ""}`}
                 style={{paddingLeft: 22 + folder.depth * 12}}
                 draggable={!renaming}
                 onDragStart={event => startFolderDrag(event, folder.hash_id, folder.name)}

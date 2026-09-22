@@ -168,7 +168,7 @@ export function MoveNotesSheet({open, onClose, noteHashes, currentFolder, onMove
                                 disabled={busy}
                                 className={`w-full flex items-center gap-2.5 px-3 rounded-lg text-left
                                     min-h-[52px] md:min-h-[36px] cursor-pointer transition-colors duration-100
-                                    ${index === cursor ? "bg-accent-soft text-accent" : "text-muted hover:bg-background"}`}
+                                    ${index === cursor ? "bg-accent-menu text-accent" : "text-muted hover:bg-background"}`}
                             >
                                 {target.hashId === null
                                     ? <FiInbox size={16} className="shrink-0"/>
