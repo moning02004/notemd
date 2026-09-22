@@ -5,18 +5,17 @@ SERVICE ?=
 # Docker Compose 실행
 .PHONY: up-main
 up-main:
-	docker-compose -f $(LOCAL_COMPOSE_FILE) up -d frontend backend meilisearch postgres redis
+	docker compose -f $(LOCAL_COMPOSE_FILE) up -d frontend backend meilisearch postgres redis
 
 up:
-	docker-compose -f $(LOCAL_COMPOSE_FILE) up -d --remove-orphans
+	docker compose -f $(LOCAL_COMPOSE_FILE) up -d --remove-orphans
 
 upa:
-	docker-compose -f $(LOCAL_COMPOSE_FILE) up $(SERVICE)
+	docker compose -f $(LOCAL_COMPOSE_FILE) up $(SERVICE)
 
 # Docker Compose 실행
 up-build:
-	docker compose -f $(LOCAL_COMPOSE_FILE) build --build-arg NEXT_PUBLIC_API=http://localhost:8002 frontend
-	docker compose -f $(LOCAL_COMPOSE_FILE) build backend
+	docker compose -f $(LOCAL_COMPOSE_FILE) build frontend backend
 	docker compose -f $(LOCAL_COMPOSE_FILE) up -d
 
 # 프론트 의존성을 바꿨을 때(package.json 수정 등) 쓰는 재빌드.
@@ -29,20 +28,20 @@ fe-rebuild:
 
 # Docker Compose 중지
 down:
-	docker-compose -f $(LOCAL_COMPOSE_FILE) down
+	docker compose -f $(LOCAL_COMPOSE_FILE) down
 
 # Docker Compose 중지 (볼륨까지 삭제 - 데이터 전부 사라짐)
 downv:
 	@read -p "볼륨까지 모두 삭제됩니다. 계속하시겠습니까? [y/N] " confirm; \
 	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
-		docker-compose -f $(LOCAL_COMPOSE_FILE) down -v; \
+		docker compose -f $(LOCAL_COMPOSE_FILE) down -v; \
 	else \
 		echo "취소되었습니다."; \
 	fi
 
 # 로그 확인
 logs:
-	docker-compose -f $(LOCAL_COMPOSE_FILE) logs $(LOG_SERVICE) -f
+	docker compose -f $(LOCAL_COMPOSE_FILE) logs $(LOG_SERVICE) -f
 
 # Docker Compose db migrate
 makemigrations:
@@ -52,7 +51,7 @@ migrate:
 	docker exec -it notemd-backend python3 manage.py migrate
 
 ps:
-	docker-compose -f $(LOCAL_COMPOSE_FILE) ps -a
+	docker compose -f $(LOCAL_COMPOSE_FILE) ps -a
 
 # Backend 테스트 실행 (sqlite in-memory DB 사용, 운영 DB에는 영향 없음)
 test:
