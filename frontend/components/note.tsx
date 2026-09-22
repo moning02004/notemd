@@ -7,7 +7,7 @@ import {FaLink, FaLock} from "react-icons/fa";
 import {MdOutlineSecurity, MdWorkspacesFilled} from "react-icons/md";
 import {TbLockPassword} from "react-icons/tb";
 import {FiFolder} from "react-icons/fi";
-import {FOLDER_DRAG_TYPE} from "@/components/folder/folder_tree";
+import {startNoteDrag} from "@/lib/note_drag";
 
 type NoteType = {
     onClick?: React.MouseEventHandler<HTMLDivElement>
@@ -89,10 +89,7 @@ export const Note = ({
                 data-note-id={hashId}
                 onClick={handleClick}
                 draggable={draggable && !selectable}
-                onDragStart={event => {
-                    event.dataTransfer.setData(FOLDER_DRAG_TYPE, JSON.stringify({kind: "note", id: hashId}))
-                    event.dataTransfer.effectAllowed = "move"
-                }}
+                onDragStart={event => startNoteDrag(event, hashId, displayTitle)}
                 className={`
                     flex items-center gap-3 px-3 py-2.5 border-b border-border
                     transition-colors cursor-pointer
@@ -176,10 +173,7 @@ export const Note = ({
             data-note-id={hashId}
             onClick={handleClick}
             draggable={draggable && !selectable}
-            onDragStart={event => {
-                event.dataTransfer.setData(FOLDER_DRAG_TYPE, JSON.stringify({kind: "note", id: hashId}))
-                event.dataTransfer.effectAllowed = "move"
-            }}
+            onDragStart={event => startNoteDrag(event, hashId, displayTitle)}
             className={`
                 group relative flex flex-col min-h-[11.5rem] p-3.5 rounded-xl border bg-surface
                 transition-all duration-150 cursor-pointer

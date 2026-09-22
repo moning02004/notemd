@@ -8,19 +8,7 @@ import {useCreateFolder, useDeleteFolder, useFolders, useMoveFolder, useMoveNote
 import {useFolderUiStore} from "@/store/folderUi"
 import {FolderNode} from "@/types/folder"
 import {useClickOutside} from "@/hooks/useClickOutside"
-
-/** 드래그 중인 대상. 노트 카드와 폴더 행 양쪽에서 같은 형식을 쓴다. */
-type DragPayload = { kind: "note" | "folder", id: string }
-
-export const FOLDER_DRAG_TYPE = "application/x-notemd"
-
-export function readDragPayload(event: React.DragEvent): DragPayload | null {
-    try {
-        return JSON.parse(event.dataTransfer.getData(FOLDER_DRAG_TYPE)) as DragPayload
-    } catch {
-        return null
-    }
-}
+import {readDragPayload, startFolderDrag} from "@/lib/note_drag"
 
 export function FolderTree() {
     const router = useRouter()
@@ -177,11 +165,7 @@ function FolderRow({folder, selected, expanded, onToggle, onSelect}: {
                 className={`${rowClass(isActive)} ${dropping ? "border-accent bg-accent-soft" : ""}`}
                 style={{paddingLeft: 22 + folder.depth * 12}}
                 draggable={!renaming}
-                onDragStart={event => {
-                    event.dataTransfer.setData(FOLDER_DRAG_TYPE,
-                        JSON.stringify({kind: "folder", id: folder.hash_id}))
-                    event.dataTransfer.effectAllowed = "move"
-                }}
+                onDragStart={event => startFolderDrag(event, folder.hash_id, folder.name)}
                 onDragOver={event => {
                     event.preventDefault()
                     event.dataTransfer.dropEffect = "move"
