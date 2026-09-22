@@ -5,7 +5,7 @@ import {useRouter, useSearchParams} from "next/navigation"
 import {FiChevronDown, FiChevronLeft, FiChevronRight, FiFolder, FiInbox} from "react-icons/fi"
 import {useFolders} from "@/hooks/useFolders"
 import {useFolderUiStore} from "@/store/folderUi"
-import {findFolder, FolderNode} from "@/types/folder"
+import {findFolder, folderPathLabel, FolderNode} from "@/types/folder"
 
 function useFolderNavigation() {
     const router = useRouter()
@@ -56,15 +56,15 @@ export function FolderBar() {
 
     return (
         <div className="flex items-center gap-1 px-2 md:px-4 h-12 md:h-10 border-b border-border bg-surface">
-            {/* 모바일: 한 단계 위로. 손가락이 닿는 크기를 확보한다. */}
+            {/* 모바일: 한 단계 위로. 손가락이 닿는 크기(44px)를 확보한다.
+                상위 폴더 이름은 옆의 경로에 이미 들어 있으므로 아이콘만 둔다. */}
             <button
                 onClick={() => goTo(parent?.hash_id ?? null)}
                 aria-label={parent ? `${parent.name}(으)로` : "개인 노트로"}
-                className="md:hidden flex items-center gap-0.5 h-11 pl-1 pr-2 -ml-1 rounded-lg text-accent
-                           text-[13px] font-medium cursor-pointer active:bg-accent-soft"
+                className="md:hidden flex items-center justify-center w-9 h-11 -ml-1 rounded-lg text-accent
+                           shrink-0 cursor-pointer active:bg-accent-soft"
             >
                 <FiChevronLeft size={19}/>
-                <span className="max-w-[7rem] truncate">{parent?.name ?? "개인 노트"}</span>
             </button>
 
             {/* 데스크톱: 경로 전체 */}
@@ -86,8 +86,9 @@ export function FolderBar() {
                 ))}
             </nav>
 
-            <span className="md:hidden flex-1 min-w-0 text-center text-[13.5px] font-semibold text-foreground truncate">
-                {unfiled ? "미분류" : current?.name}
+            {/* 모바일: 이름만 가운데 두면 지금 어느 깊이인지 알 수 없다. 경로를 왼쪽에 붙인다. */}
+            <span className="md:hidden flex-1 min-w-0 text-[13px] text-muted truncate">
+                {unfiled ? "/미분류" : folderPathLabel(folders, current?.hash_id)}
             </span>
 
             <span className="hidden md:inline text-[11.5px] text-subtle tabular-nums ml-2">{count}개</span>
@@ -96,7 +97,7 @@ export function FolderBar() {
                 <button
                     onClick={() => setIncludeSub(!includeSub)}
                     aria-pressed={includeSub}
-                    className={`ml-auto shrink-0 h-8 md:h-7 px-2.5 rounded-full border text-[11.5px] font-medium
+                    className={`shrink-0 md:ml-auto h-8 md:h-7 px-2.5 rounded-full border text-[11.5px] font-medium
                                 cursor-pointer transition-colors duration-150
                         ${includeSub
                         ? "bg-accent text-white border-accent"
