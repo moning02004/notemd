@@ -1,26 +1,40 @@
 "use client"
 
 import {usePathname, useRouter} from "next/navigation"
-import {FiPlus} from "react-icons/fi"
-import {LuUser} from "react-icons/lu"
+import {FiChevronRight, FiPlus} from "react-icons/fi"
+import {LuBookText, LuUser} from "react-icons/lu"
 import {MdOutlineSettings, MdWorkspacesFilled} from "react-icons/md"
 import {GrTrash} from "react-icons/gr"
 import {gotoNote} from "@/lib/note"
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {LoadingPage} from "@/components/loading";
 import {FolderTree} from "@/components/folder/folder_tree";
 
-// '개인 노트' 는 여기 없다. 폴더 트리의 뿌리 행이 그 역할을 겸한다.
+// '개인 노트' 는 폴더를 품고 있어 따로 그린다. 나머지는 평범한 메뉴.
 const navItems = [
     {name: "워크스페이스", icon: MdWorkspacesFilled, path: "/workspace"},
     {name: "휴지통", icon: GrTrash, path: "/deleted"},
     {name: "설정", icon: MdOutlineSettings, path: "/settings"},
 ]
 
+/** 메뉴 한 줄의 생김새. '개인 노트' 도 같은 클래스를 써야 줄이 어긋나지 않는다. */
+const navItemClass = (active: boolean) => `
+    flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-semibold
+    cursor-pointer transition-colors duration-150 text-left w-full
+    ${active ? "bg-accent-soft text-accent" : "text-muted hover:text-foreground hover:bg-background"}`
+
 export function Sidebar() {
     const pathname = usePathname()
     const router = useRouter()
     const [newNote, setNewNote] = useState(false)
+
+    const onNoteList = pathname === "/"
+    const [foldersOpen, setFoldersOpen] = useState(onNoteList)
+
+    // 다른 메뉴로 가면 폴더는 접는다. 사이드바에 한 번에 한 덩어리만 펼쳐져 있게.
+    useEffect(() => {
+        if (!onNoteList) setFoldersOpen(false)
+    }, [onNoteList])
 
     return (
         <>
@@ -43,22 +57,42 @@ export function Sidebar() {
                     새 노트
                 </button>
 
-                {/* 폴더만 스크롤한다. 아래 고정 메뉴는 폴더가 몇 개든 제자리에 남는다. */}
-                <div className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1">
-                    <FolderTree/>
-                </div>
+                <nav className="flex flex-col gap-0.5">
+                    <button
+                        onClick={() => {
+                            if (onNoteList) setFoldersOpen(open => !open)
+                            else {
+                                setFoldersOpen(true)
+                                router.push("/")
+                            }
+                        }}
+                        aria-expanded={foldersOpen}
+                        className={`${navItemClass(onNoteList)} group`}
+                    >
+                        <LuBookText size={15} className="shrink-0"/>
+                        <span className="flex-1 truncate">개인 노트</span>
+                        <FiChevronRight
+                            size={12}
+                            className={`shrink-0 transition-transform duration-150 ${foldersOpen ? "rotate-90" : ""}`}
+                        />
+                    </button>
 
-                <nav className="flex flex-col gap-0.5 shrink-0 pt-2 mt-2 border-t border-border">
+                    {/* 폴더가 늘어나도 이 영역만 스크롤한다. 아래 메뉴는 제자리에 남는다. */}
+                    {foldersOpen && (
+                        <div className="max-h-[38vh] overflow-y-auto overscroll-contain -mx-1 px-1 pb-1">
+                            <FolderTree/>
+                        </div>
+                    )}
+
                     {navItems.map(item => {
                         const active = pathname === item.path
                         return (
                             <button
                                 key={item.path}
                                 onClick={() => router.push(item.path)}
-                                className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-semibold cursor-pointer transition-colors duration-150 text-left
-                                ${active ? "bg-accent-soft text-accent" : "text-muted hover:text-foreground hover:bg-background"}`}
+                                className={navItemClass(active)}
                             >
-                                <item.icon size={15}/>
+                                <item.icon size={15} className="shrink-0"/>
                                 {item.name}
                             </button>
                         )
@@ -67,7 +101,7 @@ export function Sidebar() {
 
                 <button
                     onClick={() => router.push("/my-info")}
-                    className={`mt-1 shrink-0 flex items-center gap-2.5 px-2 py-2 rounded-lg cursor-pointer transition-colors duration-150 text-left
+                    className={`mt-auto shrink-0 flex items-center gap-2.5 px-2 py-2 rounded-lg cursor-pointer transition-colors duration-150 text-left
                     ${pathname === "/my-info" ? "bg-accent-soft text-accent" : "hover:bg-background"}`}
                 >
                 <span

@@ -57,28 +57,10 @@ export function FolderTree() {
 
     return (
         <div className="flex flex-col gap-0.5">
-            {/* 트리의 뿌리이자 '개인 노트' 메뉴. 같은 곳으로 가는 항목을 둘로 나누지 않는다. */}
-            <div className={`${rowClass(rootSelected)} !font-semibold`} style={{paddingLeft: 8}}>
-                <span className="w-3.5 shrink-0"/>
-                <LuBookText size={13} className="shrink-0"/>
-                <button onClick={() => goTo({folder: null, unfiled: null})}
-                        className="flex-1 min-w-0 text-left truncate cursor-pointer">
-                    개인 노트
-                </button>
-                <button
-                    onClick={() => setCreating(true)}
-                    aria-label="폴더 추가"
-                    className="shrink-0 p-0.5 rounded text-subtle hover:text-accent hover:bg-accent-soft
-                               cursor-pointer transition-colors duration-150"
-                >
-                    <FiFolderPlus size={13}/>
-                </button>
-            </div>
-
             <button
                 onClick={() => goTo({folder: null, unfiled: "1"})}
                 className={rowClass(unfiledSelected)}
-                style={{paddingLeft: 20}}
+                style={{paddingLeft: 22}}
             >
                 <span className="w-3.5 shrink-0"/>
                 <FiInbox size={13} className="shrink-0"/>
@@ -97,8 +79,8 @@ export function FolderTree() {
                 />
             ))}
 
-            {creating && (
-                <div className="px-2 py-1">
+            {creating ? (
+                <div className="px-2 py-1 pl-6">
                     <input
                         id="new-folder-name"
                         autoFocus
@@ -117,14 +99,19 @@ export function FolderTree() {
                                    text-foreground outline-none"
                     />
                 </div>
+            ) : (
+                <button
+                    onClick={() => setCreating(true)}
+                    className="flex items-center gap-1.5 py-1.5 rounded-lg text-[12.5px] text-subtle
+                               hover:text-accent hover:bg-background cursor-pointer transition-colors duration-150"
+                    style={{paddingLeft: 22}}
+                >
+                    <span className="w-3.5 shrink-0"/>
+                    <FiFolderPlus size={13} className="shrink-0"/>
+                    <span className="truncate">새 폴더</span>
+                </button>
             )}
 
-            {!creating && (data?.folders ?? []).length === 0 && (
-                <p className="px-2 py-2 pl-6 text-[11.5px] leading-relaxed text-subtle">
-                    아직 폴더가 없습니다. 위 <span className="text-muted">＋</span> 로 만들거나,
-                    노트를 여기로 끌어다 놓으세요.
-                </p>
-            )}
         </div>
     )
 }
@@ -189,7 +176,7 @@ function FolderRow({folder, selected, expanded, onToggle, onSelect}: {
         <>
             <div
                 className={`${rowClass(isActive)} ${dropping ? "border-accent bg-accent-soft" : ""}`}
-                style={{paddingLeft: 20 + folder.depth * 12}}
+                style={{paddingLeft: 22 + folder.depth * 12}}
                 draggable={!renaming}
                 onDragStart={event => {
                     event.dataTransfer.setData(FOLDER_DRAG_TYPE,
