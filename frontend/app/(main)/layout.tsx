@@ -57,7 +57,7 @@ export default function MainLayout({children}: {
                     )}
                 </div>
 
-                {isSearchOpen && <SearchModal isOpen={isSearchOpen} onClose={closeSearch}/>}
+                    <SearchModal isOpen={isSearchOpen} onClose={closeSearch}/>
 
                 <MoveNotesSheet
                     open={moveSheet.open}

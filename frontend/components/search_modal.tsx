@@ -76,8 +76,8 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
     }, [keyword])
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose}
-               className="md:rounded-xl w-full max-w-2xl md:mx-4 md:h-[90vh] h-[100vh]">
+        <Modal isOpen={isOpen} onClose={onClose} slide
+               className="md:rounded-xl w-full max-w-2xl md:mx-4 md:h-[90vh] h-full">
                 <div className="flex items-center justify-between py-4 border-b border-border">
                     <button
                         onClick={onClose}

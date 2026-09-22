@@ -16,7 +16,7 @@ import toast from "react-hot-toast";
 import {SkeletonLoading} from "@/components/skeleton";
 import {useViewModeStore} from "@/store/viewMode";
 import NotePasswordModal from "@/components/note/password_modal";
-import {FolderBar, FolderDrilldown} from "@/components/folder/folder_bar";
+import {FolderBar} from "@/components/folder/folder_bar";
 import {UnfiledBanner} from "@/components/folder/unfiled_banner";
 import {useMoveSheetStore} from "@/store/moveSheet";
 import {useFolderUiStore} from "@/store/folderUi";
@@ -83,7 +83,6 @@ function NoteListContent() {
                 <NoteFilterBar tags={tagsData ?? []}/>
             </div>
 
-            <FolderDrilldown/>
             {isUnfiled && <UnfiledBanner count={notes.length}/>}
 
             <div
