@@ -4,7 +4,7 @@ from typing import List, Any
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from fastapi_clean_archi.core.commons.repository import Repository
-from sqlalchemy import desc, asc
+from sqlalchemy import case, desc, asc
 from sqlalchemy.orm import joinedload
 
 from app.core.config import settings
@@ -30,18 +30,27 @@ class NoteRepository(Repository):
             User.hash_id == user_hash,
         )
 
+        own_folder_id = None
         if unfiled:
             queryset = queryset.filter(self.DB_MODEL.folder_id.is_(None))
         elif folder_hash:
             folder_ids = self.folder_ids_for(user_hash=user_hash, folder_hash=folder_hash,
                                              include_sub=include_sub)
             queryset = queryset.filter(self.DB_MODEL.folder_id.in_(folder_ids))
+            # folder_ids_for 는 대상 폴더를 맨 앞에 둔다.
+            if include_sub and folder_ids:
+                own_folder_id = folder_ids[0]
 
         queryset = queryset.filter(self.DB_MODEL.deleted_at.isnot(None) if is_deleted
                                    else self.DB_MODEL.deleted_at.is_(None))
 
         if tag:
             queryset = queryset.join(self.DB_MODEL.tags).filter(Tag.keyword == tag)
+
+        # 하위 포함으로 볼 때는 지금 폴더의 노트를 먼저, 하위 폴더 노트를 뒤에 둔다.
+        # 보고 있는 폴더가 주인공인데 하위 것들이 섞여 올라오면 어디를 보는지 흐려진다.
+        if own_folder_id is not None:
+            queryset = queryset.order_by(case((self.DB_MODEL.folder_id == own_folder_id, 0), else_=1))
 
         if is_deleted:
             queryset = queryset.order_by(desc(self.DB_MODEL.deleted_at), desc(self.DB_MODEL.updated_at))
