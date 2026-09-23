@@ -50,6 +50,7 @@ import {TaskItem, TaskList} from "@tiptap/extension-list";
 import FileHandler from "@tiptap/extension-file-handler";
 import Paragraph from '@tiptap/extension-paragraph'
 import Heading from "@tiptap/extension-heading";
+import {SlashCommand} from "@/lib/slash_command";
 import {useState} from "react";
 
 // 버튼 컴포넌트
@@ -77,7 +78,34 @@ const CodeBlockComponent = ({node}) => {
     )
 }
 
+/** 커서가 이미 접기 안(요약이든 본문이든)에 있는지. */
+function insideDetails($from: { depth: number, node: (depth: number) => { type: { name: string } } }): boolean {
+    for (let depth = $from.depth; depth > 0; depth--) {
+        if ($from.node(depth).type.name === 'details') return true
+    }
+    return false
+}
+
 export const CustomDetails = Details.extend({
+    /*
+     * 접기 안에서는 접기를 새로 만들지 않는다.
+     *
+     * 계단처럼 겹쳐 들어가면 어느 것을 접었는지 금세 헷갈리고, 접힌 안쪽은 찾을 길이
+     * 없어진다. 막는 자리를 setDetails 한 곳으로 모아 둔다 — ">>" 입력 규칙, 툴바 버튼,
+     * "/" 메뉴가 모두 이 명령을 거치므로 길마다 따로 검사할 필요가 없다.
+     */
+    addCommands() {
+        const parent = this.parent?.()
+
+        return {
+            ...parent,
+            setDetails: () => props => {
+                if (insideDetails(props.state.selection.$from)) return false
+                return parent?.setDetails?.()(props) ?? false
+            },
+        }
+    },
+
     // open 어트리뷰트는 persist: true 일 때만 생기고 기본값이 false 라
     // 새로 만든 details 가 접힌 채로 시작한다. 펼친 상태로 시작하도록 기본값을 뒤집는다.
     // 저장은 getHTML() 로 하고 parseHTML 이 <details> 의 open 속성 유무를 읽으므로,
@@ -104,8 +132,7 @@ export const CustomDetails = Details.extend({
                     const {doc, selection} = state
                     const {$from, $to} = selection
 
-                    // summary 안에서 또 >> 를 치는 경우는 무시
-                    if ($from.parent.type.name === 'detailsSummary') return null
+                    // 접기 안에서는 위 setDetails 가 false 를 돌려주므로 can() 에서 이미 걸린다.
 
                     const blockRange = $from.blockRange($to)
                     if (!blockRange) return null
@@ -362,6 +389,7 @@ export function useEditorInstance({initialContent, setContent, uploadFile}: {
                 },
             }),
             Gapcursor,
+            SlashCommand,
             CustomDetails.configure({
                 persist: true,                      // 열림/닫힘 상태를 문서에 저장
                 HTMLAttributes: {class: 'details'},
