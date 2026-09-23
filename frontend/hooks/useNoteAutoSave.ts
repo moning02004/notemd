@@ -1,6 +1,6 @@
 "use client"
 
-import {Dispatch, SetStateAction, useEffect, useRef} from "react";
+import {Dispatch, SetStateAction, useCallback, useEffect, useRef} from "react";
 import {useNotePatch} from "@/hooks/useNotePatch";
 import {NoteDraft} from "@/hooks/useNoteDetail";
 import Cookies from "js-cookie";
@@ -46,6 +46,8 @@ export function useNoteAutosave({noteId, draft, enabled, setStatusType}: Options
     const patchNote = useNotePatch(setStatusType)
     const patchNoteRef = useRef(patchNote)
     const savedRef = useRef<NoteDraft | null>(null)
+    // 대기 중인 디바운스. 수동 저장이 이걸 앞당겨 실행한다.
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     useEffect(() => {
         patchNoteRef.current = patchNote
@@ -68,10 +70,38 @@ export function useNoteAutosave({noteId, draft, enabled, setStatusType}: Options
         setStatusType("loading")
 
         const timer = setTimeout(() => {
+            timerRef.current = null
             savedRef.current = draft
             patchNoteRef.current(noteId, patch)
         }, isTextEdit ? TEXT_DEBOUNCE_MS : 0)
+        timerRef.current = timer
 
-        return () => clearTimeout(timer)
+        return () => {
+            clearTimeout(timer)
+            if (timerRef.current === timer) timerRef.current = null
+        }
     }, [draft, enabled, noteId, setStatusType])
+
+    /**
+     * 기다리지 않고 지금 저장한다(⌘/Ctrl + S).
+     *
+     * 자동 저장이 이미 있지만, 타이핑을 멈춘 500ms 사이에 창을 닫거나 하면 불안하다.
+     * "저장했다"를 사람이 직접 확인할 수 있는 길을 하나 열어둔다.
+     */
+    const saveNow = useCallback(() => {
+        if (!enabled || !draft) return false
+
+        if (timerRef.current) {
+            clearTimeout(timerRef.current)
+            timerRef.current = null
+        }
+
+        const patch = buildPatch(savedRef.current ?? draft, draft)
+        savedRef.current = draft
+        setStatusType("loading")
+        patchNoteRef.current(noteId, patch)
+        return true
+    }, [draft, enabled, noteId, setStatusType])
+
+    return {saveNow}
 }

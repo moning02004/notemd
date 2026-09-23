@@ -1,6 +1,6 @@
 "use client"
 
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {notFound, useParams, useRouter} from "next/navigation";
 import toast from "react-hot-toast";
 
@@ -32,12 +32,29 @@ export default function Page() {
 
     const {state, draft, isOwner, isEditable, setters, unlock} = useNoteDetail(noteId)
 
-    useNoteAutosave({
+    const isSavable = isEditable && state.status === "ready"
+
+    const {saveNow} = useNoteAutosave({
         noteId,
         draft,
-        enabled: isEditable && state.status === "ready",
+        enabled: isSavable,
         setStatusType,
     })
+
+    // ⌘/Ctrl + S 로 지금 저장. 브라우저의 '페이지 저장' 대화상자를 대신 가로챈다.
+    // 편집할 수 있는 노트에서만 막는다 — 읽기 전용 화면에서는 브라우저 기본 동작이 맞다.
+    useEffect(() => {
+        if (!isSavable) return
+
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "s") return
+            event.preventDefault()
+            if (saveNow()) toast.success("저장했습니다.")
+        }
+
+        window.addEventListener("keydown", onKeyDown)
+        return () => window.removeEventListener("keydown", onKeyDown)
+    }, [isSavable, saveNow])
 
     if (state.status === "error") {
         if (state.statusCode === 404) return notFound()
