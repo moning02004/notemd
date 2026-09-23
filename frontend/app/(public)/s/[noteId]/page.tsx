@@ -5,7 +5,7 @@ import {notFound, useParams, useRouter} from "next/navigation";
 import toast from "react-hot-toast";
 
 import {MarkdownEditor} from "@/components/editor";
-import {LoadingPage} from "@/components/loading";
+import {EditorSkeleton} from "@/components/editor_skeleton";
 import {NoteSettings} from "@/components/note_settings";
 import NotePasswordModal from "@/components/note/password_modal";
 import {useAuthStore} from "@/store/auth";
@@ -51,21 +51,24 @@ export default function Page() {
 
     if (state.status === "password") {
         return (
-            <NotePasswordModal
-                open
-                onClose={() => router.replace("/")}
-                onSubmit={async (password: string) => {
-                    try {
-                        await unlock(password)
-                    } catch {
-                        toast.error("비밀번호가 일치하지 않습니다.")
-                    }
-                }}
-            />
+            <>
+                <EditorSkeleton/>
+                <NotePasswordModal
+                    open
+                    onClose={() => router.replace("/")}
+                    onSubmit={async (password: string) => {
+                        try {
+                            await unlock(password)
+                        } catch {
+                            toast.error("비밀번호가 일치하지 않습니다.")
+                        }
+                    }}
+                />
+            </>
         )
     }
 
-    if (!draft) return <LoadingPage/>
+    if (!draft) return <EditorSkeleton/>
 
     const isReadonly = !token || draft.isProtected
 

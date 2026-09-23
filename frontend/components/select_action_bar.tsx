@@ -1,13 +1,17 @@
 "use client"
 
+import {useState} from "react"
 import {FiDownload, FiFolder, FiTrash2} from "react-icons/fi"
+import {Spinner} from "@/components/icons"
+
+type Action = () => void | Promise<void>
 
 interface SelectActionBarProps {
     selectedCount: number
-    onMove?: () => void
-    onDownload?: () => void
-    onRestore?: () => void
-    onDelete?: () => void
+    onMove?: Action
+    onDownload?: Action
+    onRestore?: Action
+    onDelete?: Action
 }
 
 export default function SelectActionBar({
@@ -61,18 +65,31 @@ function ActionBtn({
                    }: {
     icon: React.ReactNode
     label: string
-    onClick: () => void
+    onClick: Action
     disabled: boolean
     danger?: boolean
 }) {
+    // 다운로드나 삭제는 서버를 한 번 다녀온다. 그동안 버튼이 그대로면 눌리지 않은 줄 안다.
+    const [busy, setBusy] = useState(false)
+
+    const run = async () => {
+        if (busy) return
+        setBusy(true)
+        try {
+            await onClick()
+        } finally {
+            setBusy(false)
+        }
+    }
+
     return (
         <button
-            onClick={onClick}
-            disabled={disabled}
+            onClick={run}
+            disabled={disabled || busy}
             className={`
                 flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg
                 text-sm font-medium border transition-all duration-150
-                ${disabled
+                ${disabled || busy
                 ? "opacity-35 cursor-not-allowed border-border text-subtle"
                 : danger
                     ? "border-danger text-danger hover:bg-danger-soft active:scale-[0.97]"
@@ -80,7 +97,7 @@ function ActionBtn({
             }
             `}
         >
-            {icon}
+            {busy ? <Spinner size={16}/> : icon}
             {label}
         </button>
     )

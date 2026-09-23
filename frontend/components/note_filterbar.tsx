@@ -1,7 +1,7 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import { useSearchParams } from 'next/navigation'
+import { useProgressRouter } from '@/hooks/useProgressRouter'
 import { ArrowDownUp, Check, ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 import { Tag } from "@/types/note";
@@ -24,7 +24,7 @@ interface Props {
 }
 
 export default function NoteFilterBar({ tags }: Props) {
-    const router = useRouter()
+    const router = useProgressRouter()
     const searchParams = useSearchParams()
 
     const selectedTag = searchParams.get('tag') ?? '전체'

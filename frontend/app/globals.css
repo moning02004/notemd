@@ -24,6 +24,15 @@
 
     --danger: #B3261E;
     --danger-soft: #FBEAE8;
+
+    /* 노트 상태 칩. 뜻이 비슷한 것끼리 색을 묶는다.
+       open=밖으로 열림, share=함께 봄, lock=잠김. 보호는 기본 강조색을 쓴다. */
+    --chip-open: #8A5A00;
+    --chip-open-soft: #FCF3DE;
+    --chip-share: #1F4E79;
+    --chip-share-soft: #E7EFF7;
+    --chip-lock: #5B3E8E;
+    --chip-lock-soft: #F1EBFA;
 }
 
 @theme inline {
@@ -50,9 +59,45 @@
 
     --color-danger: var(--danger);
     --color-danger-soft: var(--danger-soft);
+
+    --color-chip-open: var(--chip-open);
+    --color-chip-open-soft: var(--chip-open-soft);
+    --color-chip-share: var(--chip-share);
+    --color-chip-share-soft: var(--chip-share-soft);
+    --color-chip-lock: var(--chip-lock);
+    --color-chip-lock-soft: var(--chip-lock-soft);
 }
 html, body {
   overscroll-behavior-y: contain;
+}
+
+/*
+ * 스켈레톤. 멈춰 있는 회색 덩어리보다 빛이 한 번씩 훑고 지나가는 쪽이
+ * 무언가 오고 있다는 느낌을 줘서 기다리는 시간이 짧게 느껴진다.
+ */
+@keyframes skeleton-shimmer {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(100%); }
+}
+
+.skeleton {
+    position: relative;
+    overflow: hidden;
+    background: var(--border);
+    border-radius: 6px;
+}
+
+.skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, var(--surface), transparent);
+    opacity: .7;
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton::after { animation: none; }
 }
 
 body {

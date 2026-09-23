@@ -2,7 +2,7 @@
 
 import React, {Dispatch, SetStateAction, useEffect, useState} from "react";
 import {FiArrowLeft, FiMenu} from "react-icons/fi";
-import {useRouter} from "next/navigation";
+import {useProgressRouter} from "@/hooks/useProgressRouter";
 
 import {EditorContent} from "@tiptap/react";
 import {useEditorInstance} from "@/lib/create_editor";
@@ -48,7 +48,7 @@ export function MarkdownEditor({
                                }: EditorProps
 ) {
     const titleRef = React.useRef<HTMLInputElement>(null);
-    const router = useRouter();
+    const router = useProgressRouter();
     const status = (statusType == "loading") ? <LoadingSpinner/> :
         ((statusType == "complete") ? <Complete/> :
             ((statusType == "warning") ? <Warning/> :

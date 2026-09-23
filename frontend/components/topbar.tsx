@@ -1,6 +1,6 @@
 "use client"
 
-import {usePathname, useRouter} from "next/navigation"
+import {usePathname} from "next/navigation"
 import {menuItems} from "@/constants/menus"
 import {FaSearch} from "react-icons/fa"
 import {FiX, FiChevronLeft} from "react-icons/fi"
@@ -8,12 +8,14 @@ import {useEffect} from "react"
 import {useNoteSelectStore} from "@/store/noteSelect"
 import {useSearchModalStore} from "@/store/searchModal"
 import TopbarMenu from "@/components/topbar_menu";
+import toast from "react-hot-toast";
 import {apiRequest} from "@/lib/api";
+import {useProgressRouter} from "@/hooks/useProgressRouter";
 import {WorkspaceSelector} from "@/components/workspace_selector";
 
 export function Topbar() {
     const pathname = usePathname()
-    const router = useRouter();
+    const router = useProgressRouter();
 
     const openSearch = useSearchModalStore(state => state.open)
 
@@ -71,14 +73,18 @@ export function Topbar() {
             const formData = new FormData()
             files.forEach((file) => formData.append("files", file))
 
+            // 파일 여러 개를 올리는 동안 화면이 멈춘 것처럼 보이지 않도록 진행을 알린다.
+            const toastId = toast.loading(`파일 ${files.length}개를 올리는 중...`)
             try {
-                const res = await apiRequest.post("/notes/files",
+                await apiRequest.post("/notes/files",
                     {body: formData},
                     {isMime: true}
                 )
+                toast.success("업로드가 끝났습니다.", {id: toastId})
                 window.location.reload()
             } catch (err) {
                 console.error(err)
+                toast.error("업로드에 실패했습니다.", {id: toastId})
             }
         })
 

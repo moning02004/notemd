@@ -1,14 +1,16 @@
 "use client"
 
 import {useState} from "react"
-import {useRouter, useSearchParams} from "next/navigation"
+import {useSearchParams} from "next/navigation"
+import {useProgressRouter} from "@/hooks/useProgressRouter"
 import {FiChevronDown, FiChevronLeft, FiChevronRight, FiFolder, FiInbox} from "react-icons/fi"
+import {LuBookText} from "react-icons/lu"
 import {useFolders} from "@/hooks/useFolders"
 import {useFolderUiStore} from "@/store/folderUi"
 import {findFolder, folderPathLabel, FolderNode} from "@/types/folder"
 
 function useFolderNavigation() {
-    const router = useRouter()
+    const router = useProgressRouter()
     const searchParams = useSearchParams()
 
     const goTo = (folderHash: string | null, unfiled = false) => {
@@ -41,7 +43,9 @@ export function FolderBar() {
     const folders = data?.folders ?? []
     const current = findFolder(folders, folderHash)
 
-    if (!current && !unfiled) return null
+    // 개인 노트(루트)에서도 줄을 남긴다. 폴더에 들어갈 때만 생기면 목록이 위아래로
+    // 밀리고, 지금 어디를 보고 있는지도 그때만 알 수 있다.
+    const atRoot = !current && !unfiled
 
     const trail: FolderNode[] = []
     let cursor = current
@@ -51,41 +55,71 @@ export function FolderBar() {
     }
 
     const parent = trail.length > 1 ? trail[trail.length - 2] : null
-    const count = unfiled ? (data?.unfiled_count ?? 0) : (current?.total_count ?? 0)
+    const unfiledCount = data?.unfiled_count ?? 0
+    // 루트는 폴더 안 노트까지 모두 보여주므로 합계도 그렇게 센다.
+    const rootCount = unfiledCount + folders.reduce((sum, folder) => sum + folder.total_count, 0)
+    const count = unfiled ? unfiledCount : current ? current.total_count : rootCount
 
     return (
         <div className="flex items-center gap-1 px-2 md:px-4 h-12 md:h-10 border-b border-border bg-surface">
             {/* 모바일: 한 단계 위로. 손가락이 닿는 크기(44px)를 확보한다. */}
-            <button
-                onClick={() => goTo(parent?.hash_id ?? null)}
-                aria-label={parent ? `${parent.name}(으)로` : "개인 노트로"}
-                className="md:hidden flex items-center justify-center w-9 h-11 -ml-1 rounded-lg text-accent
-                           shrink-0 cursor-pointer active:bg-accent-soft"
-            >
-                <FiChevronLeft size={19}/>
-            </button>
-
-            {/* 데스크톱: 경로 전체 */}
-            <nav className="hidden md:flex items-center gap-1 min-w-0 text-[12.5px]" aria-label="폴더 경로">
-                <button onClick={() => goTo(null)} className="text-muted hover:text-accent cursor-pointer shrink-0">
-                    개인 노트
+            {!atRoot && (
+                <button
+                    onClick={() => goTo(parent?.hash_id ?? null)}
+                    aria-label={parent ? `${parent.name}(으)로` : "개인 노트로"}
+                    className="md:hidden flex items-center justify-center w-9 h-11 -ml-1 rounded-lg text-accent
+                               shrink-0 cursor-pointer active:bg-accent-soft"
+                >
+                    <FiChevronLeft size={19}/>
                 </button>
-                {unfiled && <><Separator/><span className="font-semibold text-foreground">미분류</span></>}
+            )}
+
+            {/* 데스크톱: 경로 전체. 사이드바와 같은 아이콘을 붙여 어디인지 한눈에 읽히게 한다. */}
+            <nav className="hidden md:flex items-center gap-1 min-w-0 text-[12.5px]" aria-label="폴더 경로">
+                {atRoot
+                    ? <span className="flex items-center gap-1 font-semibold text-foreground shrink-0">
+                        <LuBookText size={12} className="shrink-0"/>
+                        개인 노트
+                    </span>
+                    : <button onClick={() => goTo(null)}
+                              className="flex items-center gap-1 text-muted hover:text-accent cursor-pointer shrink-0">
+                        <LuBookText size={12} className="shrink-0"/>
+                        개인 노트
+                    </button>}
+
+                {unfiled && (
+                    <><Separator/>
+                        <span className="flex items-center gap-1 font-semibold text-foreground">
+                            <FiInbox size={12} className="shrink-0"/>
+                            미분류
+                        </span>
+                    </>
+                )}
+
                 {trail.map((node, index) => (
                     <span key={node.hash_id} className="flex items-center gap-1 min-w-0">
                         <Separator/>
                         {index === trail.length - 1
-                            ? <span className="font-semibold text-foreground truncate">{node.name}</span>
+                            ? <span className="flex items-center gap-1 min-w-0 font-semibold text-foreground">
+                                <FiFolder size={12} className="shrink-0"/>
+                                <span className="truncate">{node.name}</span>
+                            </span>
                             : <button onClick={() => goTo(node.hash_id)}
-                                      className="text-muted hover:text-accent cursor-pointer truncate">
-                                {node.name}
+                                      className="flex items-center gap-1 min-w-0 text-muted hover:text-accent cursor-pointer">
+                                <FiFolder size={12} className="shrink-0"/>
+                                <span className="truncate">{node.name}</span>
                             </button>}
                     </span>
                 ))}
             </nav>
 
-            <span className="md:hidden flex-1 min-w-0 text-[13px] text-muted truncate tracking-wider">
-                {unfiled ? "/미분류" : folderPathLabel(folders, current?.hash_id)}
+            <span className="md:hidden flex items-center gap-1.5 flex-1 min-w-0 text-[13px] text-muted">
+                {unfiled ? <FiInbox size={13} className="shrink-0"/>
+                    : atRoot ? <LuBookText size={13} className="shrink-0"/>
+                        : <FiFolder size={13} className="shrink-0"/>}
+                <span className="truncate tracking-wider">
+                    {unfiled ? "/미분류" : atRoot ? "/개인 노트" : folderPathLabel(folders, current?.hash_id)}
+                </span>
             </span>
 
             <span className="hidden md:inline text-[11.5px] text-subtle tabular-nums ml-2">{count}개</span>

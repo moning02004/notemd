@@ -1,5 +1,6 @@
 import {useAuthStore} from "@/store/auth";
 import {API_HOST} from "@/constants/api";
+import {doneProgress, startProgress} from "@/store/progress";
 import {authLogout} from "@/lib/auth";
 import {AuthTokenResponse} from "@/types/auth";
 
@@ -10,6 +11,8 @@ type RequestExtraOptions = {
     isMime?: boolean
     /** JSON 파싱 없이 Response를 그대로 받는다(파일 다운로드) */
     isDownloadFile?: boolean
+    /** 상단 진행 막대를 띄우지 않는다. 자동 저장처럼 자체 표시가 있는 요청용 */
+    isSilent?: boolean
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -102,6 +105,20 @@ async function request<T = unknown>(endPoint: string,
                                     method: HttpMethod,
                                     options: RequestInit = {},
                                     extraOptions: RequestExtraOptions = {}): Promise<T> {
+    // 모든 요청이 상단 막대를 켜고 끈다. 화면마다 따로 로딩 상태를 두지 않아도
+    // 기다리는 구간이 항상 보인다.
+    if (!extraOptions.isSilent) startProgress()
+    try {
+        return await sendRequest<T>(endPoint, method, options, extraOptions)
+    } finally {
+        if (!extraOptions.isSilent) doneProgress()
+    }
+}
+
+async function sendRequest<T = unknown>(endPoint: string,
+                                         method: HttpMethod,
+                                         options: RequestInit,
+                                         extraOptions: RequestExtraOptions): Promise<T> {
     const send = (token: string | null) => fetch(`${API_HOST}${endPoint}`, {
         ...options,
         method,

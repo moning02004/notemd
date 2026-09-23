@@ -5,6 +5,7 @@ import {apiRequest} from "@/lib/api";
 import {useAuthStore} from "@/store/auth";
 import {SignupPage} from "@/components/signup";
 import {LoadingPage} from "@/components/loading";
+import {Spinner} from "@/components/icons";
 import {API_HOST} from "@/constants/api";
 import Cookies from "js-cookie";
 import {AuthTokenResponse, CheckAccountExistenceResponse} from "@/types/auth";
@@ -16,6 +17,8 @@ export default function Page() {
     const authLoginRef = useRef<HTMLInputElement>(null)
 
     const [errorMessage, setErrorMessage] = useState("")
+    // 로그인은 토큰을 받아오고 첫 화면까지 가는 동안 비어 보인다. 버튼에서 계속 진행 중임을 알린다.
+    const [isLoggingIn, setIsLoggingIn] = useState(false)
     const {setAuth} = useAuthStore.getState();
     const [existsAccount, setExistsAccount] = useState<boolean | null>(null);
 
@@ -54,6 +57,8 @@ export default function Page() {
     }, []);
 
     const login = async () => {
+        if (isLoggingIn) return
+
         if (!usernameRef.current || !passwordRef.current || !authLoginRef.current) {
             return
         }
@@ -63,6 +68,7 @@ export default function Page() {
             return
         }
 
+        setIsLoggingIn(true)
         const data = await apiRequest.post<Partial<AuthTokenResponse>>("/auth/obtain-token", {
             body: JSON.stringify({
                 username: usernameRef.current.value,
@@ -72,7 +78,10 @@ export default function Page() {
             setErrorMessage(error.detail || "계정을 찾을 수 없습니다.")
             return {} as Partial<AuthTokenResponse>
         })
-        if (!data.access_token) return
+        if (!data.access_token) {
+            setIsLoggingIn(false)
+            return
+        }
 
         if (authLoginRef.current.checked) {
             Cookies.set('auto-login', '1', {expires: 180})
@@ -152,9 +161,11 @@ export default function Page() {
                     <button
                         type="button"
                         onClick={login}
-                        className="w-full py-3 rounded-lg bg-accent text-white font-extrabold text-[14.5px] cursor-pointer hover:bg-accent-hover active:scale-[0.99] transition-all shadow-[0_8px_16px_-8px_rgba(14,140,127,0.6)]"
+                        disabled={isLoggingIn}
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-accent text-white font-extrabold text-[14.5px] cursor-pointer hover:bg-accent-hover active:scale-[0.99] transition-all shadow-[0_8px_16px_-8px_rgba(14,140,127,0.6)] disabled:cursor-wait disabled:bg-accent-hover"
                     >
-                        로그인
+                        {isLoggingIn && <Spinner size={16}/>}
+                        {isLoggingIn ? "로그인 중..." : "로그인"}
                     </button>
                 </div>
             </div>

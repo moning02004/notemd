@@ -11,6 +11,7 @@ import {useSearchModalStore} from "@/store/searchModal";
 import {SearchModal} from "@/components/search_modal";
 import {MoveNotesSheet} from "@/components/folder/move_notes_sheet";
 import {useMoveSheetStore} from "@/store/moveSheet";
+import {AppShellSkeleton} from "@/components/skeleton";
 
 export default function MainLayout({children}: {
     children: React.ReactNode;
@@ -26,9 +27,12 @@ export default function MainLayout({children}: {
         setMounted(true)
     }, [])
 
-    // sessionStorage 기반 토큰은 클라이언트에서만 읽을 수 있어, 하이드레이션이
-    // 끝나기 전까지는 서버와 동일하게 "미로그인" 트리를 렌더링해 mismatch를 피한다.
-    if (!mounted || !token) return (
+    // sessionStorage 기반 토큰은 클라이언트에서만 읽을 수 있다. 하이드레이션 전에 화면을
+    // 그리면 서버('미로그인')와 어긋나 트리를 통째로 다시 그리느라 한 번 번쩍인다.
+    // 양쪽이 똑같이 그릴 수 있는 뼈대를 먼저 보여준다.
+    if (!mounted) return <AppShellSkeleton/>
+
+    if (!token) return (
         <div className="bg-surface h-screen">
             <Providers>
                 {children}

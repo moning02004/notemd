@@ -10,7 +10,7 @@ import SelectActionBar from "@/components/select_action_bar"
 import {useNoteListPaging} from "@/hooks/useNoteListPaging"
 import {apiRequest} from "@/lib/api";
 import toast from "react-hot-toast";
-import {SkeletonLoading} from "@/components/skeleton";
+import {NoteListSkeleton, SkeletonLoading} from "@/components/skeleton";
 import {useViewModeStore} from "@/store/viewMode";
 import NoteFilterBar from "@/components/note_filterbar";
 import ViewModeToggle from "@/components/view_mode_toggle";
@@ -59,7 +59,7 @@ function NoteListContent() {
                     : "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-4 md:p-6 pb-24"
                 }>
                 {isLoading
-                    ? <SkeletonLoading count={4}/>
+                    ? <SkeletonLoading count={viewMode === "list" ? 8 : 4} viewMode={viewMode}/>
                     : notes.map(note => (
                         <Note
                             key={note.hash_id}
@@ -78,8 +78,11 @@ function NoteListContent() {
                 }
             </div>
 
-            <div ref={sentinelRef} className="py-4 flex justify-center">
-                {isFetchingNextPage && <SkeletonLoading count={4}/>}
+            <div ref={sentinelRef}
+                 className={viewMode === "list"
+                     ? "flex flex-col px-4 md:px-6 pb-4"
+                     : "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 px-4 md:px-6 pb-4"}>
+                {isFetchingNextPage && <SkeletonLoading count={viewMode === "list" ? 3 : 4} viewMode={viewMode}/>}
             </div>
 
             {selectMode && (
@@ -104,7 +107,7 @@ export default function Page() {
     if (!token) return <LoadingPage/>
 
     return (
-        <Suspense fallback={<LoadingPage/>}>
+        <Suspense fallback={<NoteListSkeleton/>}>
             <NoteListContent/>
         </Suspense>
     )

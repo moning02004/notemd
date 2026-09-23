@@ -3,7 +3,8 @@ import {FiArrowLeft, FiX} from "react-icons/fi";
 import {apiRequest} from "@/lib/api";
 import DOMPurify from "dompurify";
 import {gotoNote} from "@/lib/note";
-import {useRouter} from "next/navigation";
+import {useProgressRouter} from "@/hooks/useProgressRouter";
+import {Spinner} from "@/components/icons";
 import {Modal} from "@/components/ui/modal";
 import {NoteSearchResult} from "@/types/note";
 import {useFolders} from "@/hooks/useFolders";
@@ -15,22 +16,22 @@ interface Props {
 }
 
 const SkeletonItem = () => (
-    <div className="w-full border-b border-border p-3 animate-pulse">
+    <div className="w-full border-b border-border p-3">
         <div className="flex flex-row">
             <div className="border-r border-border pr-2 space-y-2 flex-1">
-                <div className="h-4 bg-border rounded w-1/3"/>
-                <div className="h-3 bg-border rounded w-full"/>
-                <div className="h-3 bg-border rounded w-5/6"/>
+                <div className="skeleton h-4 w-1/3"/>
+                <div className="skeleton h-3 w-full"/>
+                <div className="skeleton h-3 w-5/6"/>
             </div>
             <div className="flex-1 my-auto ml-auto text-right pr-2">
-                <div className="h-3 bg-border rounded w-16 ml-auto"/>
+                <div className="skeleton h-3 w-16 ml-auto"/>
             </div>
         </div>
     </div>
 );
 
 export const SearchModal = ({isOpen, onClose}: Props) => {
-    const router = useRouter();
+    const router = useProgressRouter();
 
     const keywordRef = useRef(null)
     const [keyword, setKeyword] = useState("")
@@ -39,12 +40,15 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
     const {data: folderData} = useFolders(isOpen)
     const [isLoading, setIsLoading] = useState(false)
     const [searched, setSearched] = useState(false)
+    // 고른 결과가 열리는 동안 그 줄에 표시를 남긴다.
+    const [openingId, setOpeningId] = useState<string | null>(null)
 
     useEffect(() => {
         if (!isOpen) {
             setKeyword("")
             setResults([])
             setSearched(false)
+            setOpeningId(null)
         }
     }, [isOpen])
 
@@ -115,8 +119,12 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
                         results.map((note) => (
                             <div
                                 key={note.hash_id}
-                                className="hover:bg-background w-full border-b border-border p-3 cursor-pointer"
-                                onClick={() => gotoNote({id: note.hash_id, router})}
+                                className={`w-full border-b border-border p-3 cursor-pointer
+                                    ${openingId === note.hash_id ? "bg-background" : "hover:bg-background"}`}
+                                onClick={async () => {
+                                    setOpeningId(note.hash_id)
+                                    await gotoNote({id: note.hash_id, router})
+                                }}
                             >
                                 <div className="flex flex-row">
                                     <div className="border-r border-border flex-1 pr-2 min-w-0">
@@ -131,7 +139,9 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
                                     </div>
                                     <div
                                         className="flex-shrink-0 my-auto ml-auto text-right text-sm px-2 text-subtle">
-                                        {note.created_at}
+                                        {openingId === note.hash_id
+                                            ? <Spinner size={16} className="text-accent ml-auto"/>
+                                            : note.created_at}
                                     </div>
                                 </div>
                             </div>

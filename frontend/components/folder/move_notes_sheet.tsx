@@ -6,6 +6,7 @@ import {useCreateFolder, useFolderInvalidate, useFolders} from "@/hooks/useFolde
 import {useNotesStore} from "@/store/notes"
 import {moveNotesWithUndo} from "@/lib/folder"
 import {flattenFolders} from "@/types/folder"
+import {Spinner} from "@/components/icons"
 
 interface Props {
     open: boolean
@@ -34,6 +35,8 @@ export function MoveNotesSheet({open, onClose, noteHashes, currentFolder, onMove
     const [query, setQuery] = useState("")
     const [cursor, setCursor] = useState(0)
     const [busy, setBusy] = useState(false)
+    // 어느 줄을 눌렀는지 알아야 그 줄에 진행 표시를 남길 수 있다.
+    const [movingTo, setMovingTo] = useState<string | null>(null)
     const inputRef = useRef<HTMLInputElement>(null)
     const listRef = useRef<HTMLDivElement>(null)
 
@@ -74,6 +77,7 @@ export function MoveNotesSheet({open, onClose, noteHashes, currentFolder, onMove
     const move = async (target: Target) => {
         if (busy) return
         setBusy(true)
+        setMovingTo(target.hashId ?? "unfiled")
         try {
             await moveNotesWithUndo({
                 noteHashes,
@@ -86,6 +90,7 @@ export function MoveNotesSheet({open, onClose, noteHashes, currentFolder, onMove
             onClose()
         } finally {
             setBusy(false)
+            setMovingTo(null)
         }
     }
 
@@ -181,7 +186,9 @@ export function MoveNotesSheet({open, onClose, noteHashes, currentFolder, onMove
                                         <span className="block text-[11px] text-subtle truncate">{parentPath}</span>
                                     )}
                                 </span>
-                                {isCurrent && <span className="text-[11px] text-subtle shrink-0">현재 위치</span>}
+                                {movingTo === (target.hashId ?? "unfiled")
+                                    ? <Spinner size={16} className="text-accent"/>
+                                    : isCurrent && <span className="text-[11px] text-subtle shrink-0">현재 위치</span>}
                             </button>
                         )
                     })}
@@ -190,10 +197,11 @@ export function MoveNotesSheet({open, onClose, noteHashes, currentFolder, onMove
                         <button
                             onClick={createAndMove}
                             disabled={busy}
+                            aria-busy={busy}
                             className="w-full flex items-center gap-2.5 px-3 rounded-lg text-left min-h-[52px]
                                        md:min-h-[36px] text-accent hover:bg-background cursor-pointer"
                         >
-                            <FiPlus size={16} className="shrink-0"/>
+                            {busy ? <Spinner size={16}/> : <FiPlus size={16} className="shrink-0"/>}
                             <span className="text-[15px] md:text-[13px] font-medium truncate">
                                 “{query.trim()}” 폴더를 만들어 옮기기
                             </span>

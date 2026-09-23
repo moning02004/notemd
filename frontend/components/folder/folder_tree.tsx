@@ -1,12 +1,13 @@
 "use client"
 
-import {usePathname, useRouter, useSearchParams} from "next/navigation"
+import {usePathname, useSearchParams} from "next/navigation"
+import {useProgressRouter} from "@/hooks/useProgressRouter"
 import {useEffect, useRef, useState} from "react"
 import {LuBookText} from "react-icons/lu"
 import {FiChevronRight, FiFolder, FiInbox, FiMoreHorizontal} from "react-icons/fi"
 import {useCreateFolder, useDeleteFolder, useFolders, useMoveFolder, useMoveNotes, useRenameFolder} from "@/hooks/useFolders"
 import {useFolderUiStore} from "@/store/folderUi"
-import {FolderNode} from "@/types/folder"
+import {findFolder, FolderNode} from "@/types/folder"
 import {useClickOutside} from "@/hooks/useClickOutside"
 import {readDragPayload, startFolderDrag} from "@/lib/note_drag"
 
@@ -14,11 +15,11 @@ export function FolderTree({creating, onCreatingChange}: {
     creating: boolean
     onCreatingChange: (value: boolean) => void
 }) {
-    const router = useRouter()
+    const router = useProgressRouter()
     const pathname = usePathname()
     const searchParams = useSearchParams()
     const {data} = useFolders()
-    const {expanded, toggleExpanded} = useFolderUiStore()
+    const {expanded, toggleExpanded, expand} = useFolderUiStore()
 
     const createFolder = useCreateFolder()
     const [draftName, setDraftName] = useState("")
@@ -27,6 +28,20 @@ export function FolderTree({creating, onCreatingChange}: {
     const selected = onNoteList ? searchParams.get("folder") : null
     const unfiledSelected = onNoteList && searchParams.get("unfiled") === "1"
     const rootSelected = onNoteList && !selected && !unfiledSelected
+
+    // 고른 폴더는 트리에서도 펼쳐 둔다. 목록에서 상위 폴더로 들어갔을 때
+    // 사이드바는 접힌 채라 지금 어디에 있고 무엇이 들어 있는지 보이지 않았다.
+    useEffect(() => {
+        if (!selected || !data) return
+
+        const chain: string[] = []
+        let node = findFolder(data.folders, selected)
+        while (node) {
+            chain.push(node.hash_id)
+            node = findFolder(data.folders, node.parent_hash)
+        }
+        if (chain.length) expand(chain)
+    }, [selected, data, expand])
 
     const goTo = (params: Record<string, string | null>) => {
         // 노트 목록 밖(휴지통·설정)에서 눌렀다면 필터를 끌고 오지 않는다.
@@ -182,7 +197,15 @@ function FolderRow({folder, selected, expanded, onToggle, onSelect}: {
 
     return (
         <>
+            {/*
+              줄 전체가 눌려야 한다. 이름 글자만 버튼이면 아이콘·들여쓰기 여백·개수 자리를
+              눌렀을 때 hover 로 밝아지기만 하고 아무 일도 일어나지 않는다.
+              펼침 화살표와 메뉴는 각자 다른 일을 하므로 거기서 전파를 끊는다.
+            */}
             <div
+                onClick={() => {
+                    if (!renaming) onSelect(folder.hash_id)
+                }}
                 className={`${rowClass(isActive)} ${dropping ? "ring-1 ring-accent bg-accent-menu text-accent" : ""}`}
                 style={{paddingLeft: 22 + folder.depth * 12}}
                 draggable={!renaming}
@@ -196,7 +219,10 @@ function FolderRow({folder, selected, expanded, onToggle, onSelect}: {
                 onDrop={onDrop}
             >
                 <button
-                    onClick={() => hasChildren && onToggle(folder.hash_id)}
+                    onClick={event => {
+                        event.stopPropagation()
+                        if (hasChildren) onToggle(folder.hash_id)
+                    }}
                     aria-label={hasChildren ? (isOpen ? "접기" : "펼치기") : undefined}
                     tabIndex={hasChildren ? 0 : -1}
                     className={`w-3.5 shrink-0 flex items-center justify-center ${hasChildren ? "cursor-pointer" : "invisible"}`}
@@ -214,6 +240,7 @@ function FolderRow({folder, selected, expanded, onToggle, onSelect}: {
                         id={`rename-folder-${folder.hash_id}`}
                         autoFocus
                         value={draftName}
+                        onClick={event => event.stopPropagation()}
                         onChange={event => setDraftName(event.target.value)}
                         onBlur={submitRename}
                         onKeyDown={event => {
@@ -227,12 +254,21 @@ function FolderRow({folder, selected, expanded, onToggle, onSelect}: {
                                    text-foreground outline-none"
                     />
                 ) : (
-                    <button onClick={() => onSelect(folder.hash_id)} className="flex-1 min-w-0 text-left truncate cursor-pointer">
+                    /* 줄 전체가 눌리지만, 키보드로도 고를 수 있게 이름은 버튼으로 남긴다. */
+                    <button
+                        onClick={event => {
+                            event.stopPropagation()
+                            onSelect(folder.hash_id)
+                        }}
+                        className="flex-1 min-w-0 text-left truncate cursor-pointer"
+                    >
                         {folder.name}
                     </button>
                 )}
 
-                <span className="flex items-center shrink-0" ref={menuRef}>
+                {/* 개수·메뉴 자리. 줄 클릭과 겹치지 않게 여기서 전파를 끊는다. */}
+                <span className="flex items-center shrink-0" ref={menuRef}
+                      onClick={event => event.stopPropagation()}>
                     <span className="text-[10px] tabular-nums group-hover:hidden">{count}</span>
                     <button
                         ref={triggerRef}

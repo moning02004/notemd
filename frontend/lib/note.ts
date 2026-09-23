@@ -1,10 +1,12 @@
 import {apiRequest} from "@/lib/api";
-import type {AppRouterInstance} from "next/dist/shared/lib/app-router-context.shared-runtime";
 import {CreateNoteResponse} from "@/types/note";
+
+/** next 의 router 와 useProgressRouter 가 모두 들어올 수 있도록 push 만 요구한다. */
+type PushRouter = { push: (href: string) => void }
 
 export const gotoNote = async ({id, router, folder}: {
     id: string | null,
-    router: AppRouterInstance
+    router: PushRouter
     /** 새 노트를 만들 때 들어갈 폴더. 없으면 미분류에서 시작한다. */
     folder?: string | null
 }) => {

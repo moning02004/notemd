@@ -18,7 +18,7 @@ export function useNotePatch(setStatusType: (status: string) => void) {
     return (noteId: string, data: NotePatchData) => {
         return apiRequest.patch(`/notes/${noteId}`, {
             body: JSON.stringify(data)
-        }).then(() => {
+        }, {isSilent: true}).then(() => {
             setStatusType("complete")
             Cookies.set('is_first_edit', '0')
         }).catch(() => {

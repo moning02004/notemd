@@ -11,6 +11,7 @@ import {SettingsCard} from "@/components/ui/settings_card";
 import SettingsWorkspaceInput from "@/components/settings_workspace_input";
 import {NoteWorkspace} from "@/types/workspace";
 import {downloadNoteRequest} from "@/lib/note";
+import {Spinner} from "@/components/icons";
 
 interface SettingsProps {
     noteId: string,
@@ -73,6 +74,7 @@ export const NoteSettings = ({
     const [passwordInput, setPasswordInput] = useState(notePassword !== "")
 
     const [isExporting, setIsExporting] = useState(false)
+    const [isDeleting, setIsDeleting] = useState(false)
 
     const exportPdf = async () => {
         setIsExporting(true)
@@ -86,10 +88,17 @@ export const NoteSettings = ({
     }
 
     const deleteNote = async () => {
-        await apiRequest.delete(`/notes/${noteId}`).then(() => {
+        if (isDeleting) return
+        // 삭제 후 목록으로 나가기까지 시간이 걸린다. 그동안 버튼을 잠그고 진행을 보여준다.
+        setIsDeleting(true)
+        try {
+            await apiRequest.delete(`/notes/${noteId}`)
             toast.success("노트가 삭제되었습니다.")
             window.location.href = "/"
-        })
+        } catch {
+            setIsDeleting(false)
+            toast.error("노트를 삭제하지 못했습니다.")
+        }
     }
 
     return (
@@ -118,7 +127,9 @@ export const NoteSettings = ({
                                 disabled={isExporting}
                                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-border-strong bg-background text-muted hover:border-accent hover:bg-accent-soft hover:text-accent transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-border-strong disabled:hover:bg-background disabled:hover:text-muted"
                             >
-                                <FiFileText size={18} className="text-accent"/>
+                                {isExporting
+                                    ? <Spinner size={18} className="text-accent"/>
+                                    : <FiFileText size={18} className="text-accent"/>}
                                 <span className="text-[13px] font-medium">
                                     {isExporting ? "PDF 만드는 중..." : "PDF로 내보내기"}
                                 </span>
@@ -281,10 +292,12 @@ export const NoteSettings = ({
                     {!isProtected && (
                         <div className="px-5 pb-6 pt-3 border-t border-border bg-surface">
                             <button
-                                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-[0.9rem] text-subtle hover:text-danger hover:bg-danger-soft transition-colors duration-200 cursor-pointer"
+                                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-[0.9rem] text-subtle hover:text-danger hover:bg-danger-soft transition-colors duration-200 cursor-pointer disabled:cursor-wait disabled:text-subtle disabled:hover:bg-transparent"
                                 onClick={deleteNote}
+                                disabled={isDeleting}
                             >
-                                노트 삭제
+                                {isDeleting && <Spinner size={15}/>}
+                                {isDeleting ? "삭제하는 중..." : "노트 삭제"}
                             </button>
                         </div>
                     )}

@@ -1,7 +1,8 @@
 "use client"
 
-import {Suspense, useEffect, useMemo} from "react"
+import {Suspense, useEffect, useState} from "react"
 import {useRouter, useSearchParams} from "next/navigation"
+import {useProgressRouter} from "@/hooks/useProgressRouter"
 import {MdWorkspacesFilled} from "react-icons/md"
 import {useAuthStore} from "@/store/auth"
 import {useNoteSelectStore} from "@/store/noteSelect"
@@ -16,10 +17,10 @@ import {useNoteListPaging} from "@/hooks/useNoteListPaging"
 import {useTags} from "@/hooks/useTags"
 import {apiRequest} from "@/lib/api";
 import toast from "react-hot-toast";
-import {SkeletonLoading} from "@/components/skeleton";
+import {NoteListSkeleton, SkeletonLoading} from "@/components/skeleton";
 
 function WorkspaceNoteListContent() {
-    const router = useRouter()
+    const router = useProgressRouter()
     const searchParams = useSearchParams()
     const {data: tagsData} = useTags()
     const {viewMode} = useViewModeStore()
@@ -46,6 +47,14 @@ function WorkspaceNoteListContent() {
         exitSelectMode,
         toggleSelect,
     } = useNoteSelectStore()
+
+    // 노트를 여는 동안 누른 칸에 표시를 남긴다.
+    const [openingId, setOpeningId] = useState<string | null>(null)
+
+    async function openNote(hashId: string) {
+        setOpeningId(hashId)
+        await gotoNote({id: hashId, router})
+    }
 
     // ── 배치 액션 ────────────────────────────────────────────
     async function handleDownloadSelected() {
@@ -75,13 +84,13 @@ function WorkspaceNoteListContent() {
                     : "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-4 md:p-6 pb-24"
                 }>
                 {isLoading || isWorkspacesLoading
-                    ? <SkeletonLoading count={4}/>
+                    ? <SkeletonLoading count={viewMode === "list" ? 8 : 4} viewMode={viewMode}/>
                     : notes.map(note => (
                         <Note
                             key={note.hash_id}
                             hashId={note.hash_id}
                             data-note-id={note.hash_id}
-                            onClick={() => gotoNote({id: note.hash_id, router})}
+                            onClick={() => openNote(note.hash_id)}
                             title={note.title || "제목 없음"}
                             content={note.content}
                             isOwner={note.user_hash === userHash}
@@ -92,13 +101,17 @@ function WorkspaceNoteListContent() {
                             selected={selectedIds.has(note.hash_id)}
                             onSelect={toggleSelect}
                             viewMode={viewMode}
+                            isOpening={openingId === note.hash_id}
                         />
                     ))
                 }
             </div>
 
-            <div ref={sentinelRef} className="py-4 flex justify-center">
-                {isFetchingNextPage && <SkeletonLoading count={4}/>}
+            <div ref={sentinelRef}
+                 className={viewMode === "list"
+                     ? "flex flex-col px-4 md:px-6 pb-4"
+                     : "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 px-4 md:px-6 pb-4"}>
+                {isFetchingNextPage && <SkeletonLoading count={viewMode === "list" ? 3 : 4} viewMode={viewMode}/>}
             </div>
 
             {selectMode && (
@@ -122,7 +135,7 @@ export default function Page() {
     if (!token) return <LoadingPage/>
 
     return (
-        <Suspense fallback={<LoadingPage/>}>
+        <Suspense fallback={<NoteListSkeleton/>}>
             <WorkspaceNoteListContent/>
         </Suspense>
     )
