@@ -129,6 +129,8 @@ class SlashMenu {
         this.element.className = `fixed z-[9999] w-60 max-h-72 overflow-y-auto rounded-xl border border-border
                                   bg-surface p-1 shadow-lg text-[13px]`
         this.element.setAttribute("role", "listbox")
+        // 열려 있는 동안만 body 에 붙는다. 바깥(참조 패널 등)이 Esc 를 누구 몫으로 볼지 가릴 때 쓴다.
+        this.element.dataset.slashMenu = ""
     }
 
     update(items: SlashItem[], rect: DOMRect | null, onPick: (item: SlashItem) => void) {

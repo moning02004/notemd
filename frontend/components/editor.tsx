@@ -1,6 +1,6 @@
 "use client";
 
-import React, {Dispatch, SetStateAction, useEffect, useState} from "react";
+import React, {Dispatch, SetStateAction, useCallback, useEffect, useState} from "react";
 import {FiArrowLeft, FiMenu} from "react-icons/fi";
 import {useProgressRouter} from "@/hooks/useProgressRouter";
 
@@ -16,6 +16,7 @@ import {BubbleMenu} from "@tiptap/react/menus";
 import {useAuthStore} from "@/store/auth";
 import EditorLinkModal from "@/components/editor_link_modal";
 import {NotePickerModal} from "@/components/note/note_picker_modal";
+import {NotePeekPanel} from "@/components/note/note_peek_panel";
 import EditorLinkBubble from "@/components/editor_link_bubble";
 import {Link as LinkIcon} from "lucide-react";
 import {MdWorkspacesFilled} from "react-icons/md";
@@ -60,13 +61,15 @@ export function MarkdownEditor({
     const [tableMenuOpen, setTableMenuOpen] = useState(false)
     const [linkModalOpen, setLinkModalOpen] = useState(false)
     const [notePickerOpen, setNotePickerOpen] = useState(false)
+    // 본문의 노트 링크를 누르면 옮겨 가지 않고 오른쪽 패널에 펼친다.
+    const [peekNoteId, setPeekNoteId] = useState<string | null>(null)
     const {token} = useAuthStore.getState();
 
     const editor = useEditorInstance({
         initialContent: content,
         setContent: setContent,
         onPickNote: () => setNotePickerOpen(true),
-        onOpenNote: noteId => router.push(`/s/${noteId}`),
+        onOpenNote: setPeekNoteId,
         uploadFile: async (file: File) => {
             const formData = new FormData();
             formData.append("file", file);
@@ -95,6 +98,8 @@ export function MarkdownEditor({
         editor?.setEditable(!isReadonly);
     }, [editor, isReadonly]);
 
+    const closePeek = useCallback(() => setPeekNoteId(null), [])
+
     const titleKeyup = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key == "Enter") {
             editor.commands.focus("start")
@@ -111,7 +116,8 @@ export function MarkdownEditor({
     if (!editor) return <div></div>;
 
     return (
-        <div className="h-screen flex flex-col bg-surface w-full overflow-y-auto">
+        <div className={`h-screen flex flex-col bg-surface w-full overflow-y-auto
+                        ${peekNoteId ? "md:pr-[var(--note-peek-width)]" : ""}`}>
             <div
                 className="flex flex-row items-center bg-surface border-b border-border px-3 transition-colors duration-300">
                 {
@@ -213,6 +219,12 @@ export function MarkdownEditor({
                     open={linkModalOpen}
                     onClose={() => setLinkModalOpen(false)}/>
             }
+
+            <NotePeekPanel
+                noteId={peekNoteId}
+                onClose={closePeek}
+                onNavigate={setPeekNoteId}
+                onOpenFull={noteId => router.push(`/s/${noteId}`)}/>
 
             {
                 !isReadonly &&

@@ -100,6 +100,43 @@ html, body {
     color: #fff;
 }
 
+/*
+ * 노트 링크를 누르면 오른쪽에 펼쳐지는 참조 패널. 데스크톱에서는 쓰던 노트가 이 폭만큼 비켜서
+ * 나란히 보이고, 모바일에서는 화면을 덮으며 오른쪽에서 밀려 들어온다.
+ */
+:root {
+    --note-peek-width: min(560px, 45vw);
+}
+
+.note-peek {
+    animation: note-peek-in .22s cubic-bezier(.22, 1, .36, 1);
+}
+
+@keyframes note-peek-in {
+    from {
+        transform: translateX(32px);
+        opacity: 0;
+    }
+}
+
+@media (max-width: 767px) {
+    .note-peek {
+        animation-name: note-peek-in-mobile;
+    }
+
+    @keyframes note-peek-in-mobile {
+        from {
+            transform: translateX(100%);
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .note-peek {
+        animation: none;
+    }
+}
+
 /* 휴지통에 있거나 볼 수 없는 노트. 눌러도 옮겨 가지 않으므로 누를 수 있는 것처럼 보이지 않게 한다. */
 .ProseMirror a.note-link[data-state="deleted"],
 .ProseMirror a.note-link[data-state="unavailable"] {

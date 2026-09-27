@@ -3,7 +3,7 @@ import {Plugin, PluginKey} from "@tiptap/pm/state"
 import toast from "react-hot-toast"
 
 export type NoteLinkOptions = {
-    /** 링크를 눌렀을 때 그 노트로 옮겨 가는 통로. 편집 화면이 앱 라우터로 넘겨준다. */
+    /** 링크를 눌렀을 때 그 노트를 여는 통로. 없으면 그 노트 주소로 옮겨 간다. */
     onOpen?: (noteId: string) => void
 }
 
@@ -70,8 +70,9 @@ export const NoteLink = Node.create<NoteLinkOptions>({
 
     /*
      * 편집 중에는 <a> 를 눌러도 브라우저가 이동하지 않고 조각이 선택될 뿐이다.
-     * 노트 링크는 고칠 글자가 없는 atom 이라 누르는 목적은 거의 항상 '가 보기'이므로,
-     * 편집 중이든 읽기 전용이든 바로 옮겨 간다. 지우는 건 Backspace 로 충분하다.
+     * 노트 링크는 고칠 글자가 없는 atom 이라 누르는 목적은 거의 항상 '열어 보기'이므로,
+     * 편집 중이든 읽기 전용이든 바로 onOpen 을 부른다(편집 화면은 옆 패널에 펼친다).
+     * 지우는 건 Backspace 로 충분하다.
      * ⌘/Ctrl·Shift·가운데 버튼은 브라우저에 맡겨 새 탭/창으로 열리게 둔다.
      */
     addProseMirrorPlugins() {

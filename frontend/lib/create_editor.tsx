@@ -266,14 +266,16 @@ const CustomTableCell = TableCell.extend({
     },
 });
 
-export function useEditorInstance({initialContent, setContent, uploadFile, onPickNote, onOpenNote}: {
+export function useEditorInstance({initialContent, setContent, uploadFile, onPickNote, onOpenNote, editable = true}: {
     initialContent: string,
     setContent: (value: string) => void,
     uploadFile: (file: File) => Promise<string>,
     /** "/노트" 를 골랐을 때 노트 고르는 창을 여는 통로 */
     onPickNote?: () => void,
-    /** 본문의 노트 링크를 눌렀을 때 그 노트로 옮겨 가는 통로 */
-    onOpenNote?: (noteId: string) => void
+    /** 본문의 노트 링크를 눌렀을 때 부르는 통로(참조 패널 열기 등) */
+    onOpenNote?: (noteId: string) => void,
+    /** 처음부터 읽기 전용으로 만든다(참조 패널 등). 편집 화면은 setEditable 로 바꾼다. */
+    editable?: boolean
 }) {
 
     const lowlight = createLowlight()
@@ -315,6 +317,7 @@ export function useEditorInstance({initialContent, setContent, uploadFile, onPic
     lowlight.register('java', java)
 
     return useEditor({
+        editable,
         immediatelyRender: false,
         shouldRerenderOnTransaction: false,
         extensions: [
