@@ -107,6 +107,25 @@ class NoteRepository(Repository):
         instance = self.db.query(self.DB_MODEL).filter(self.DB_MODEL.hash_id == hash_id).first()
         return instance
 
+    def get_link_targets(self, note_hashes: list[str], user_id: int | None):
+        """본문 링크가 가리키는 노트들과, 그중 보는 사람이 멤버로 있는 워크스페이스의 pk.
+
+        휴지통에 있는 노트도 가져온다. 링크에 '삭제된 노트'로 보여줘야 하기 때문이다.
+        """
+        notes = self.db.query(self.DB_MODEL).options(
+            joinedload(self.DB_MODEL.workspaces),
+        ).filter(self.DB_MODEL.hash_id.in_(note_hashes)).all()
+
+        workspace_ids = {workspace.pk for note in notes for workspace in note.workspaces}
+        if not user_id or not workspace_ids:
+            return notes, set()
+
+        rows = self.db.query(workspace_member.c.workspace_id).filter(
+            workspace_member.c.workspace_id.in_(workspace_ids),
+            workspace_member.c.user_id == user_id,
+        ).all()
+        return notes, {row[0] for row in rows}
+
     def get_shared_workspace(self, workspace_hashes: list, user_id: int):
         if not workspace_hashes or not user_id:
             return []

@@ -100,6 +100,29 @@ html, body {
     color: #fff;
 }
 
+/* 휴지통에 있거나 볼 수 없는 노트. 눌러도 옮겨 가지 않으므로 누를 수 있는 것처럼 보이지 않게 한다. */
+.ProseMirror a.note-link[data-state="deleted"],
+.ProseMirror a.note-link[data-state="unavailable"] {
+    background: var(--border);
+    color: var(--subtle);
+    cursor: default;
+}
+
+.ProseMirror a.note-link[data-state="deleted"] {
+    text-decoration: line-through;
+}
+
+.ProseMirror a.note-link[data-state="deleted"]::before,
+.ProseMirror a.note-link[data-state="unavailable"]::before {
+    content: "⊘";
+}
+
+/* 비밀번호를 알면 열 수 있다. 열리는 곳으로 가되 잠겨 있음을 보여준다. */
+.ProseMirror a.note-link[data-state="locked"]::before {
+    content: "🔒";
+    font-size: .75em;
+}
+
 /*
  * 스켈레톤. 멈춰 있는 회색 덩어리보다 빛이 한 번씩 훑고 지나가는 쪽이
  * 무언가 오고 있다는 느낌을 줘서 기다리는 시간이 짧게 느껴진다.

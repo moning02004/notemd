@@ -1,5 +1,6 @@
 import {mergeAttributes, Node} from "@tiptap/core"
 import {Plugin, PluginKey} from "@tiptap/pm/state"
+import toast from "react-hot-toast"
 
 export type NoteLinkOptions = {
     /** 링크를 눌렀을 때 그 노트로 옮겨 가는 통로. 편집 화면이 앱 라우터로 넘겨준다. */
@@ -34,11 +35,18 @@ export const NoteLink = Node.create<NoteLinkOptions>({
                 parseHTML: element => element.getAttribute("data-note"),
                 renderHTML: attributes => (attributes.noteId ? {"data-note": attributes.noteId} : {}),
             },
-            // 표시용으로만 들고 있는 제목. 대상 노트의 제목이 바뀌면 여기 값은 옛날 것이 된다.
+            // 표시용 제목. 서버가 노트를 내려줄 때 지금 대상 노트의 제목으로 다시 써 준다.
             title: {
                 default: "",
                 parseHTML: element => element.textContent?.trim() ?? "",
                 renderHTML: () => ({}),
+            },
+            // 서버가 보는 사람 기준으로 붙여 준다. 없으면 열 수 있는 노트.
+            // deleted: 휴지통에 있음 · locked: 비밀번호가 걸린 남의 노트 · unavailable: 없거나 볼 수 없음
+            state: {
+                default: null,
+                parseHTML: element => element.getAttribute("data-state"),
+                renderHTML: attributes => (attributes.state ? {"data-state": attributes.state} : {}),
             },
         }
     },
@@ -89,6 +97,18 @@ export const NoteLink = Node.create<NoteLinkOptions>({
                             }
 
                             event.preventDefault()
+                            // 열어 봐야 소용없는 노트는 옮겨 가지 않고 까닭만 알린다.
+                            // 휴지통 노트는 링크로 열면 휴지통에 있다는 걸 모른 채 고치게 된다.
+                            const state = anchor!.getAttribute("data-state")
+                            if (state === "deleted") {
+                                toast("휴지통에 있는 노트입니다. 휴지통에서 복원할 수 있습니다.")
+                                return true
+                            }
+                            if (state === "unavailable") {
+                                toast("없거나 볼 수 없는 노트입니다.")
+                                return true
+                            }
+
                             if (options.onOpen) options.onOpen(noteId)
                             else window.location.assign(anchor!.href)
                             return true

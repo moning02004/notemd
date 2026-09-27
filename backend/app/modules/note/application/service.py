@@ -17,6 +17,7 @@ from markdownify import markdownify
 
 from app.core.config import settings
 from app.core.pdf_renderer import render_note_pdf
+from app.modules.note.application.note_links import NoteLinkState, note_link_hashes, rewrite_note_links
 from app.modules.note.domain.entity import NoteEntity, DownloadResult, build_note_document
 from app.modules.folder.infrastructure.repository import FolderRepository
 from app.modules.note.infrastructure.models import Note, NoteSnapshot
@@ -121,6 +122,7 @@ class NoteService(Service):
                 })
 
         note.is_editable = False
+        user = None
         if user_id:
             user = UserRepository(self.repository.db).get_by_pk(user_id)
             workspaces = self.repository.get_shared_workspace(
@@ -137,7 +139,55 @@ class NoteService(Service):
 
         if note.is_encrypted:
             note.content = self._decrypt_content(note.user, note.content)
+        # 조회 경로는 커밋하지 않으므로, 보는 사람에 맞춰 바꾼 본문이 DB 에 남지 않는다.
+        note.content = self._resolve_note_links(note.content, user)
         return note
+
+    def _resolve_note_links(self, content: str | None, viewer: User | None) -> str | None:
+        """본문의 노트 링크를 지금 대상 노트의 제목과, 보는 사람이 볼 수 있는지에 맞춰 다시 쓴다.
+
+        권한 판단은 get_note_by_hash_id 와 같다. 링크 글자만 보고도 그 노트를 열 수 있는지
+        알 수 있어야 하고, 열 수 없는 노트의 제목은 새면 안 된다.
+        """
+        hashes = note_link_hashes(content)
+        if not hashes:
+            return content
+
+        viewer_id = viewer.pk if viewer else None
+        targets, member_workspace_ids = self.repository.get_link_targets(hashes, viewer_id)
+
+        resolved = {}
+        for target in targets:
+            is_owner = viewer_id is not None and target.user_id == viewer_id
+            can_read = (is_owner or target.is_public
+                        or bool(viewer and viewer.is_superuser)
+                        or any(workspace.pk in member_workspace_ids for workspace in target.workspaces))
+
+            if not can_read:
+                state = NoteLinkState.UNAVAILABLE
+            elif target.password and not is_owner:
+                state = NoteLinkState.LOCKED
+            elif target.deleted_at:
+                state = NoteLinkState.DELETED
+            else:
+                state = NoteLinkState.OK
+            resolved[target.hash_id] = (state, target.title or "")
+
+        return rewrite_note_links(content, resolved)
+
+    def _store_note_links(self, content: str) -> str:
+        """저장할 본문의 노트 링크를 실제 제목으로 채우고, 보는 사람에 따라 붙었던 상태는 뗀다.
+
+        편집하는 사람이 볼 수 없는 노트는 에디터에 '볼 수 없는 노트' 로 내려가 있다. 그대로 저장하면
+        주인의 미리보기와 검색에 그 글자가 남는다. 저장본은 보여주기 전에 늘 다시 쓰이므로 새지 않는다.
+        """
+        hashes = note_link_hashes(content)
+        if not hashes:
+            return content
+
+        targets, _ = self.repository.get_link_targets(hashes, None)
+        resolved = {target.hash_id: (NoteLinkState.OK, target.title or "") for target in targets}
+        return rewrite_note_links(content, resolved, keep_unresolved=True)
 
     def _folder_pk(self, user_id: int, folder_hash: str | None) -> int | None:
         """폴더 hash 를 pk 로 바꾼다. 남의 폴더를 가리키면 폴더 없이 만든다."""
@@ -154,6 +204,8 @@ class NoteService(Service):
         owner = note.user
         content = request.content or (
             self._decrypt_content(owner, note.content) if note.is_encrypted else note.content)
+        if request.content:
+            content = self._store_note_links(content)
 
         is_encrypted = request.is_encrypted if request.is_encrypted is not None else note.is_encrypted
         if is_encrypted:
@@ -208,6 +260,9 @@ class NoteService(Service):
             note.password = self._decrypt_content(owner, password)
 
         self.indexing_note(note)
+        # 저장본에는 실제 제목이 들어가므로, 돌려주는 본문은 조회와 같이 보는 사람 기준으로 다시 쓴다.
+        # 이미 커밋했고 이 뒤로는 커밋하지 않으므로 DB 에는 남지 않는다.
+        note.content = self._resolve_note_links(note.content, user)
         return note
 
     def soft_delete_note(self, user_id: int, note_hashes: list):
@@ -300,6 +355,7 @@ class NoteService(Service):
     def _render_note(self, note, file_format: str) -> bytes:
         """노트 본문을 요청한 형식의 바이트로 만든다. 암호화된 노트는 먼저 복호화한다."""
         content = self._decrypt_content(note.user, note.content) if note.is_encrypted else note.content
+        content = self._resolve_note_links(content, note.user)
 
         if file_format == "pdf":
             return render_note_pdf(title=note.title, content=content)
