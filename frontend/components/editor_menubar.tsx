@@ -9,6 +9,7 @@ import {
     Bold,
     ChevronDown,
     Code2,
+    FileSymlink,
     Heading1,
     Heading2,
     Heading3,
@@ -33,9 +34,11 @@ interface Props {
     tableMenuOpen: boolean;
     setTableMenuOpen: Dispatch<SetStateAction<boolean>>;
     openLinkModal: () => void;
+    /** 다른 노트를 골라 본문에 넣는 창. 모바일 키보드에서는 "/노트" 보다 버튼이 가깝다. */
+    openNotePicker: () => void;
 }
 
-export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen, openLinkModal}: Props) {
+export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen, openLinkModal, openNotePicker}: Props) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [tableRows, setTableRows] = useState(3);
     const [tableCols, setTableCols] = useState(3);
@@ -121,6 +124,14 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
                 editor.isActive("link"),
                 <LinkIcon size={18}/>,
                 "링크"
+            )}
+            {button(
+                // 에디터에 포커스를 주지 않는다. 창의 검색칸이 포커스를 받아야 하고,
+                // 넣을 자리는 에디터가 들고 있는 선택 영역 그대로 남는다.
+                openNotePicker,
+                false,
+                <FileSymlink size={18}/>,
+                "노트 가져오기"
             )}
 
             <div className="w-px h-6 bg-border-strong mx-1 my-auto"/>

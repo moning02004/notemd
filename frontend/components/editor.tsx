@@ -146,7 +146,8 @@ export function MarkdownEditor({
                         <MenuBar editor={editor} noteId={paramsNoteId}
                                  tableMenuOpen={tableMenuOpen}
                                  setTableMenuOpen={setTableMenuOpen}
-                                 openLinkModal={() => setLinkModalOpen(true)}/>
+                                 openLinkModal={() => setLinkModalOpen(true)}
+                                 openNotePicker={() => setNotePickerOpen(true)}/>
                     </div>
                     <div className="mb-auto pt-3 md:p-0 md:my-auto text-right">{status}</div>
                 </div>
