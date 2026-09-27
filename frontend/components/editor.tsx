@@ -4,7 +4,9 @@ import React, {Dispatch, SetStateAction, useCallback, useEffect, useState} from 
 import {FiArrowLeft, FiMenu} from "react-icons/fi";
 import {useProgressRouter} from "@/hooks/useProgressRouter";
 
-import {EditorContent} from "@tiptap/react";
+import {Editor, EditorContent} from "@tiptap/react";
+import {EditorState, NodeSelection, TextSelection} from "@tiptap/pm/state";
+import {EditorView} from "@tiptap/pm/view";
 import {useEditorInstance} from "@/lib/create_editor";
 import MenuBar from "@/components/editor_menubar";
 import {Complete, LoadingSpinner, Warning} from "@/components/icons";
@@ -100,6 +102,20 @@ export function MarkdownEditor({
 
     const closePeek = useCallback(() => setPeekNoteId(null), [])
 
+    // 기본 조건(포커스가 있고 글자가 골라져 있을 때)에 더해, 노트 링크 조각 하나만 골라진 경우는 뺀다.
+    // 링크 조각에는 굵게·기울임이 소용없고, 모바일에서는 옆에 펼친 참조 패널 위에 버블이 떠 버린다.
+    const shouldShowFormatBubble = useCallback(({editor, view, state, element}: {
+        editor: Editor, view: EditorView, state: EditorState, element: HTMLElement
+    }) => {
+        const {selection} = state
+        if (selection instanceof NodeSelection && selection.node.type.name === "noteLink") return false
+
+        const hasFocus = view.hasFocus() || element.contains(document.activeElement)
+        const isEmptyTextBlock = !state.doc.textBetween(selection.from, selection.to).length
+            && selection instanceof TextSelection
+        return hasFocus && !selection.empty && !isEmptyTextBlock && editor.isEditable
+    }, [])
+
     const titleKeyup = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key == "Enter") {
             editor.commands.focus("start")
@@ -166,7 +182,9 @@ export function MarkdownEditor({
             {
                 /* 버블 메뉴의 z-index 가 모달보다 높아서, 링크 모달이 떠 있는 동안에는 감춘다 */
                 !isReadonly && !linkModalOpen &&
-                <BubbleMenu editor={editor} options={{placement: "top", offset: 8}} style={{
+                <BubbleMenu editor={editor} options={{placement: "top", offset: 8}}
+                            shouldShow={shouldShowFormatBubble}
+                            style={{
                     zIndex: 9999,
                 }}>
                     <div className="flex items-center gap-1 bg-foreground rounded-lg px-1.5 py-1 shadow-lg z-20">

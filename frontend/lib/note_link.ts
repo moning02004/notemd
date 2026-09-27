@@ -1,5 +1,6 @@
 import {mergeAttributes, Node} from "@tiptap/core"
-import {Plugin, PluginKey} from "@tiptap/pm/state"
+import {Plugin, PluginKey, TextSelection} from "@tiptap/pm/state"
+import {EditorView} from "@tiptap/pm/view"
 import toast from "react-hot-toast"
 
 export type NoteLinkOptions = {
@@ -83,7 +84,18 @@ export const NoteLink = Node.create<NoteLinkOptions>({
                 key: new PluginKey("noteLinkClick"),
                 props: {
                     handleDOMEvents: {
-                        click: (_view, event) => {
+                        /*
+                         * 누르는 순간 에디터가 이 조각을 통째로 선택하면(NodeSelection) 서식 버블이 뜨고,
+                         * 모바일에서는 키보드까지 올라와 옆에 펼친 패널을 가린다. 누르는 목적은 열어 보기뿐이니
+                         * 선택도 포커스도 옮기지 않는다. 지우는 건 뒤에서 Backspace 로 한다.
+                         */
+                        mousedown: (_view, event) => {
+                            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false
+                            if (!(event.target as HTMLElement | null)?.closest("a.note-link")) return false
+                            event.preventDefault()
+                            return true
+                        },
+                        click: (view, event) => {
                             const anchor = (event.target as HTMLElement | null)?.closest<HTMLAnchorElement>("a.note-link")
                             const noteId = anchor?.getAttribute("data-note")
                             if (!noteId) return false
@@ -110,8 +122,10 @@ export const NoteLink = Node.create<NoteLinkOptions>({
                                 return true
                             }
 
-                            if (options.onOpen) options.onOpen(noteId)
-                            else window.location.assign(anchor!.href)
+                            if (options.onOpen) {
+                                leaveEditorForPeek(view)
+                                options.onOpen(noteId)
+                            } else window.location.assign(anchor!.href)
                             return true
                         },
                     },
@@ -120,3 +134,20 @@ export const NoteLink = Node.create<NoteLinkOptions>({
         ]
     },
 })
+
+/**
+ * 옆에 노트를 펼치기 전에 쓰던 자리를 정리한다.
+ *
+ * 글자를 골라 둔 채로 링크를 누르면 선택이 남아 서식 버블이 펼친 패널 위에 떠 있게 된다.
+ * 선택은 끝자리 커서로 접는다(쓰던 자리는 그대로). 패널이 화면을 덮는 좁은 화면에서는
+ * 올라와 있던 키보드가 패널을 가리므로 포커스도 놓는다. 넓은 화면에서는 보면서 이어 쓸 수 있게 둔다.
+ */
+function leaveEditorForPeek(view: EditorView) {
+    const {selection} = view.state
+    if (!selection.empty) {
+        view.dispatch(view.state.tr.setSelection(TextSelection.near(selection.$to)))
+    }
+    if (window.matchMedia("(max-width: 767px)").matches) {
+        (view.dom as HTMLElement).blur()
+    }
+}
