@@ -39,6 +39,8 @@ export interface NoteDetailResponse {
     is_encrypted: boolean;
     is_password: boolean;
     is_editable: boolean;
+    /** 휴지통에 있는 노트. 주인에게만 이 표시와 함께 읽기 전용으로 내려온다. */
+    is_deleted: boolean;
     password: string | null;
     tags: string[];
     workspaces: NoteWorkspace[];

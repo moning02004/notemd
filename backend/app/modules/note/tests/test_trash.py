@@ -161,3 +161,45 @@ def test_keyword_search_finds_notes_by_body_text(client, auth_headers):
     response = list_notes(client, auth_headers, keyword="배포 절차")
 
     assert note_hashes(response) == [note_hash]
+
+
+def test_owner_opens_a_trashed_note_read_only(client, auth_headers):
+    """링크나 주소로 휴지통 노트에 들어와도 휴지통에 있다는 걸 알 수 있어야 하고, 고칠 수는 없다."""
+    owner = member_headers(client)
+    note_hash = create_note(client, owner, title="버린 노트")
+    client.delete(f"/notes/{note_hash}", headers=owner)
+
+    body = client.get(f"/notes/{note_hash}", headers=owner).json()
+
+    assert body["is_deleted"] is True
+    assert body["is_editable"] is False
+    assert body["title"] == "버린 노트"
+
+
+def test_others_are_told_a_trashed_note_was_deleted(client, auth_headers):
+    owner = member_headers(client)
+    note_hash = create_note(client, owner, title="버린 공개 노트", content="<p>남기면 안 되는 본문</p>",
+                            is_public=True)
+    client.delete(f"/notes/{note_hash}", headers=owner)
+
+    for viewer in ({}, member_headers(client, username="stranger", name="남")):
+        response = client.get(f"/notes/{note_hash}", headers=viewer)
+        assert response.status_code == 410
+        assert "남기면 안 되는 본문" not in response.text
+        # 복원하거나 주인이 로그인한 뒤에도 캐시된 '삭제됨' 이 남으면 안 된다.
+        assert response.headers["cache-control"] == "no-store"
+
+
+def test_trashed_note_cannot_be_edited_until_restored(client, auth_headers):
+    owner = member_headers(client)
+    note_hash = create_note(client, owner, title="버린 노트")
+    client.delete(f"/notes/{note_hash}", headers=owner)
+
+    assert client.patch(f"/notes/{note_hash}", headers=owner, json={"title": "몰래 고침"}).status_code == 409
+
+    client.patch(f"/notes/{note_hash}/restore", headers=owner)
+
+    assert client.patch(f"/notes/{note_hash}", headers=owner, json={"title": "고침"}).status_code == 200
+    body = client.get(f"/notes/{note_hash}", headers=owner).json()
+    assert body["is_deleted"] is False
+    assert body["is_editable"] is True

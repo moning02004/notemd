@@ -27,6 +27,10 @@ from app.modules.user.infrastructure.repository import UserRepository
 
 class NoteService(Service):
     NotFoundNote = HTTPException(status_code=404, detail="노트를 찾을 수 없습니다.")
+    # 410 은 브라우저가 따로 말하지 않아도 캐시해 두는 응답이다. 그러면 로그인한 뒤에도,
+    # 복원한 뒤에도 서버에 묻지 않고 '삭제된 노트' 를 계속 보여준다.
+    DeletedNote = HTTPException(status_code=410, detail="삭제된 노트입니다.",
+                                headers={"Cache-Control": "no-store"})
 
     def __init__(self, repository, search_service=None, storage=None):
         super().__init__(repository)
@@ -137,6 +141,14 @@ class NoteService(Service):
                 note.password = note_password
             note.is_editable = note.user_id == user.pk or user.is_superuser or bool(workspaces)
 
+        # 휴지통에 있는 노트는 주인에게만 '휴지통에 있다' 는 표시와 함께 읽기 전용으로 보여준다.
+        # 볼 권한이 있던 다른 사람에게는 본문 없이 삭제되었다는 것만 알린다.
+        note.is_deleted = note.deleted_at is not None
+        if note.is_deleted:
+            if note.user_id != user_id:
+                raise self.DeletedNote
+            note.is_editable = False
+
         if note.is_encrypted:
             note.content = self._decrypt_content(note.user, note.content)
         # 조회 경로는 커밋하지 않으므로, 보는 사람에 맞춰 바꾼 본문이 DB 에 남지 않는다.
@@ -221,6 +233,9 @@ class NoteService(Service):
         is_editable = note.user_id == user.pk or user.is_superuser or bool(workspaces)
         if not is_editable:
             raise HTTPException(status_code=403, detail="수정 권한이 없습니다.")
+        # 휴지통에서 고치면 복원했을 때 무엇이 바뀌었는지 아무도 모른다. 먼저 복원해야 한다.
+        if note.deleted_at is not None:
+            raise HTTPException(status_code=409, detail="휴지통에 있는 노트는 복원한 뒤에 고칠 수 있습니다.")
 
         note.is_editable = is_editable
 

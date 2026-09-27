@@ -53,12 +53,16 @@ export function useNoteDetail(noteId: string) {
     const [draft, setDraft] = useState<NoteDraft | null>(null)
     const [isOwner, setIsOwner] = useState(false)
     const [isEditable, setIsEditable] = useState(false)
+    const [isDeleted, setIsDeleted] = useState(false)
+    // 올리면 노트를 다시 불러온다(휴지통에서 복원한 뒤 등).
+    const [version, setVersion] = useState(0)
 
     // 최초 조회와 비밀번호 해제 응답을 동일하게 처리한다(기존 중복 로직 통합).
     const applyNote = useCallback((response: NoteDetailResponse) => {
         setDraft(toDraft(response))
         setIsOwner(response.user_hash === userHash)
         setIsEditable(response.is_editable)
+        setIsDeleted(Boolean(response.is_deleted))
         setState({status: "ready"})
     }, [userHash])
 
@@ -86,7 +90,9 @@ export function useNoteDetail(noteId: string) {
         return () => {
             aborted = true
         }
-    }, [noteId, applyNote])
+    }, [noteId, applyNote, version])
+
+    const reload = useCallback(() => setVersion(value => value + 1), [])
 
     const unlock = useCallback(async (password: string) => {
         const response = await apiRequest.post<NoteDetailResponse>(`/notes/${noteId}`, {
@@ -120,5 +126,5 @@ export function useNoteDetail(noteId: string) {
         setFolder: makeSetter("folder"),
     }), [makeSetter])
 
-    return {state, draft, isOwner, isEditable, setters, unlock}
+    return {state, draft, isOwner, isEditable, isDeleted, setters, unlock, reload}
 }

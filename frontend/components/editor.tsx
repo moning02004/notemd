@@ -32,6 +32,8 @@ interface EditorProps {
     paramsNoteId: string;
     statusType: string;
     widthClass: string;
+    /** 제목줄 바로 아래에 띄울 안내(휴지통에 있는 노트 등) */
+    notice?: React.ReactNode;
 }
 
 export function MarkdownEditor({
@@ -45,7 +47,8 @@ export function MarkdownEditor({
                                    setContent,
                                    isReadonly,
                                    statusType,
-                                   widthClass
+                                   widthClass,
+                                   notice
                                }: EditorProps
 ) {
     const titleRef = React.useRef<HTMLInputElement>(null);
@@ -138,6 +141,8 @@ export function MarkdownEditor({
                         </div> : !isReadonly ? <div className="text-sm"><MdWorkspacesFilled/></div> : <div></div>
                 }
             </div>
+
+            {notice}
 
             {
                 !isReadonly &&

@@ -11,6 +11,8 @@ import NotePasswordModal from "@/components/note/password_modal";
 import {useAuthStore} from "@/store/auth";
 import {useNoteDetail} from "@/hooks/useNoteDetail";
 import {useNoteAutosave} from "@/hooks/useNoteAutoSave";
+import {apiRequest} from "@/lib/api";
+import {FiTrash2} from "react-icons/fi";
 
 // Tailwind는 소스에 리터럴로 존재하는 클래스명만 인식하므로 `w-[${n}%]`처럼 동적으로
 // 조합하면 CSS가 생성되지 않는다. note_settings.tsx의 <select> 옵션과 값을 맞춰야 함.
@@ -30,7 +32,8 @@ export default function Page() {
     const [editorWidth, setEditorWidth] = useState(DEFAULT_EDITOR_WIDTH)
     const [statusType, setStatusType] = useState("")
 
-    const {state, draft, isOwner, isEditable, setters, unlock} = useNoteDetail(noteId)
+    const {state, draft, isOwner, isEditable, isDeleted, setters, unlock, reload} = useNoteDetail(noteId)
+    const [isRestoring, setIsRestoring] = useState(false)
 
     const isSavable = isEditable && state.status === "ready"
 
@@ -58,6 +61,19 @@ export default function Page() {
 
     if (state.status === "error") {
         if (state.statusCode === 404) return notFound()
+        // 볼 수 있던 노트가 휴지통으로 옮겨졌다. 없는 노트(404)와 구분해 알려준다.
+        if (state.statusCode === 410) return (
+            <div className="flex h-screen w-full flex-col items-center justify-center gap-3 px-4 text-center">
+                <FiTrash2 size={28} className="text-subtle"/>
+                <p className="text-[15px] font-medium text-foreground">삭제된 노트입니다.</p>
+                <p className="text-[13px] text-muted">작성자가 이 노트를 휴지통으로 옮겼습니다.</p>
+                {token &&
+                    <button className="mt-2 text-[13px] text-accent underline cursor-pointer"
+                            onClick={() => router.replace("/")}>
+                        내 노트로 돌아가기
+                    </button>}
+            </div>
+        )
         return (
             <div className="flex h-screen w-full flex-col items-center justify-center gap-2">
                 <p>노트를 불러오지 못했습니다. (오류 {state.statusCode})</p>
@@ -87,14 +103,41 @@ export default function Page() {
 
     if (!draft) return <EditorSkeleton/>
 
-    const isReadonly = !token || draft.isProtected
+    // 휴지통 노트는 복원하기 전까지 고칠 수 없다(서버도 막는다).
+    const isReadonly = !token || draft.isProtected || isDeleted
+
+    const restore = async () => {
+        setIsRestoring(true)
+        try {
+            await apiRequest.patch(`/notes/${noteId}/restore`)
+            toast.success("노트를 복원했습니다.")
+            reload()
+        } catch {
+            toast.error("복원하지 못했습니다.")
+        } finally {
+            setIsRestoring(false)
+        }
+    }
+
+    const deletedNotice = isDeleted && (
+        <div className="flex items-center gap-2 border-b border-border bg-danger-soft px-4 py-2.5 text-[13px] text-danger">
+            <FiTrash2 size={14} className="shrink-0"/>
+            <span className="flex-1">휴지통에 있는 노트입니다. 복원하면 다시 고칠 수 있습니다.</span>
+            <button onClick={restore}
+                    disabled={isRestoring}
+                    className="shrink-0 rounded-md bg-surface px-3 py-1 font-medium text-foreground
+                               border border-border cursor-pointer hover:bg-background disabled:opacity-50">
+                {isRestoring ? "복원 중…" : "복원"}
+            </button>
+        </div>
+    )
 
     return (
         <div className="relative h-screen w-full">
             <div className="flex h-full w-full">
                 <MarkdownEditor setOpenedSetting={setOpenedSetting}
                                 isReadonly={isReadonly}
-                                isOwner={isOwner}
+                                isOwner={isOwner && !isDeleted}
                                 isEditable={isEditable}
                                 paramsNoteId={noteId}
                                 title={draft.title}
@@ -103,6 +146,7 @@ export default function Page() {
                                 setContent={setters.setContent}
                                 statusType={statusType}
                                 widthClass={EDITOR_WIDTH_CLASSES[editorWidth] ?? EDITOR_WIDTH_CLASSES[DEFAULT_EDITOR_WIDTH]}
+                                notice={deletedNotice}
                 />
             </div>
 
@@ -113,7 +157,7 @@ export default function Page() {
                 />
             }
 
-            {token &&
+            {token && !isDeleted &&
                 <NoteSettings noteId={noteId}
                               {...setters}
                               isPublic={draft.isPublic}

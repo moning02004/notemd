@@ -92,6 +92,8 @@ class NoteDetailSchema(BaseModel):
     password: str | None
     is_password: bool
     is_editable: bool
+    # 조회 때만 채워진다(서비스가 붙인다). 수정 응답에서는 늘 False 다.
+    is_deleted: bool = False
     tags: list = []
     workspaces: list = []
     folder: object | None = None
