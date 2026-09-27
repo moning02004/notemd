@@ -11,6 +11,12 @@ import Suggestion from "@tiptap/suggestion"
  * 컴포넌트 트리에 넣으면 오히려 생애주기가 꼬인다.
  */
 
+/** 에디터 밖의 도움이 필요한 항목이 쓰는 통로(노트 고르기 창 등). */
+export type SlashOptions = {
+    /** 다른 노트를 고르는 창을 연다. 편집 화면이 넘겨준다. */
+    onPickNote?: () => void
+}
+
 type SlashItem = {
     label: string
     hint: string
@@ -18,8 +24,8 @@ type SlashItem = {
     keywords: string[]
     glyph: string
     /** 지금 자리에서 쓸 수 없는 항목은 아예 목록에서 뺀다. */
-    enabled?: (editor: Editor) => boolean
-    run: (editor: Editor, range: Range) => void
+    enabled?: (editor: Editor, options: SlashOptions) => boolean
+    run: (editor: Editor, range: Range, options: SlashOptions) => void
 }
 
 const ITEMS: SlashItem[] = [
@@ -71,6 +77,19 @@ const ITEMS: SlashItem[] = [
         run: (editor, range) => editor.chain().focus().deleteRange(range).setDetails().run(),
     },
     {
+        label: "노트 가져오기", hint: "다른 노트를 골라 링크로 넣기", glyph: "↗",
+        keywords: ["노트", "페이지", "링크", "참조", "note", "page", "link", "ref"],
+        // 고르는 창은 편집 화면이 띄운다. 넘겨받지 못했으면 이 항목은 없는 셈 친다.
+        enabled: (_editor, options) => Boolean(options.onPickNote),
+        run: (editor, range, options) => {
+            // 먼저 "/노트" 글자를 치우고 창을 연다. 취소해도 찌꺼기가 남지 않고,
+            // 고르고 나서 넣을 자리는 지금 커서 자리 그대로다.
+            // focus() 는 부르지 않는다 — 한 프레임 뒤에 포커스를 되찾아 창의 검색칸을 빼앗는다.
+            editor.chain().deleteRange(range).run()
+            options.onPickNote?.()
+        },
+    },
+    {
         label: "표", hint: "3 × 3 표", glyph: "⊞",
         keywords: ["표", "테이블", "table", "grid"],
         run: (editor, range) => editor.chain().focus().deleteRange(range)
@@ -83,8 +102,8 @@ const ITEMS: SlashItem[] = [
     },
 ]
 
-function search(query: string, editor: Editor): SlashItem[] {
-    const usable = ITEMS.filter(item => item.enabled?.(editor) ?? true)
+function search(query: string, editor: Editor, options: SlashOptions): SlashItem[] {
+    const usable = ITEMS.filter(item => item.enabled?.(editor, options) ?? true)
 
     const keyword = query.trim().toLowerCase()
     if (!keyword) return usable
@@ -247,18 +266,23 @@ class SlashMenu {
     }
 }
 
-export const SlashCommand = Extension.create({
+export const SlashCommand = Extension.create<SlashOptions>({
     name: "slashCommand",
+
+    addOptions() {
+        return {onPickNote: undefined}
+    },
 
     addProseMirrorPlugins() {
         const menu = new SlashMenu()
+        const options = this.options
 
         return [
             Suggestion<SlashItem>({
                 editor: this.editor,
                 char: "/",
-                command: ({editor, range, props}) => props.run(editor as Editor, range),
-                items: ({query, editor}) => search(query, editor as Editor),
+                command: ({editor, range, props}) => props.run(editor as Editor, range, options),
+                items: ({query, editor}) => search(query, editor as Editor, options),
                 // 코드 블록 안에서는 "/" 가 그냥 글자다. 접기 제목 줄도 블록을 바꿀 자리가 아니다.
                 allow: ({state, range}) => {
                     const parent = state.doc.resolve(range.from).parent.type.name

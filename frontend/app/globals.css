@@ -72,6 +72,35 @@ html, body {
 }
 
 /*
+ * 본문에 끼워 넣은 다른 노트. 폴더 뱃지와 같은 결로 두어 '본문이 아니라 가리키는 것'임을 드러낸다.
+ * 아래의 .ProseMirror a(밑줄) 보다 구체적이어야 하므로 .ProseMirror 를 붙인다.
+ */
+.ProseMirror a.note-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 5px;
+    padding: 0 6px;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.ProseMirror a.note-link::before {
+    content: "↗";
+    font-size: .85em;
+    opacity: .7;
+}
+
+.ProseMirror a.note-link:hover {
+    background: var(--accent);
+    color: #fff;
+}
+
+/*
  * 스켈레톤. 멈춰 있는 회색 덩어리보다 빛이 한 번씩 훑고 지나가는 쪽이
  * 무언가 오고 있다는 느낌을 줘서 기다리는 시간이 짧게 느껴진다.
  */

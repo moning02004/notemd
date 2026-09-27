@@ -48,6 +48,8 @@ export function useNoteAutosave({noteId, draft, enabled, setStatusType}: Options
     const savedRef = useRef<NoteDraft | null>(null)
     // 대기 중인 디바운스. 수동 저장이 이걸 앞당겨 실행한다.
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    // 디바운스에 걸려 아직 못 보낸 변경분. 노트를 떠날 때 버리지 않고 보낸다.
+    const pendingRef = useRef<{ noteId: string, patch: Record<string, unknown> } | null>(null)
 
     useEffect(() => {
         patchNoteRef.current = patchNote
@@ -69,8 +71,10 @@ export function useNoteAutosave({noteId, draft, enabled, setStatusType}: Options
         const isTextEdit = "title" in patch || "content" in patch
         setStatusType("loading")
 
+        pendingRef.current = {noteId, patch}
         const timer = setTimeout(() => {
             timerRef.current = null
+            pendingRef.current = null
             savedRef.current = draft
             patchNoteRef.current(noteId, patch)
         }, isTextEdit ? TEXT_DEBOUNCE_MS : 0)
@@ -81,6 +85,21 @@ export function useNoteAutosave({noteId, draft, enabled, setStatusType}: Options
             if (timerRef.current === timer) timerRef.current = null
         }
     }, [draft, enabled, noteId, setStatusType])
+
+    /*
+     * 본문의 노트 링크나 사이드바로 다른 노트에 옮겨 가면 위 effect 의 정리 함수가
+     * 대기 중인 타이머를 지운다. 타이핑하고 500ms 안에 떠나면 그 글자들이 사라지므로,
+     * 노트가 바뀌거나 화면이 내려갈 때 남은 변경분을 그 노트 앞으로 보내고, 다음 노트는
+     * 첫 스냅샷부터 다시 잡는다.
+     */
+    useEffect(() => {
+        return () => {
+            const pending = pendingRef.current
+            pendingRef.current = null
+            savedRef.current = null
+            if (pending) patchNoteRef.current(pending.noteId, pending.patch)
+        }
+    }, [noteId])
 
     /**
      * 기다리지 않고 지금 저장한다(⌘/Ctrl + S).
@@ -97,6 +116,7 @@ export function useNoteAutosave({noteId, draft, enabled, setStatusType}: Options
         }
 
         const patch = buildPatch(savedRef.current ?? draft, draft)
+        pendingRef.current = null
         savedRef.current = draft
         setStatusType("loading")
         patchNoteRef.current(noteId, patch)

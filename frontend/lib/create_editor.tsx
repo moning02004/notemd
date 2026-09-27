@@ -51,6 +51,7 @@ import FileHandler from "@tiptap/extension-file-handler";
 import Paragraph from '@tiptap/extension-paragraph'
 import Heading from "@tiptap/extension-heading";
 import {SlashCommand} from "@/lib/slash_command";
+import {NoteLink} from "@/lib/note_link";
 import {useState} from "react";
 
 // 버튼 컴포넌트
@@ -265,10 +266,14 @@ const CustomTableCell = TableCell.extend({
     },
 });
 
-export function useEditorInstance({initialContent, setContent, uploadFile}: {
+export function useEditorInstance({initialContent, setContent, uploadFile, onPickNote, onOpenNote}: {
     initialContent: string,
     setContent: (value: string) => void,
-    uploadFile: (file: File) => Promise<string>
+    uploadFile: (file: File) => Promise<string>,
+    /** "/노트" 를 골랐을 때 노트 고르는 창을 여는 통로 */
+    onPickNote?: () => void,
+    /** 본문의 노트 링크를 눌렀을 때 그 노트로 옮겨 가는 통로 */
+    onOpenNote?: (noteId: string) => void
 }) {
 
     const lowlight = createLowlight()
@@ -389,7 +394,8 @@ export function useEditorInstance({initialContent, setContent, uploadFile}: {
                 },
             }),
             Gapcursor,
-            SlashCommand,
+            NoteLink.configure({onOpen: onOpenNote}),
+            SlashCommand.configure({onPickNote}),
             CustomDetails.configure({
                 persist: true,                      // 열림/닫힘 상태를 문서에 저장
                 HTMLAttributes: {class: 'details'},

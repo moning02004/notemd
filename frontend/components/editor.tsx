@@ -15,6 +15,7 @@ import toast from "react-hot-toast";
 import {BubbleMenu} from "@tiptap/react/menus";
 import {useAuthStore} from "@/store/auth";
 import EditorLinkModal from "@/components/editor_link_modal";
+import {NotePickerModal} from "@/components/note/note_picker_modal";
 import EditorLinkBubble from "@/components/editor_link_bubble";
 import {Link as LinkIcon} from "lucide-react";
 import {MdWorkspacesFilled} from "react-icons/md";
@@ -55,11 +56,14 @@ export function MarkdownEditor({
                 ""));
     const [tableMenuOpen, setTableMenuOpen] = useState(false)
     const [linkModalOpen, setLinkModalOpen] = useState(false)
+    const [notePickerOpen, setNotePickerOpen] = useState(false)
     const {token} = useAuthStore.getState();
 
     const editor = useEditorInstance({
         initialContent: content,
         setContent: setContent,
+        onPickNote: () => setNotePickerOpen(true),
+        onOpenNote: noteId => router.push(`/s/${noteId}`),
         uploadFile: async (file: File) => {
             const formData = new FormData();
             formData.append("file", file);
@@ -202,6 +206,27 @@ export function MarkdownEditor({
                     editor={editor}
                     open={linkModalOpen}
                     onClose={() => setLinkModalOpen(false)}/>
+            }
+
+            {
+                !isReadonly &&
+                <NotePickerModal
+                    open={notePickerOpen}
+                    excludeId={paramsNoteId}
+                    onClose={() => {
+                        setNotePickerOpen(false)
+                        editor.commands.focus()
+                    }}
+                    onPick={note => {
+                        setNotePickerOpen(false)
+                        editor.chain().focus()
+                            .insertContent([
+                                {type: "noteLink", attrs: {noteId: note.hashId, title: note.title}},
+                                // 링크 바로 뒤에서 계속 쓸 수 있도록 공백 한 칸을 둔다.
+                                {type: "text", text: " "},
+                            ])
+                            .run()
+                    }}/>
             }
 
             <div className={`flex-20 bg-surface ${widthClass} mx-auto`}>
