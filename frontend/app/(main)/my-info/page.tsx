@@ -55,7 +55,7 @@ export default function Page() {
         }).finally(() => {
             setWorkspaceLoading(false)
         })
-    }, []);
+    }, [userHash]);
 
     const changePassword = async () => {
         apiRequest.patch("/users/change-password", {

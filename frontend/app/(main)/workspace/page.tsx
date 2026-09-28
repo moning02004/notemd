@@ -34,7 +34,7 @@ function WorkspaceNoteListContent() {
 
     useEffect(() => {
         if (userHash) fetchWorkspaces(userHash)
-    }, [userHash])
+    }, [userHash, fetchWorkspaces])
 
     const {notes, isLoading, isFetchingNextPage, sentinelRef} =
         useNoteListPaging(searchParams.toString(), `/workspaces/${selectedWorkspaceId}/notes`, !!selectedWorkspaceId)
@@ -127,7 +127,7 @@ export default function Page() {
 
     useEffect(() => {
         if (!token) router.replace("/login")
-    }, [token])
+    }, [token, router])
 
     if (!token) return <LoadingPage/>
 

@@ -50,7 +50,7 @@ export const NoteSnapshotManageModal = (
             setIsLoading(false)
         }
         fetchNoteSnapshot()
-    }, [isOpen])
+    }, [isOpen, noteHash])
 
     const saveNoteSnapshot = async () => {
         if (!saveForm.description.trim()) {

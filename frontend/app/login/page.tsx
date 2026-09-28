@@ -22,16 +22,18 @@ export default function Page() {
     const {setAuth} = useAuthStore.getState();
     const [existsAccount, setExistsAccount] = useState<boolean | null>(null);
 
-    const isAutoLogin = Cookies.get('auto-login') === '1'
-    const checkAccountExistence = async () => {
-        try {
-            const res = await apiRequest.get<CheckAccountExistenceResponse>("/check");
-            setExistsAccount(res.exists);
-        } catch {
-            setExistsAccount(false);
-        }
-    };
+    // 처음 열 때 한 번: 자동 로그인을 켜 두었으면 토큰을 다시 받아 들어가고, 아니면 계정이 있는지(최초 설치인지) 본다.
     useEffect(() => {
+        const isAutoLogin = Cookies.get('auto-login') === '1'
+        const checkAccountExistence = async () => {
+            try {
+                const res = await apiRequest.get<CheckAccountExistenceResponse>("/check");
+                setExistsAccount(res.exists);
+            } catch {
+                setExistsAccount(false);
+            }
+        };
+
         const checkAutoLogin = async () => {
             if (!isAutoLogin) {
                 await checkAccountExistence()
@@ -54,7 +56,7 @@ export default function Page() {
         }
 
         checkAutoLogin()
-    }, []);
+    }, [setAuth]);
 
     const login = async () => {
         if (isLoggingIn) return

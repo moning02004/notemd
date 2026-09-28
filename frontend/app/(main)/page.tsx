@@ -171,7 +171,7 @@ export default function Page() {
 
     useEffect(() => {
         if (!token) router.replace("/login")
-    }, [token])
+    }, [token, router])
 
     if (!token) return <LoadingPage/>
 

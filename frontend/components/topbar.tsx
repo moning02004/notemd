@@ -32,7 +32,7 @@ export function Topbar() {
     // 페이지 이동 시 선택 모드 초기화
     useEffect(() => {
         exitSelectMode()
-    }, [pathname])
+    }, [pathname, exitSelectMode])
 
     const isSettingsPage = pathname.startsWith("/settings")
     const isTrashPage = pathname.startsWith("/deleted")

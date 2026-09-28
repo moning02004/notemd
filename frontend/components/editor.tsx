@@ -100,7 +100,7 @@ export function MarkdownEditor({
         if (editor.getHTML() === content) return
 
         editor.commands.setContent(content)
-    }, [content])
+    }, [content, editor])
 
     useEffect(() => {
         editor?.setEditable(!isReadonly);

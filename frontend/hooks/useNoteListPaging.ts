@@ -36,7 +36,7 @@ export function useNoteListPaging(query: string, endPoint: string = "/notes", en
             const allNotes = data.pages.flat()
             setNotes(allNotes)
         }
-    }, [data])
+    }, [data, setNotes])
 
     const removeNotes = (hashIds: string[]) => {
         setNotes(notes.filter(note => !hashIds.includes(note.hash_id)))

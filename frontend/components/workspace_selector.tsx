@@ -14,7 +14,7 @@ export function WorkspaceSelector() {
 
     useEffect(() => {
         if (userHash) fetchWorkspaces(userHash)
-    }, [userHash])
+    }, [userHash, fetchWorkspaces])
 
     if (workspaces.length === 0) return null
 
