@@ -46,6 +46,8 @@ export interface NoteDetailResponse {
     workspaces: NoteWorkspace[];
     folder: NoteFolder | null;
     user_hash: string;
+    /** 이 노트의 버전. 저장할 때 base_updated_at 으로 돌려준다(다른 곳의 저장을 덮어쓰지 않게). */
+    updated_at: string | null;
 }
 
 export interface NoteSearchResult {

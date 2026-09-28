@@ -19,6 +19,8 @@ export type NoteDraft = {
     tags: string[]
     workspaces: NoteWorkspace[]
     folder: NoteFolder | null
+    /** 서버에서 받은 버전. 불러올 때만 바뀐다(저장해도 그대로다). 자동 저장이 덮어쓰기를 막는 데 쓴다. */
+    updatedAt: string | null
 }
 
 export type NoteLoadState =
@@ -37,6 +39,7 @@ const toDraft = (response: NoteDetailResponse): NoteDraft => ({
     tags: response.tags,
     workspaces: response.workspaces,
     folder: response.folder,
+    updatedAt: response.updated_at ?? null,
 })
 
 /** 비밀번호 보호 노트인지 확인 */

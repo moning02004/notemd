@@ -12,7 +12,7 @@ import {useAuthStore} from "@/store/auth";
 import {useNoteDetail} from "@/hooks/useNoteDetail";
 import {useNoteAutosave} from "@/hooks/useNoteAutoSave";
 import {apiRequest} from "@/lib/api";
-import {FiTrash2} from "react-icons/fi";
+import {FiAlertTriangle, FiTrash2} from "react-icons/fi";
 
 // Tailwind는 소스에 리터럴로 존재하는 클래스명만 인식하므로 `w-[${n}%]`처럼 동적으로
 // 조합하면 CSS가 생성되지 않는다. note_settings.tsx의 <select> 옵션과 값을 맞춰야 함.
@@ -37,7 +37,7 @@ export default function Page() {
 
     const isSavable = isEditable && state.status === "ready"
 
-    const {saveNow} = useNoteAutosave({
+    const {saveNow, conflict, overwrite} = useNoteAutosave({
         noteId,
         draft,
         enabled: isSavable,
@@ -132,6 +132,32 @@ export default function Page() {
         </div>
     )
 
+    /*
+     * 다른 탭·기기·공유 멤버가 먼저 저장했다. 자동 저장은 멈춰 있고, 고친 내용은 화면에 남아 있다.
+     * 어느 쪽을 남길지 사람이 고른다. 불러오면 이 화면에서 고친 내용은 사라진다.
+     */
+    const conflictNotice = conflict && (
+        <div role="alert"
+             className="flex flex-wrap items-center gap-2 border-b border-border bg-chip-open-soft px-4 py-2.5 text-[13px] text-chip-open">
+            <FiAlertTriangle size={14} className="shrink-0"/>
+            <span className="flex-1 min-w-48">
+                다른 곳에서 이 노트를 먼저 저장해 자동 저장을 멈췄습니다. 어느 내용을 남길까요?
+            </span>
+            <div className="flex shrink-0 gap-1.5">
+                <button onClick={reload} title="이 화면에서 고친 내용은 사라집니다"
+                        className="rounded-md bg-surface px-3 py-1 font-medium text-foreground
+                                   border border-border cursor-pointer hover:bg-background">
+                    최신 내용 불러오기
+                </button>
+                <button onClick={overwrite}
+                        className="rounded-md bg-surface px-3 py-1 font-medium text-foreground
+                                   border border-border cursor-pointer hover:bg-background">
+                    지금 내용으로 저장
+                </button>
+            </div>
+        </div>
+    )
+
     return (
         <div className="relative h-screen w-full">
             <div className="flex h-full w-full">
@@ -146,7 +172,7 @@ export default function Page() {
                                 setContent={setters.setContent}
                                 statusType={statusType}
                                 widthClass={EDITOR_WIDTH_CLASSES[editorWidth] ?? EDITOR_WIDTH_CLASSES[DEFAULT_EDITOR_WIDTH]}
-                                notice={deletedNotice}
+                                notice={deletedNotice || conflictNotice}
                 />
             </div>
 
