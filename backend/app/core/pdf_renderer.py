@@ -79,19 +79,23 @@ p > code, li code {
     font-size: 9.5pt;
 }
 
+/* 에디터처럼 폭을 정하지 않은 열은 내용에 맞춰 나눈다(auto). 정한 열은 <col> 의 비율을 따른다. */
 table {
     width: 100%;
     border-collapse: collapse;
     margin: 2mm 0;
-    table-layout: fixed;
+    table-layout: auto;
     font-size: 9.5pt;
 }
+/* 칸에 적힌 정렬·배경(style)이 이 기본값보다 앞선다. */
 th, td {
     border: 1px solid #c8c8c8;
     padding: 1.5mm 2mm;
     text-align: left;
     vertical-align: top;
-    word-wrap: break-word;
+    word-break: keep-all;
+    /* 긴 주소처럼 끊을 곳이 없는 낱말이 표를 A4 밖으로 밀어내지 않게 한다. */
+    overflow-wrap: anywhere;
 }
 th { background-color: #f2f2f2; font-weight: 700; }
 tr { page-break-inside: avoid; }
@@ -125,18 +129,34 @@ def _task_item(match: re.Match) -> str:
     return f"<li>{inner}</li>"
 
 
+# 에디터의 폭(px)을 비율로 바꿀 때 기준으로 삼는 본문 폭. A4 에서 여백을 뺀 폭(180mm)을 96dpi 로 환산했다.
+PAGE_CONTENT_PX = 680
+# 폭을 정하지 않은 열이 적어도 차지한다고 보는 몫. 정한 열만으로 폭을 다 써 버리지 않게 남겨 둔다.
+AUTO_COLUMN_PX = 120
+
+
 def _col_widths_to_percent(match: re.Match) -> str:
     """표의 열 너비를 픽셀에서 비율로 바꾼다.
 
-    에디터는 편집 화면 기준의 픽셀 값(예: 1347px)을 저장하는데 A4 폭을 넘기므로,
-    합계 대비 비율로 환산해 화면에서 조절한 열 너비 비율을 유지한다.
+    에디터는 손으로 맞춘 열에만 편집 화면 기준의 픽셀 폭(<col style="width: 1347px">)을 저장하고,
+    손대지 않은 열은 최소 폭(<col style="min-width: 64px">)만 적어 두고 내용에 맞춰 나눈다.
+    A4 폭을 넘기지 않게 맞춘 열은 비율로 바꾸고, 손대지 않은 열은 폭을 비워 PDF 에서도 내용에 맞춰 나뉘게 한다.
+    (min-width 까지 폭으로 읽으면 손대지 않은 열이 64px 몫으로 찌그러진다.)
     """
-    widths = [float(x) for x in re.findall(r"<col[^>]*?width:\s*([\d.]+)px[^>]*>", match.group(0))]
-    if not widths:
+    widths: list[float | None] = []
+    for col in re.findall(r"<col\b[^>]*>", match.group(0)):
+        fixed = re.search(r"(?<![\w-])width:\s*([\d.]+)px", col)
+        widths.append(float(fixed.group(1)) if fixed else None)
+
+    fixed_total = sum(w for w in widths if w)
+    if not fixed_total:
         return ""
 
-    total = sum(widths) or 1
-    return "<colgroup>" + "".join(f'<col style="width:{w / total * 100:.2f}%">' for w in widths) + "</colgroup>"
+    # 모든 열을 맞췄으면 그 비율 그대로, 일부만 맞췄으면 나머지 열 몫을 남겨 두고 나눈다.
+    auto_count = sum(1 for w in widths if not w)
+    reference = fixed_total if not auto_count else max(fixed_total + AUTO_COLUMN_PX * auto_count, PAGE_CONTENT_PX)
+    cols = "".join(f'<col style="width:{w / reference * 100:.2f}%">' if w else "<col>" for w in widths)
+    return f"<colgroup>{cols}</colgroup>"
 
 
 def _localize_image(match: re.Match) -> str:
