@@ -23,6 +23,7 @@ import EditorLinkBubble from "@/components/editor_link_bubble";
 import EditorImageBubble from "@/components/editor_image_bubble";
 import EditorTableBubble from "@/components/editor_table_bubble";
 import {CellSelection} from "@tiptap/pm/tables";
+import {openLineAt, startsWithGap} from "@/lib/open_line";
 import {Link as LinkIcon} from "lucide-react";
 import {MdWorkspacesFilled} from "react-icons/md";
 
@@ -126,7 +127,10 @@ export function MarkdownEditor({
 
     const titleKeyup = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key == "Enter") {
-            editor.commands.focus("start")
+            // 본문이 표 등으로 시작하면 첫 칸으로 들어가는 대신 그 위에 쓸 줄을 연다.
+            // 모바일에서는 표 위로 커서를 옮길 다른 방법이 마땅치 않다.
+            if (startsWithGap(editor.view)) openLineAt(editor.view, 0)
+            else editor.commands.focus("start")
         }
     }
     const goBack = () => {

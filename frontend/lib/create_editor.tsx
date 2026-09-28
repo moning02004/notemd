@@ -56,6 +56,7 @@ import Paragraph from '@tiptap/extension-paragraph'
 import Heading from "@tiptap/extension-heading";
 import {SlashCommand} from "@/lib/slash_command";
 import {NoteLink} from "@/lib/note_link";
+import {OpenLineOnGapTap} from "@/lib/open_line";
 import {useState} from "react";
 
 // 버튼 컴포넌트
@@ -518,6 +519,7 @@ export function useEditorInstance({initialContent, setContent, uploadFile, onPic
                 },
             }),
             Gapcursor,
+            OpenLineOnGapTap,
             NoteLink.configure({onOpen: onOpenNote}),
             SlashCommand.configure({onPickNote}),
             CustomDetails.configure({

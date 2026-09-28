@@ -13,6 +13,8 @@ import {
     AlignVerticalJustifyCenter,
     AlignVerticalJustifyEnd,
     AlignVerticalJustifyStart,
+    ArrowDownToLine,
+    ArrowUpToLine,
     Ban,
     BetweenHorizontalEnd,
     BetweenHorizontalStart,
@@ -46,6 +48,7 @@ import {
     TableCellVerticalAlign,
     tableBubbleAnchor,
     widenColumns,
+    writeAroundTable,
 } from "@/lib/table";
 
 interface Props {
@@ -383,6 +386,16 @@ export default function EditorTableBubble({editor, scrollTarget}: Props) {
                         <button type="button" role="menuitem" className={menuItem()} disabled={!cell.canSplit}
                                 onClick={() => run(() => chain().splitCell().run())}>
                             <TableCellsSplit size={15}/> 칸 나누기
+                        </button>
+                        {menuDivider}
+                        {/* 표가 문서 맨 앞·맨 끝이거나 다른 표에 붙어 있으면 그 사이에 쓸 길이 이것뿐일 수 있다. */}
+                        <button type="button" role="menuitem" className={menuItem()}
+                                onClick={() => run(() => writeAroundTable(editor, "above"))}>
+                            <ArrowUpToLine size={15}/> 표 위에 글 쓰기
+                        </button>
+                        <button type="button" role="menuitem" className={menuItem()}
+                                onClick={() => run(() => writeAroundTable(editor, "below"))}>
+                            <ArrowDownToLine size={15}/> 표 아래에 글 쓰기
                         </button>
                         {menuDivider}
                         <button type="button" role="menuitem" className={menuItem()}

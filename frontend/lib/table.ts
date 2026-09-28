@@ -1,6 +1,7 @@
 import {Editor} from "@tiptap/core";
 import {TableCell, TableHeader} from "@tiptap/extension-table";
 import {CellSelection, isInTable, selectedRect} from "@tiptap/pm/tables";
+import {openLineAt} from "@/lib/open_line";
 
 /*
  * 표.
@@ -169,6 +170,14 @@ export function selectLine(editor: Editor, line: "row" | "column") {
     editor.view.dispatch(state.tr.setSelection(selection))
     editor.commands.focus()
     return true
+}
+
+/** 표 바로 위나 아래에 글 쓸 줄을 연다. 이미 빈 줄이 붙어 있으면 그리로 간다. */
+export function writeAroundTable(editor: Editor, side: "above" | "below") {
+    if (!isInTable(editor.state)) return false
+    const {table, tableStart} = selectedRect(editor.state)
+    const tablePos = tableStart - 1
+    return openLineAt(editor.view, side === "above" ? tablePos : tablePos + table.nodeSize)
 }
 
 /** 커서가 놓인 칸(여러 칸을 골랐으면 그 첫 칸)의 속성 */
