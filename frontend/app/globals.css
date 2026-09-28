@@ -391,11 +391,62 @@ body * {
     height: 0;
 }
 
+/*
+ * 본문 이미지. 리사이즈한 크기는 <img> 에 width·height 를 px 로 박아 두는데, 좁은 화면에서
+ * max-width 로 폭만 줄면 높이는 그대로라 찌그러진다. 높이는 늘 폭을 따라가게 한다.
+ * (!important 는 인라인 style 의 height 를 이기기 위해서다.)
+ */
 .ProseMirror img {
     display: block;
-    height: auto;
-    margin: 1.5rem 0;
     max-width: 100%;
+    height: auto !important;
+}
+
+/* 리사이즈 노드뷰의 바깥 틀. 글자 사이에 들어가도 줄을 넘치지 않고, 글자 아랫줄에 맞춰 선다. */
+.ProseMirror [data-resize-container] {
+    max-width: 100%;
+    margin: .5rem 0;
+    vertical-align: bottom;
+}
+
+.ProseMirror [data-resize-wrapper] {
+    max-width: 100%;
+}
+
+/*
+ * 블록 이미지는 한 줄을 혼자 쓴다. 바깥 틀을 줄 폭으로 펴고 안쪽 틀을 inline-block 으로 두면
+ * 문단의 text-align(툴바의 왼쪽·가운데·오른쪽 정렬)을 그대로 따른다.
+ * 노드뷰가 인라인 style 로 inline-flex 를 박아 두므로 !important 로 덮는다.
+ */
+.ProseMirror [data-resize-container][data-display="block"] {
+    display: block !important;
+    width: 100%;
+}
+
+.ProseMirror [data-resize-container][data-display="block"] > [data-resize-wrapper] {
+    display: inline-block !important;
+    vertical-align: top;
+}
+
+/* 주소가 깨진 이미지. 아무것도 안 보이면 거기 있는 줄도 모르고 지울 수도 없다. */
+.ProseMirror [data-image-broken] img {
+    min-width: 160px;
+    min-height: 90px;
+    border: 1px dashed var(--border-strong, var(--border));
+    border-radius: 6px;
+    background: var(--background);
+}
+
+.ProseMirror [data-image-broken] [data-resize-wrapper]::after {
+    content: "이미지를 불러오지 못했습니다";
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--subtle);
+    pointer-events: none;
 }
 
 .ProseMirror-selectednode > div {
@@ -415,6 +466,11 @@ body * {
 /* hover 효과 */
 .ProseMirror [data-resize-handle]:hover {
     background: rgba(0, 0, 0, 0.8);
+}
+
+/* 읽기 전용(참조 패널·공개 보기)에서는 크기를 바꿀 수 없어야 한다. */
+.ProseMirror[contenteditable="false"] [data-resize-handle] {
+    display: none;
 }
 
 /* -------------------------
@@ -497,6 +553,22 @@ body * {
 .ProseMirror [data-resize-handle='right'] {
     right: -3px;
     cursor: ew-resize;
+}
+
+/* 손가락으로는 8px 손잡이를 집기 어렵다. 터치 화면에서는 모서리 손잡이를 키운다. */
+@media (pointer: coarse) {
+    .ProseMirror [data-resize-handle='top-left'],
+    .ProseMirror [data-resize-handle='top-right'],
+    .ProseMirror [data-resize-handle='bottom-left'],
+    .ProseMirror [data-resize-handle='bottom-right'] {
+        width: 18px;
+        height: 18px;
+    }
+
+    .ProseMirror [data-resize-handle='top-left'] { top: -9px; left: -9px; }
+    .ProseMirror [data-resize-handle='top-right'] { top: -9px; right: -9px; }
+    .ProseMirror [data-resize-handle='bottom-left'] { bottom: -9px; left: -9px; }
+    .ProseMirror [data-resize-handle='bottom-right'] { bottom: -9px; right: -9px; }
 }
 
 .ProseMirror [data-resize-state='true'] [data-resize-wrapper] {

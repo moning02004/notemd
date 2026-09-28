@@ -4,7 +4,8 @@ import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import {createLowlight} from "lowlight";
 import Text from '@tiptap/extension-text'
 
-import {InputRule} from '@tiptap/core'
+import {Editor, InputRule} from '@tiptap/core'
+import {NodeView} from '@tiptap/pm/view'
 import {Details, DetailsContent, DetailsSummary} from '@tiptap/extension-details'
 
 import Document from '@tiptap/extension-document'
@@ -242,6 +243,108 @@ export const CustomCodeBlock = CodeBlockLowlight.extend({
     },
 })
 
+/*
+ * 리사이즈를 켠 이미지 확장의 노드뷰를 감싸 빈 곳을 메운다(표시 방식, 최대 폭도 여기서 다룬다).
+ *
+ * - 노드뷰는 이미지가 로드될 때까지 통째로 숨겨 두고(visibility: hidden) load 때만 드러낸다.
+ *   주소가 깨지면 영영 숨은 채라 보이지도 않고 골라서 지울 수도 없다. error 때도 드러내고 표시를 붙인다.
+ * - 속성이 바뀌어도(되돌리기 등) <img> 의 크기·주소를 다시 적용하지 않아, 리사이즈를 되돌려도
+ *   화면은 그대로다. 바뀐 속성을 그때그때 옮겨 적는다.
+ */
+export type ImageDisplay = "block" | "inline"
+
+/** 표시 방식을 정하지 않은 이미지(예전 노트 포함)는 한 줄을 혼자 쓰는 블록으로 본다. */
+export const imageDisplayOf = (attrs: Record<string, unknown>): ImageDisplay =>
+    attrs.display === "inline" ? "inline" : "block"
+
+/** 리사이즈를 시작할 때 이미지가 놓인 줄의 안쪽 폭. 이보다 크게 키우면 보이는 크기와 저장되는 크기가 어긋난다. */
+function lineWidthOf(container: HTMLElement): number | undefined {
+    const line = container.parentElement?.closest("p, li, td, th, blockquote, .ProseMirror") as HTMLElement | null
+    if (!line) return undefined
+    const style = getComputedStyle(line)
+    return line.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+}
+
+const CustomImage = Image.extend({
+    addAttributes() {
+        return {
+            ...this.parent?.(),
+            // block: 한 줄을 혼자 쓴다(문단 정렬을 따른다) · inline: 글자 사이에 흐른다
+            display: {
+                default: null,
+                parseHTML: element => element.getAttribute("data-display"),
+                renderHTML: attributes => (attributes.display ? {"data-display": attributes.display} : {}),
+            },
+        }
+    },
+
+    addNodeView() {
+        const renderer = this.parent?.()
+        if (!renderer) return null
+
+        return props => {
+            const view = renderer(props) as NodeView & { dom: HTMLElement }
+            const img = view.dom.querySelector("img")
+            if (!img) return view
+
+            view.dom.dataset.display = imageDisplayOf(props.node.attrs)
+
+            // 손잡이를 잡는 순간(리사이즈가 시작되기 전) 최대 폭을 지금 줄 폭으로 맞춘다.
+            // maxSize 는 ResizableNodeView 가 applyConstraints 에서 읽는 값이다.
+            const capToLine = (event: Event) => {
+                if (!(event.target as HTMLElement | null)?.closest("[data-resize-handle]")) return
+                const width = lineWidthOf(view.dom)
+                if (width) (view as unknown as { maxSize?: { width?: number } }).maxSize = {width}
+            }
+            view.dom.addEventListener("mousedown", capToLine, true)
+            view.dom.addEventListener("touchstart", capToLine, true)
+
+            img.addEventListener("error", () => {
+                view.dom.style.visibility = ""
+                view.dom.style.pointerEvents = ""
+                view.dom.dataset.imageBroken = ""
+            })
+            img.addEventListener("load", () => {
+                delete view.dom.dataset.imageBroken
+            })
+
+            const update = view.update?.bind(view)
+            if (update) {
+                view.update = (node, decorations, innerDecorations) => {
+                    if (!update(node, decorations, innerDecorations)) return false
+                    const {src, width, height} = node.attrs
+                    img.style.width = width ? `${width}px` : ""
+                    img.style.height = height ? `${height}px` : ""
+                    if (src && img.getAttribute("src") !== src) img.src = src
+                    view.dom.dataset.display = imageDisplayOf(node.attrs)
+                    return true
+                }
+            }
+            return view
+        }
+    },
+})
+
+/**
+ * 파일들을 올린 뒤 고른 순서대로 한 번에 넣는다.
+ *
+ * 하나씩 올라오는 대로 넣으면 먼저 끝난 것부터 들어가 순서가 뒤섞인다.
+ * 올리지 못한 파일은 빈 이미지로 넣지 않고 건너뛴다(실패 안내는 uploadFile 이 한다).
+ */
+async function insertUploadedImages(editor: Editor, files: File[], uploadFile: (file: File) => Promise<string>,
+                                    pos?: number) {
+    const urls = (await Promise.all(files.map(file => uploadFile(file).catch(() => "")))).filter(Boolean)
+    if (urls.length === 0 || editor.isDestroyed) return
+
+    const images = urls.map(src => ({type: "image", attrs: {src}}))
+    if (pos === undefined) {
+        editor.chain().focus().insertContent(images).run()
+    } else {
+        // 올리는 동안 문서가 줄었을 수 있다.
+        editor.chain().focus().insertContentAt(Math.min(pos, editor.state.doc.content.size), images).run()
+    }
+}
+
 // 링크 마크의 inclusive 기본값은 autolink 옵션을 그대로 따라간다(= autolink 켜면 true).
 // 그러면 링크 끝에 커서를 두고 이어서 타이핑할 때 링크가 계속 늘어나므로 꺼둔다.
 // 자동 링크는 "변경 범위가 공백으로 끝날 때" 단어 전체에 마크를 붙이는 방식이라
@@ -321,7 +424,7 @@ export function useEditorInstance({initialContent, setContent, uploadFile, onPic
         immediatelyRender: false,
         shouldRerenderOnTransaction: false,
         extensions: [
-            Image.configure({
+            CustomImage.configure({
                 inline: true,
                 resize: {
                     enabled: true,
@@ -348,23 +451,15 @@ export function useEditorInstance({initialContent, setContent, uploadFile, onPic
 
             FileHandler.configure({
                 allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
+                // 놓은 자리에 넣는다. 커서가 다른 곳에 있어도 끌어다 놓은 곳이 기준이다.
                 onDrop: (currentEditor, files, pos) => {
-                    files.forEach(file => {
-                        const fileReader = new FileReader()
-                        uploadFile(file).then(url => {
-                            currentEditor.chain().focus().setImage({src: url}).run()
-                        })
-                    })
+                    void insertUploadedImages(currentEditor, files, uploadFile, pos)
                 },
+                // 웹 페이지에서 복사한 이미지는 HTML 도 함께 온다. 그때는 HTML 붙여넣기에 맡긴다.
+                // 파일까지 올리면 같은 이미지가 두 장 들어간다.
                 onPaste: (currentEditor, files, htmlContent) => {
-                    files.forEach(file => {
-                        if (htmlContent) return false
-
-                        const fileReader = new FileReader()
-                        uploadFile(file).then(url => {
-                            currentEditor.chain().focus().setImage({src: url}).run()
-                        })
-                    })
+                    if (htmlContent) return
+                    void insertUploadedImages(currentEditor, files, uploadFile)
                 },
             }),
             Document,
