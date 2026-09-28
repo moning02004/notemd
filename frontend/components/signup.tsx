@@ -63,6 +63,7 @@ export const SignupPage = ({
 
                     <div className="flex items-center gap-2.5 mb-auto relative">
                         <div className="w-9 h-9 rounded-lg bg-surface/15 flex items-center justify-center">
+                            {/* eslint-disable-next-line @next/next/no-img-element -- 36px 칸 안의 작은 로고라 next/image 최적화가 필요 없다 */}
                             <img src="/mainIcon.png" alt=""/>
                         </div>
                         <div className="text-[18px] font-extrabold tracking-tight">note.md</div>

@@ -30,7 +30,8 @@ export const useNoteSelectStore = create<NoteSelectStore>((set, get) => ({
     toggleSelect: (id) => {
         const prev = get().selectedIds
         const next = new Set(prev)
-        next.has(id) ? next.delete(id) : next.add(id)
+        if (next.has(id)) next.delete(id)
+        else next.add(id)
         set({selectedIds: next})
     },
 

@@ -1,10 +1,8 @@
 import {useEffect, useRef, useState} from "react";
-import {useRouter} from "next/navigation";
 
 export default function NotePasswordModal({open, onClose, onSubmit}) {
     const [password, setPassword] = useState("");
     const inputRef = useRef(null);
-    const router = useRouter()
 
     useEffect(() => {
         if (!open) return;

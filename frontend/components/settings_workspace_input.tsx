@@ -75,7 +75,7 @@ export default function SettingsWorkspaceInput({selectedWorkspaces, setSelectedW
                         {filteredWorkspace(workspaces).length === 0 ? (
                             <p className="px-4 py-3 text-sm text-subtle">공유할 워크스페이스가 없습니다.</p>
                         ) : (
-                            filteredWorkspace(workspaces).map((workspace, i) => (
+                            filteredWorkspace(workspaces).map((workspace) => (
                                 <div
                                     key={workspace.hashId}
                                     onMouseDown={() => addWorkspace(workspace)}

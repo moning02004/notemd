@@ -59,6 +59,7 @@ export function Sidebar() {
             <div className="hidden md:flex md:flex-col md:w-52 md:shrink-0 bg-sidebar border-r border-border p-3">
                 <div className="flex items-center gap-2 px-1.5 py-2 mb-3">
                     <div className="w-9 h-9 rounded-lg bg-surface/15 flex items-center justify-center">
+                        {/* eslint-disable-next-line @next/next/no-img-element -- 36px 칸 안의 작은 로고라 next/image 최적화가 필요 없다 */}
                         <img src="/icon.png" alt=""/>
                     </div>
                     <span className="text-[13px] font-extrabold text-foreground tracking-tight">note.md</span>

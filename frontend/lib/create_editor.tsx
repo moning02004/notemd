@@ -4,7 +4,7 @@ import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import {createLowlight} from "lowlight";
 import Text from '@tiptap/extension-text'
 
-import {Editor, InputRule} from '@tiptap/core'
+import {Editor, InputRule, JSONContent} from '@tiptap/core'
 import {EditorView, NodeView} from '@tiptap/pm/view'
 import {Plugin, PluginKey} from '@tiptap/pm/state'
 import {useImageViewerStore} from "@/store/imageViewer";
@@ -117,7 +117,7 @@ export const CustomDetails = Details.extend({
     // 저장은 getHTML() 로 하고 parseHTML 이 <details> 의 open 속성 유무를 읽으므로,
     // 이미 저장된 노트의 접힘/펼침 상태는 영향받지 않는다.
     addAttributes() {
-        const parent = (this.parent?.() ?? {}) as Record<string, any>
+        const parent = (this.parent?.() ?? {}) as Record<string, Record<string, unknown>>
 
         return {
             ...parent,
@@ -150,7 +150,7 @@ export const CustomDetails = Details.extend({
 
                     // detailsSummary 는 content 가 text* 라 텍스트 노드만 담을 수 있다.
                     // 앞쪽 연속된 텍스트까지만 제목으로 올리고, hardBreak 등 그 뒤는 본문에 남긴다.
-                    const breakAt = inline.findIndex((node: any) => node.type !== 'text')
+                    const breakAt = inline.findIndex((node: JSONContent) => node.type !== 'text')
                     const summaryContent = breakAt === -1 ? inline : inline.slice(0, breakAt)
                     let bodyContent = breakAt === -1 ? [] : inline.slice(breakAt)
 
@@ -158,7 +158,7 @@ export const CustomDetails = Details.extend({
                     if (bodyContent[0]?.type === 'hardBreak') bodyContent = bodyContent.slice(1)
 
                     const summaryLength = summaryContent
-                        .reduce((sum: number, node: any) => sum + (node.text?.length ?? 0), 0)
+                        .reduce((sum: number, node: JSONContent) => sum + (node.text?.length ?? 0), 0)
 
                     chain()
                         .insertContentAt(

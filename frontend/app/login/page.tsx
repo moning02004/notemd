@@ -27,7 +27,7 @@ export default function Page() {
         try {
             const res = await apiRequest.get<CheckAccountExistenceResponse>("/check");
             setExistsAccount(res.exists);
-        } catch (error) {
+        } catch {
             setExistsAccount(false);
         }
     };
@@ -112,6 +112,7 @@ export default function Page() {
 
                     <div className="flex items-center gap-2.5 mb-auto relative">
                         <div className="w-9 h-9 rounded-lg bg-surface/15 flex items-center justify-center">
+                            {/* eslint-disable-next-line @next/next/no-img-element -- 36px 칸 안의 작은 로고라 next/image 최적화가 필요 없다 */}
                             <img src="/mainIcon.png" alt="" width="100" height="100"/>
                         </div>
                         <div className="text-[18px] font-extrabold tracking-tight">note.md</div>

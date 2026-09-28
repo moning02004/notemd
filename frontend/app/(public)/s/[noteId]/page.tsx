@@ -213,7 +213,6 @@ export default function Page() {
                 <MarkdownEditor setOpenedSetting={setOpenedSetting}
                                 isReadonly={isReadonly}
                                 isOwner={isOwner && !isDeleted}
-                                isEditable={isEditable}
                                 paramsNoteId={noteId}
                                 title={draft.title}
                                 content={draft.content}

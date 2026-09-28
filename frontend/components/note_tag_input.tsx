@@ -79,7 +79,7 @@ export default function NoteTagInput({selectedTags, setSelectedTags}: Props) {
                                 태그 추가: <strong className="text-foreground">{query}</strong>
                             </div>
                         ) : (
-                            filteredTags(tags).map((tag, i) => (
+                            filteredTags(tags).map((tag) => (
                                 <div
                                     key={tag.keyword}
                                     onMouseDown={() => addTag(tag.keyword)}

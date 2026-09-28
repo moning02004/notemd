@@ -15,8 +15,6 @@ import NoteFilterBar from "@/components/note_filterbar"
 import SelectActionBar from "@/components/select_action_bar"
 import {useNoteListPaging} from "@/hooks/useNoteListPaging"
 import {useTags} from "@/hooks/useTags"
-import {apiRequest} from "@/lib/api";
-import toast from "react-hot-toast";
 import {NoteListSkeleton, SkeletonLoading} from "@/components/skeleton";
 
 function WorkspaceNoteListContent() {
@@ -38,13 +36,12 @@ function WorkspaceNoteListContent() {
         if (userHash) fetchWorkspaces(userHash)
     }, [userHash])
 
-    const {notes, isLoading, isFetchingNextPage, sentinelRef, removeNotes} =
+    const {notes, isLoading, isFetchingNextPage, sentinelRef} =
         useNoteListPaging(searchParams.toString(), `/workspaces/${selectedWorkspaceId}/notes`, !!selectedWorkspaceId)
 
     const {
         selectMode,
         selectedIds,
-        exitSelectMode,
         toggleSelect,
     } = useNoteSelectStore()
 

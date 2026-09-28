@@ -25,7 +25,6 @@ export function Topbar() {
         menuOpen,
         enterSelectMode,
         exitSelectMode,
-        selectAll,
         toggleMenu,
         setMenuOpen,
     } = useNoteSelectStore()
@@ -53,7 +52,7 @@ export function Topbar() {
     const handleBack = () => {
         try {
             router.back()
-        } catch (e) {
+        } catch {
             window.location.href = "/"
         }
     }

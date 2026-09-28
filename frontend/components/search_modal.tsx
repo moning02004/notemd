@@ -69,7 +69,7 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
                     content: DOMPurify.sanitize((note.content || "").replace(/<[^>]*>/g, ""))
                 }))
                 setResults(data)
-            } catch (e) {
+            } catch {
                 setResults([])
             } finally {
                 setIsLoading(false)
@@ -98,7 +98,7 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
                             autoFocus={true}
                         />
                         <button
-                            onClick={(e) => {
+                            onClick={() => {
                                 setKeyword("")
                                 if (keywordRef.current) {
                                     keywordRef.current.value = "";

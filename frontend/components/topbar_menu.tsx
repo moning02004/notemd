@@ -1,6 +1,5 @@
 "use client"
 
-import {useRouter} from "next/navigation"
 import {BsThreeDotsVertical} from "react-icons/bs"
 import {FiCheckSquare, FiUpload} from "react-icons/fi"
 import {MdOutlineSettings} from "react-icons/md"
@@ -28,7 +27,6 @@ export default function TopbarMenu({
                                        onToggle,
                                        onClose,
                                    }: TopbarMenuProps) {
-    const router = useRouter()
     const menuRef = useClickOutside<HTMLDivElement>(onClose, open)
 
     return (

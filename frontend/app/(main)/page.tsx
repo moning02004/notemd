@@ -16,7 +16,6 @@ import {apiRequest} from "@/lib/api";
 import toast from "react-hot-toast";
 import {NoteListSkeleton, SkeletonLoading} from "@/components/skeleton";
 import {useViewModeStore} from "@/store/viewMode";
-import NotePasswordModal from "@/components/note/password_modal";
 import {FolderBar, FolderDrilldown} from "@/components/folder/folder_bar";
 import {UnfiledBanner} from "@/components/folder/unfiled_banner";
 import {useMoveSheetStore} from "@/store/moveSheet";

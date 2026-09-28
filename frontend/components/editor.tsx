@@ -31,7 +31,6 @@ interface EditorProps {
     setOpenedSetting: Dispatch<SetStateAction<boolean>>;
     isReadonly: boolean;
     isOwner: boolean;
-    isEditable: boolean;
     title: string;
     content: string;
     setTitle: (value: string) => void;
@@ -49,7 +48,6 @@ export function MarkdownEditor({
                                    title,
                                    content,
                                    isOwner,
-                                   isEditable,
                                    setTitle,
                                    setContent,
                                    isReadonly,
@@ -90,7 +88,7 @@ export function MarkdownEditor({
                         throw err;
                     });
                 return `${API_HOST}${response.url}`
-            } catch (err) {
+            } catch {
                 toast.error("이미지 업로드에 실패했습니다.")
                 return ""
             }

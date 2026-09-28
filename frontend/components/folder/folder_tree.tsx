@@ -3,7 +3,6 @@
 import {usePathname, useSearchParams} from "next/navigation"
 import {useProgressRouter} from "@/hooks/useProgressRouter"
 import {useEffect, useRef, useState} from "react"
-import {LuBookText} from "react-icons/lu"
 import {FiChevronRight, FiFolder, FiInbox, FiMoreHorizontal} from "react-icons/fi"
 import {useCreateFolder, useDeleteFolder, useFolders, useMoveFolder, useMoveNotes, useRenameFolder} from "@/hooks/useFolders"
 import {useFolderUiStore} from "@/store/folderUi"
@@ -27,7 +26,6 @@ export function FolderTree({creating, onCreatingChange}: {
     const onNoteList = pathname === "/"
     const selected = onNoteList ? searchParams.get("folder") : null
     const unfiledSelected = onNoteList && searchParams.get("unfiled") === "1"
-    const rootSelected = onNoteList && !selected && !unfiledSelected
 
     // 고른 폴더는 트리에서도 펼쳐 둔다. 목록에서 상위 폴더로 들어갔을 때
     // 사이드바는 접힌 채라 지금 어디에 있고 무엇이 들어 있는지 보이지 않았다.

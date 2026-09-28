@@ -12,7 +12,6 @@ import {apiRequest} from "@/lib/api";
 import toast from "react-hot-toast";
 import {NoteListSkeleton, SkeletonLoading} from "@/components/skeleton";
 import {useViewModeStore} from "@/store/viewMode";
-import NoteFilterBar from "@/components/note_filterbar";
 import ViewModeToggle from "@/components/view_mode_toggle";
 
 function NoteListContent() {

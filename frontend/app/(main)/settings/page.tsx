@@ -3,10 +3,7 @@
 import {useEffect, useState} from "react";
 import {
     FiClock,
-    FiExternalLink,
-    FiGithub,
     FiLayers,
-    FiPackage,
     FiPlus,
     FiSliders,
     FiTrash2,
