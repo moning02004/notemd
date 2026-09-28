@@ -1,18 +1,8 @@
 import type {Metadata, Viewport} from "next";
-import {Geist, Geist_Mono} from "next/font/google";
 import "./globals.css";
 import {Toaster} from "react-hot-toast";
 import {TopProgress} from "@/components/ui/top_progress";
-
-const geistSans = Geist({
-    variable: "--font-geist-sans",
-    subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-    variable: "--font-geist-mono",
-    subsets: ["latin"],
-});
+import {ImageViewer} from "@/components/image_viewer";
 
 export const metadata: Metadata = {
     title: "note.md",
@@ -43,10 +33,11 @@ export default function RootLayout({
     return (
         <html lang="en">
         <body
-            className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+            className="antialiased"
         >
         <TopProgress/>
         {children}
+        <ImageViewer/>
         <Toaster position="bottom-center" containerStyle={{
             bottom: 80
         }}/>

@@ -66,6 +66,10 @@ export function MarkdownEditor({
     const [notePickerOpen, setNotePickerOpen] = useState(false)
     // 본문의 노트 링크를 누르면 옮겨 가지 않고 오른쪽 패널에 펼친다.
     const [peekNoteId, setPeekNoteId] = useState<string | null>(null)
+    // 이 화면은 창이 아니라 아래 div 가 스크롤된다. 말풍선들은 기본으로 창의 스크롤만 지켜봐서,
+    // 알려 주지 않으면 스크롤해도 제자리에 떠 있다가 글자나 이미지를 덮는다.
+    // 말풍선(BubbleMenu)은 만들어진 직후의 옵션 변경을 한 번 건너뛰므로, 이 div 가 잡힌 뒤에 만든다.
+    const [scroller, setScroller] = useState<HTMLDivElement | null>(null)
     const {token} = useAuthStore.getState();
 
     const editor = useEditorInstance({
@@ -133,7 +137,8 @@ export function MarkdownEditor({
     if (!editor) return <div></div>;
 
     return (
-        <div className={`h-screen flex flex-col bg-surface w-full overflow-y-auto
+        <div ref={setScroller}
+             className={`h-screen flex flex-col bg-surface w-full overflow-y-auto
                         ${peekNoteId ? "md:pr-[var(--note-peek-width)]" : ""}`}>
             <div
                 className="flex flex-row items-center bg-surface border-b border-border px-3 transition-colors duration-300">
@@ -182,8 +187,8 @@ export function MarkdownEditor({
             }
             {
                 /* 버블 메뉴의 z-index 가 모달보다 높아서, 링크 모달이 떠 있는 동안에는 감춘다 */
-                !isReadonly && !linkModalOpen &&
-                <BubbleMenu editor={editor} options={{placement: "top", offset: 8}}
+                !isReadonly && !linkModalOpen && scroller &&
+                <BubbleMenu editor={editor} options={{placement: "top", offset: 8, scrollTarget: scroller}}
                             shouldShow={shouldShowFormatBubble}
                             style={{
                     zIndex: 9999,
@@ -224,12 +229,13 @@ export function MarkdownEditor({
                 </BubbleMenu>
             }
 
-            {!isReadonly && <EditorImageBubble editor={editor}/>}
+            {!isReadonly && scroller && <EditorImageBubble editor={editor} scrollTarget={scroller}/>}
 
             {
-                !isReadonly && !linkModalOpen &&
+                !isReadonly && !linkModalOpen && scroller &&
                 <EditorLinkBubble
                     editor={editor}
+                    scrollTarget={scroller}
                     onEdit={() => setLinkModalOpen(true)}/>
             }
 

@@ -1,6 +1,6 @@
 import {NoteMenu} from "@/components/note_menu"
 import {DeletedMenu} from "@/components/deleted_menu"
-import DOMPurify from "dompurify"
+import {previewText} from "@/lib/note"
 import {FiCheck} from "react-icons/fi"
 import {LuEllipsisVertical} from "react-icons/lu"
 import {FiFolder, FiInbox} from "react-icons/fi";
@@ -70,9 +70,7 @@ export const Note = ({
     const [stampDate, stampTime] = (created_at || deleted_at || "").split(" ")
 
     // 미리보기는 서식 없이 본문 텍스트만 보여준다
-    const preview = DOMPurify.sanitize(content ?? "", {ALLOWED_TAGS: [], ALLOWED_ATTR: []})
-        .replace(/\s+/g, " ")
-        .trim()
+    const preview = previewText(content)
 
     /*
      * 상태는 글자로 적는다.

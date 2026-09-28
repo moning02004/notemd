@@ -2,7 +2,7 @@
 
 import {useEffect, useMemo, useRef, useState} from "react"
 import {FiFileText, FiFolder, FiInbox, FiSearch} from "react-icons/fi"
-import DOMPurify from "dompurify"
+import {previewText} from "@/lib/note"
 
 import {Modal} from "@/components/ui/modal"
 import {apiRequest} from "@/lib/api"
@@ -147,8 +147,7 @@ export function NotePickerModal({open, onClose, onPick, excludeId}: Props) {
                         </p>
                     ) : (
                         items.map((note, index) => {
-                            const preview = DOMPurify.sanitize(note.content ?? "", {ALLOWED_TAGS: [], ALLOWED_ATTR: []})
-                                .replace(/\s+/g, " ").trim()
+                            const preview = previewText(note.content)
 
                             return (
                                 <button

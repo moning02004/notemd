@@ -4,12 +4,14 @@ import React, {useRef} from "react";
 import {Editor, useEditorState} from "@tiptap/react";
 import {BubbleMenu} from "@tiptap/react/menus";
 import {NodeSelection} from "@tiptap/pm/state";
-import {AlignCenter, AlignLeft, AlignRight, RectangleHorizontal, WrapText} from "lucide-react";
+import {AlignCenter, AlignLeft, AlignRight, Expand, RectangleHorizontal, WrapText} from "lucide-react";
 
-import {ImageDisplay, imageDisplayOf} from "@/lib/create_editor";
+import {ImageDisplay, imageDisplayOf, openImageViewer} from "@/lib/create_editor";
 
 interface Props {
     editor: Editor;
+    /** 에디터가 스크롤되는 요소. 말풍선이 이 스크롤을 따라 자리를 다시 잡는다. */
+    scrollTarget?: HTMLElement | null;
 }
 
 const isImageSelected = (editor: Editor) => {
@@ -24,7 +26,7 @@ const isImageSelected = (editor: Editor) => {
  * - 글자와 함께: 글자 사이에 흐른다. 아이콘·작은 그림처럼 문장 안에 넣을 때 쓴다.
  * 글자와 함께 둔 이미지를 크게 키우면 줄이 바뀌면서 이미지가 뛰어다니므로, 큰 이미지는 블록이 맞다.
  */
-export default function EditorImageBubble({editor}: Props) {
+export default function EditorImageBubble({editor, scrollTarget}: Props) {
     // shouldRerenderOnTransaction 이 꺼져 있어 필요한 값만 구독한다.
     const {display, align} = useEditorState({
         editor,
@@ -96,7 +98,7 @@ export default function EditorImageBubble({editor}: Props) {
             pluginKey="imageBubbleMenu"
             shouldShow={({editor}) => editor.isEditable && isImageSelected(editor)}
             getReferencedVirtualElement={getReferencedVirtualElement}
-            options={{placement: "top", offset: 8}}
+            options={{placement: "top", offset: 8, scrollTarget: scrollTarget ?? undefined}}
             style={{zIndex: 9999}}
         >
             <div className="flex items-center gap-1 bg-foreground rounded-lg px-1.5 py-1 shadow-lg">
@@ -107,6 +109,13 @@ export default function EditorImageBubble({editor}: Props) {
                 <button className={buttonClass(display === "inline")} title="글자 사이에 넣기"
                         onClick={() => setDisplay("inline")}>
                     <WrapText size={13}/> 글자와 함께
+                </button>
+
+                <div className="w-px h-4 bg-white/20 mx-0.5"/>
+                {/* 두 번 눌러도 열리지만, 모바일은 두 번 누르기가 화면 확대와 겹친다. */}
+                <button className={buttonClass(false)} title="크게 보기 (이미지를 두 번 눌러도 됩니다)"
+                        onClick={() => openImageViewer(editor.view.dom, imageElement() as HTMLImageElement | null)}>
+                    <Expand size={13}/>
                 </button>
 
                 {/* 정렬은 블록일 때만 뜻이 있지만 늘 그려 둔다. 나타났다 사라지면 말풍선 폭이 바뀌어

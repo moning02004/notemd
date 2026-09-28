@@ -8,6 +8,7 @@ import {FiLock, FiSlash, FiTrash2} from "react-icons/fi"
 import {ApiError, apiRequest} from "@/lib/api"
 import {useEditorInstance} from "@/lib/create_editor"
 import {NoteDetailResponse} from "@/types/note"
+import {useImageViewerStore} from "@/store/imageViewer"
 
 interface Props {
     /** 펼쳐 볼 노트. null 이면 패널이 닫혀 있다. */
@@ -72,6 +73,8 @@ export function NotePeekPanel({noteId, onClose, onNavigate, onOpenFull}: Props) 
          */
         const onKeyDown = (event: KeyboardEvent) => {
             if (event.key !== "Escape") return
+            // 패널 위에 이미지 뷰어가 떠 있으면 Esc 는 뷰어를 닫는 몫이다.
+            if (useImageViewerStore.getState().isOpen) return
             if (document.querySelector("[data-slash-menu]")) return
             if ((event.target as HTMLElement | null)?.closest("input, textarea, select")) return
             onClose()

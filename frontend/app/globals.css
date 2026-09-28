@@ -6,6 +6,14 @@
  * bg-surface / text-muted / border-accent 같은 유틸리티 클래스를 쓴다.
  */
 :root {
+    /*
+     * 글꼴. 맥에서는 SF Pro(영문)와 Apple SD Gothic Neo(한글), 윈도우는 Segoe UI·맑은 고딕으로 간다.
+     * @theme inline 안의 변수는 CSS 변수로 남지 않으므로, 일반 CSS 에서 쓰는 값은 여기 둔다.
+     */
+    --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Apple SD Gothic Neo", "Pretendard Variable",
+                 Pretendard, "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+    --font-code: ui-monospace, "SF Mono", SFMono-Regular, Menlo, "JetBrains Mono", Consolas, monospace;
+
     --background: #FAFAF9;
     --foreground: #1B1D1B;
 
@@ -38,8 +46,8 @@
 @theme inline {
     --color-background: var(--background);
     --color-foreground: var(--foreground);
-    --font-sans: var(--font-geist-sans);
-    --font-mono: var(--font-geist-mono);
+    --font-sans: var(--font-body);
+    --font-mono: var(--font-code);
 
     --color-editor: #ffffff;
     --color-editor-line: #ededed;
@@ -192,6 +200,10 @@ html, body {
 body {
     background: var(--background);
     color: var(--foreground);
+    /* 한국어는 단어 중간("쓰/는 법")에서 줄이 바뀌면 읽기 어렵다. 카드 제목·목록까지 단어째 넘긴다.
+       break-word 는 넘칠 때만 끊어, 칸의 최소 폭을 바꾸지 않으므로 배치가 흔들리지 않는다. */
+    word-break: keep-all;
+    overflow-wrap: break-word;
 }
 
 h1 {
@@ -218,8 +230,17 @@ h6 {
     @apply text-base font-medium! mt-0! mb-[4px]!
 }
 
+/*
+ * 예전에는 var(--font-sans) 가 정의되지 않은 변수라 이 규칙 전체가 무시되고 있었다.
+ * 코드는 고정폭으로 따로 둔다(전부 덮으면 코드 블록까지 일반 글꼴이 된다).
+ */
 body * {
-    font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif !important;
+    font-family: var(--font-body) !important;
+}
+
+body :is(pre, code, kbd, samp),
+body pre * {
+    font-family: var(--font-code) !important;
 }
 
 .drawer-button {
@@ -237,8 +258,9 @@ body * {
 .title-editor {
     background-color: var(--color-editor);
     padding: 1rem;
-    font-size: 1.2rem;
-    font-weight: bold;
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
 }
 
 .body-editor {
@@ -260,7 +282,6 @@ body * {
     background: var(--foreground);
     border-radius: 0.5rem;
     color: var(--surface);
-    font-family: 'JetBrainsMono', monospace;
     margin: 1.5rem 0;
     padding: 1.25rem;
     padding-top: 4rem;
@@ -306,6 +327,58 @@ body * {
 .ProseMirror {
     min-height: 100%;
     padding: 1rem;
+    /* 한국어는 단어 중간("관/련")에서 줄이 바뀌면 읽기 어렵다. 단어째 넘기고,
+       한 단어가 줄보다 긴 경우(긴 주소 등)에만 끊어 넘치지 않게 한다. */
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+}
+
+/*
+ * 본문 글. 줄 높이 1.5 에 문단 사이가 거의 없어 글이 다닥다닥 붙어 보였다.
+ * 맥의 메모·문서 앱처럼 줄 사이를 넉넉히 두고, 문단·목록 사이에 숨 쉴 틈을 준다.
+ */
+.ProseMirror {
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--foreground);
+}
+
+.ProseMirror > p + p,
+.ProseMirror > p + :is(ul, ol),
+.ProseMirror > :is(ul, ol) + p {
+    margin-top: .375rem;
+}
+
+.ProseMirror li + li {
+    margin-top: .25rem;
+}
+
+/*
+ * 본문 제목. 전역 h1~h3 은 36·30·24px 에 굵게(700)라 본문 옆에서 덩어리처럼 무겁다.
+ * 본문 안에서는 한 단계 작게, 세미볼드로 둔다.
+ */
+.ProseMirror :is(h1, h2, h3, h4, h5, h6) {
+    font-weight: 600;
+    line-height: 1.35;
+    letter-spacing: -0.015em;
+}
+
+.ProseMirror h1 {
+    font-size: 1.875rem;
+    padding-bottom: .375rem;
+}
+
+.ProseMirror h2 {
+    font-size: 1.5rem;
+    padding-bottom: .3rem;
+}
+
+.ProseMirror h3 {
+    font-size: 1.25rem;
+}
+
+.ProseMirror h4 {
+    font-size: 1.125rem;
 }
 
 /* 문단뿐 아니라 목록·제목·표 안의 링크에도 동일하게 적용한다 */
@@ -313,6 +386,18 @@ body * {
     @apply cursor-pointer;
     color: var(--accent);
     text-decoration: underline;
+}
+
+/*
+ * 본문 제목. 전역 h1~h6 은 위 여백을 0 으로 박아 두어(mt-0!) 앞 문단에 붙어 버린다.
+ * 절이 바뀌는 곳이 보이도록 본문 안에서는 첫 줄이 아닌 제목 위를 띄운다.
+ */
+.ProseMirror > :is(h1, h2):not(:first-child) {
+    margin-top: 2rem !important;
+}
+
+.ProseMirror > :is(h3, h4, h5, h6):not(:first-child) {
+    margin-top: 1.5rem !important;
 }
 
 .ProseMirror p:not(table p, blockquote p, li p, .details p) {
@@ -375,12 +460,14 @@ body * {
     background: var(--background);
 }
 
+/* 인용구·팁. 한글 기울임은 글자가 찌그러져 보여, 기울이지 않고 은은한 바탕과 둥근 모서리로 구분한다. */
 .ProseMirror blockquote {
-    border-left: 4px solid var(--border-strong);
-    padding-left: 1rem;
+    border-left: 3px solid var(--border-strong);
+    border-radius: 0 8px 8px 0;
+    background: var(--background);
+    padding: .625rem 1rem;
     margin: 1rem 0;
     color: var(--muted);
-    font-style: italic;
 }
 
 .ProseMirror p.is-editor-empty:first-child::before {
@@ -402,6 +489,17 @@ body * {
     height: auto !important;
 }
 
+/*
+ * 크기를 정하지 않은 이미지(업로드 직후)는 원본 크기로 나온다. 폰 스크린샷(9:16) 한 장이
+ * 화면 두세 개 높이가 되어 글의 흐름이 끊기므로, 화면 높이의 70% 안으로 담는다(비율은 그대로).
+ * 크기를 직접 정하면(리사이즈하면 style 에 width 가 붙는다) 그 크기를 따른다.
+ * 같은 높이로 줄어드니 크기를 정하지 않은 이미지 여러 장을 글자와 함께 두면 나란히 선다.
+ */
+.ProseMirror [data-resize-container] img:not([style*="width"]) {
+    width: auto;
+    max-height: 70vh;
+}
+
 /* 리사이즈 노드뷰의 바깥 틀. 글자 사이에 들어가도 줄을 넘치지 않고, 글자 아랫줄에 맞춰 선다. */
 .ProseMirror [data-resize-container] {
     max-width: 100%;
@@ -421,6 +519,41 @@ body * {
 .ProseMirror [data-resize-container][data-display="block"] {
     display: block !important;
     width: 100%;
+}
+
+/*
+ * 블록 이미지의 얇은 테두리. 흰 바탕 캡처는 본문 바탕과 섞여 어디까지가 그림이고
+ * 어디부터 진짜 화면인지 헷갈린다. 글자와 함께 둔 작은 그림·아이콘에는 두르지 않는다.
+ */
+.ProseMirror [data-resize-container][data-display="block"]:not([data-image-broken]) img {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+
+/*
+ * 그림 설명. 블록 이미지 바로 아래 문단이 기울임 한 덩어리뿐이면 설명으로 보고,
+ * 작고 흐린 글씨로 이미지에 붙인다. 그대로 두면 본문과 구분되지 않고 다음 글과 붙어 보인다.
+ */
+.ProseMirror p:has(> [data-resize-container][data-display="block"]) + p:has(> em:only-child) {
+    margin-top: -.5rem;
+    padding-top: 0;
+    font-size: .8125rem;
+    color: var(--muted);
+}
+
+/* 한글 기울임은 글자가 찌그러져 보여, 설명에서는 기울이지 않는다(작고 흐린 글씨로 이미 구분된다). */
+.ProseMirror p:has(> [data-resize-container][data-display="block"]) + p > em:only-child {
+    font-style: normal;
+}
+
+/* 캡처가 든 목록 단계. 그림 설명 바로 밑에 다음 단계가 붙지 않게 띄운다. */
+.ProseMirror li:has(> p > [data-resize-container][data-display="block"]) {
+    margin-bottom: 1rem;
+}
+
+/* 글자와 함께 둔 이미지. 줄 간격을 벌리지 않게 위아래 여백은 줄이고, 나란히 놓였을 때 서로 붙지 않게 오른쪽을 띄운다. */
+.ProseMirror [data-resize-container][data-display="inline"] {
+    margin: .125rem .375rem .125rem 0;
 }
 
 .ProseMirror [data-resize-container][data-display="block"] > [data-resize-wrapper] {
@@ -466,6 +599,11 @@ body * {
 /* hover 효과 */
 .ProseMirror [data-resize-handle]:hover {
     background: rgba(0, 0, 0, 0.8);
+}
+
+/* 읽기 전용에서는 이미지를 누르면 크게 본다. */
+.ProseMirror[contenteditable="false"] [data-resize-container]:not([data-image-broken]) img {
+    cursor: zoom-in;
 }
 
 /* 읽기 전용(참조 패널·공개 보기)에서는 크기를 바꿀 수 없어야 한다. */
@@ -594,6 +732,8 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
 
 .ProseMirror table {
     width: 100%;
+    /* 앞뒤 문단이 표 테두리에 붙지 않게 */
+    margin: .75rem 0;
 }
 
 .ProseMirror table td, .ProseMirror table th {
@@ -677,6 +817,11 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
     font-weight: 600;
     list-style: none;
     margin-bottom: 0.5rem;
+}
+
+/* 접은 내용 안의 문단은 본문 문단 여백(padding)에서 빠져 있어 줄줄이 붙는다. 문단 사이를 조금 띄운다. */
+.tiptap .details [data-type='detailsContent'] > p + p {
+    margin-top: .375rem;
 }
 
 .tiptap .details [data-type='detailsContent'] > :last-child {

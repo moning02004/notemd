@@ -5,7 +5,9 @@ import {createLowlight} from "lowlight";
 import Text from '@tiptap/extension-text'
 
 import {Editor, InputRule} from '@tiptap/core'
-import {NodeView} from '@tiptap/pm/view'
+import {EditorView, NodeView} from '@tiptap/pm/view'
+import {Plugin, PluginKey} from '@tiptap/pm/state'
+import {useImageViewerStore} from "@/store/imageViewer";
 import {Details, DetailsContent, DetailsSummary} from '@tiptap/extension-details'
 
 import Document from '@tiptap/extension-document'
@@ -265,7 +267,45 @@ function lineWidthOf(container: HTMLElement): number | undefined {
     return line.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
 }
 
+/** 이 에디터 본문의 이미지들을 순서대로 뷰어에 넘기고, target 부터 보여준다. */
+export function openImageViewer(root: HTMLElement, target: HTMLImageElement | null) {
+    const images = [...root.querySelectorAll<HTMLImageElement>("[data-resize-container] img")]
+    const sources = images.map(img => img.currentSrc || img.src).filter(Boolean)
+    if (sources.length === 0) return
+    const index = target ? Math.max(0, images.indexOf(target)) : 0
+    useImageViewerStore.getState().open(sources, index)
+}
+
 const CustomImage = Image.extend({
+    /*
+     * 크게 보기. 편집 중에는 한 번 누르면 이미지가 골라지고(크기 조절·말풍선) 두 번 누르면 연다.
+     * 읽기 전용(참조 패널·공개 보기)에서는 고를 일이 없으니 한 번 눌러 연다.
+     * 모바일은 두 번 누르기가 화면 확대와 겹쳐, 말풍선의 '크게 보기' 버튼으로도 열 수 있다.
+     */
+    addProseMirrorPlugins() {
+        const open = (view: EditorView, event: Event) => {
+            const target = event.target as HTMLElement | null
+            if (!target || target.closest("[data-resize-handle]")) return false
+            const img = target.closest("[data-resize-container]")?.querySelector("img")
+            if (!img || "imageBroken" in (img.closest("[data-resize-container]") as HTMLElement).dataset) return false
+            event.preventDefault()
+            openImageViewer(view.dom, img)
+            return true
+        }
+
+        return [
+            new Plugin({
+                key: new PluginKey("imageViewerOpen"),
+                props: {
+                    handleDOMEvents: {
+                        dblclick: (view, event) => open(view, event),
+                        click: (view, event) => (view.editable ? false : open(view, event)),
+                    },
+                },
+            }),
+        ]
+    },
+
     addAttributes() {
         return {
             ...this.parent?.(),

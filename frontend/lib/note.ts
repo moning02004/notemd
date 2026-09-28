@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import {apiRequest} from "@/lib/api";
 import {CreateNoteResponse} from "@/types/note";
 
@@ -62,3 +63,17 @@ function extractFilename(disposition: string) {
 
     return null;
 }
+
+/**
+ * 본문 HTML 을 목록 미리보기용 한 줄 글로 만든다.
+ *
+ * 태그만 걷어내면 문단·제목·목록 사이에 공백이 없어 "목표메모 앱의…" 처럼 글이 붙는다.
+ * 블록이 끝나는 자리마다 공백을 둔 뒤 걷어낸다.
+ */
+export const previewText = (html: string | null | undefined) =>
+    DOMPurify.sanitize(
+        (html ?? "").replace(/<\/(p|h[1-6]|li|div|blockquote|pre|td|th|summary)>|<br\s*\/?>/gi, "$& "),
+        {ALLOWED_TAGS: [], ALLOWED_ATTR: []},
+    )
+        .replace(/\s+/g, " ")
+        .trim()

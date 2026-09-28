@@ -8,6 +8,8 @@ import {ExternalLink, Pencil, Unlink} from "lucide-react";
 interface Props {
     editor: Editor;
     onEdit: () => void;
+    /** 에디터가 스크롤되는 요소. 말풍선이 이 스크롤을 따라 자리를 다시 잡는다. */
+    scrollTarget?: HTMLElement | null;
 }
 
 /**
@@ -17,7 +19,7 @@ interface Props {
  * 이 말풍선에서 이동할지, 고칠지, 링크만 뗄지 고른다.
  * 읽기 전용일 때는 익스텐션이 클릭 핸들러를 건너뛰므로 예전처럼 바로 이동한다.
  */
-export default function EditorLinkBubble({editor, onEdit}: Props) {
+export default function EditorLinkBubble({editor, onEdit, scrollTarget}: Props) {
     // shouldRerenderOnTransaction 이 꺼져 있어서, 커서를 옮겨도 이 컴포넌트는 다시 그려지지 않는다.
     // 필요한 값만 구독해 링크 사이를 오갈 때도 최신 href 가 보이게 한다.
     const {href, isLink} = useEditorState({
@@ -51,7 +53,7 @@ export default function EditorLinkBubble({editor, onEdit}: Props) {
             // 선택 영역이 있을 때는 기존 서식 말풍선이 뜨므로, 커서만 놓인 경우로 한정한다
             shouldShow={({state}) => editor.isEditable && state.selection.empty && editor.isActive("link")}
             getReferencedVirtualElement={getLinkElement}
-            options={{placement: "bottom", offset: 8}}
+            options={{placement: "bottom", offset: 8, scrollTarget: scrollTarget ?? undefined}}
             style={{zIndex: 9999}}
         >
             {isLink && (
