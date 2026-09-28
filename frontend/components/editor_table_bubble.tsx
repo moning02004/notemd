@@ -244,8 +244,12 @@ export default function EditorTableBubble({editor, scrollTarget}: Props) {
                             <BetweenVerticalEnd size={15}/> 오른쪽에 열 넣기
                         </button>
                         {menuDivider}
+                        {/* 좁은 화면은 열 폭을 늘 자동으로 보여 주므로(globals.css) 맞춰도 보이지 않는다. */}
+                        <p className="md:hidden px-3 py-1.5 text-xs text-subtle leading-relaxed">
+                            좁은 화면에서는 열 너비를 내용에 맞춰 자동으로 보여 줘요.
+                        </p>
                         {/* 폭은 여러 번 눌러 맞추므로 누른 뒤에도 메뉴를 닫지 않는다. */}
-                        <div className="flex items-center gap-2 px-3 py-1.5 text-sm text-foreground"
+                        <div className="max-md:hidden flex items-center gap-2 px-3 py-1.5 text-sm text-foreground"
                              title="마우스로는 열 경계를 끌어서도 맞출 수 있습니다">
                             <MoveHorizontal size={15} aria-hidden/>
                             <span className="mr-auto whitespace-nowrap">열 너비</span>

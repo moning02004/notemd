@@ -722,6 +722,20 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
     -webkit-overflow-scrolling: touch;
 }
 
+/*
+ * 표 위아래에 글을 쓸 수 없는 틈(문서 맨 앞·맨 끝, 표끼리 붙은 곳)은 눌러서 새 줄을 여는 자리다(lib/open_line).
+ * 손가락으로 누를 만큼 넉넉히 띄운다. 맨 앞 표는 이 여백 덕에 표 말풍선도 툴바와 표 사이에 들어간다
+ * (말풍선 32px + 위아래 8px).
+ */
+.ProseMirror > .tableWrapper:first-child,
+.ProseMirror > :is(.tableWrapper, hr, pre) + .tableWrapper {
+    margin-top: 2rem;
+}
+
+.ProseMirror > .tableWrapper:last-child {
+    margin-bottom: 2rem;
+}
+
 .ProseMirror table {
     border-collapse: collapse;
     table-layout: auto;
@@ -746,6 +760,22 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
        긴 주소처럼 끊을 곳이 없는 낱말만 필요할 때 쪼갠다. */
     word-break: keep-all;
     overflow-wrap: break-word;
+}
+
+/*
+ * 좁은 화면에서는 손으로 맞춘 폭(px)을 따르지 않고 내용에 맞춰 나눈다. 데스크톱에서 넓게 맞춘 열이
+ * 휴대폰에서 표를 몇 배로 늘려 옆으로 한참 밀어 봐야 했다. 저장된 폭은 그대로 두어 넓은 화면에서는 다시 따른다.
+ * (표 확장이 table·col 에 폭을 직접 적어 넣으므로 !important 로 이긴다.)
+ */
+@media (max-width: 767px) {
+    .ProseMirror table {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .ProseMirror col {
+        width: auto !important;
+    }
 }
 
 /* 칸의 최소 폭. 칸 자체의 min-width 는 브라우저마다 다르게 먹어서 안쪽 글줄에 건다.

@@ -8,6 +8,14 @@ import {ResolvedPos} from "@tiptap/pm/model";
 const isGap = ($pos: ResolvedPos): boolean =>
     (GapCursor as unknown as { valid: ($pos: ResolvedPos) => boolean }).valid($pos)
 
+/**
+ * 열어 둔 빈 줄의 자리(문단 앞 위치). 아무것도 쓰지 않고 커서가 다른 곳으로 가면 도로 닫는다.
+ * 틈을 잘못 눌렀거나 제목에서 Enter 만 치고 떠났을 때 빈 줄이 남아 저장되지 않게 한다.
+ * 편집기가 포커스를 잃는 것만으로는 닫지 않는다. 툴바 단추(제목·목록 등)를 누를 때도 포커스가 빠지는데,
+ * 그 빈 줄을 꾸미려던 것일 수 있다.
+ */
+const openedLineKey = new PluginKey<number | null>("openedLine")
+
 /*
  * 글을 쓸 수 없는 틈에 새 줄 열기.
  *
@@ -36,7 +44,8 @@ export function openLineAt(view: EditorView, pos: number): boolean {
     } else {
         const index = $pos.index()
         if (!$pos.parent.canReplaceWith(index, index, paragraph)) return false
-        tr = tr.insert(pos, paragraph.create())
+        // 빈 줄을 연 것은 되돌리기 기록에 남기지 않는다. 그 줄에 쓴 글은 평소처럼 남는다.
+        tr = tr.insert(pos, paragraph.create()).setMeta(openedLineKey, pos).setMeta("addToHistory", false)
         cursor = pos + 1
     }
 
@@ -82,6 +91,36 @@ export const OpenLineOnGapTap = Extension.create({
         let pressedAt: { x: number, y: number } | null = null
 
         return [
+            new Plugin<number | null>({
+                key: openedLineKey,
+                state: {
+                    init: () => null,
+                    apply(tr, opened) {
+                        const meta = tr.getMeta(openedLineKey) as number | null | undefined
+                        if (meta !== undefined) return meta
+                        if (opened === null) return null
+                        const mapped = tr.mapping.mapResult(opened)
+                        return mapped.deleted ? null : mapped.pos
+                    },
+                },
+                appendTransaction(_transactions, _oldState, state) {
+                    const opened = openedLineKey.getState(state)
+                    if (opened === null || opened === undefined) return null
+
+                    const line = state.doc.nodeAt(opened)
+                    // 뭔가 쓰기 시작했으면(또는 다른 것이 됐으면) 더는 지켜보지 않는다.
+                    if (!line || line.type.name !== "paragraph" || line.content.size > 0) {
+                        return state.tr.setMeta(openedLineKey, null)
+                    }
+                    const {from} = state.selection
+                    if (from > opened && from < opened + line.nodeSize) return null
+
+                    // 빈 채로 떠났다. 되돌리기 기록에는 남기지 않는다(연 것도 닫은 것도 사람이 한 일이 아니다).
+                    return state.tr.delete(opened, opened + line.nodeSize)
+                        .setMeta(openedLineKey, null)
+                        .setMeta("addToHistory", false)
+                },
+            }),
             new Plugin({
                 key: new PluginKey("openLineOnGapTap"),
                 props: {
