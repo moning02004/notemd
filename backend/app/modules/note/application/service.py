@@ -4,7 +4,7 @@ import os
 import re
 import zipfile
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 
 import fitz
@@ -23,6 +23,13 @@ from app.modules.folder.infrastructure.repository import FolderRepository
 from app.modules.note.infrastructure.models import Note, NoteSnapshot
 from app.modules.user.infrastructure.models import User
 from app.modules.user.infrastructure.repository import UserRepository
+
+
+def _same_moment(a: datetime, b: datetime) -> bool:
+    """두 시각이 같은 순간인지. SQLite 는 시간대 없이(UTC) 돌려주므로 시간대를 맞춰 비교한다."""
+    def utc(value: datetime) -> datetime:
+        return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
+    return utc(a) == utc(b)
 
 
 class NoteService(Service):
@@ -236,6 +243,13 @@ class NoteService(Service):
         # 휴지통에서 고치면 복원했을 때 무엇이 바뀌었는지 아무도 모른다. 먼저 복원해야 한다.
         if note.deleted_at is not None:
             raise HTTPException(status_code=409, detail="휴지통에 있는 노트는 복원한 뒤에 고칠 수 있습니다.")
+        # 편집 화면이 받은 뒤로 다른 곳(다른 탭·기기·공유 멤버)에서 저장했다. 그대로 쓰면 그 내용이 사라진다.
+        if request.base_updated_at is not None and not _same_moment(request.base_updated_at, note.updated_at):
+            raise HTTPException(status_code=409, detail={
+                "message": "다른 곳에서 먼저 저장된 내용이 있습니다.",
+                "is_conflict": True,
+                "updated_at": note.updated_at.isoformat(),
+            })
 
         note.is_editable = is_editable
 

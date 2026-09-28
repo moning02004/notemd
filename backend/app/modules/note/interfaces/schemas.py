@@ -97,6 +97,8 @@ class NoteDetailSchema(BaseModel):
     tags: list = []
     workspaces: list = []
     folder: object | None = None
+    # 편집 화면은 이 값을 들고 있다가 저장할 때 base_updated_at 으로 돌려준다(덮어쓰기 막기).
+    updated_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -136,6 +138,9 @@ class NoteUpdateRequest(BaseModel):
     is_first_edit: bool | None = None
     # 생략과 null 을 구분한다. null 은 미분류로 옮기라는 뜻이다.
     folder: str | None = None
+    # 편집 화면이 마지막으로 받은 노트의 updated_at. 그 사이 다른 곳(다른 탭·기기·공유 멤버)에서
+    # 저장했으면 덮어쓰지 않고 409 로 거절한다. 생략하면 확인하지 않는다(설정 변경, '내 내용으로 저장').
+    base_updated_at: datetime | None = None
 
 
 class NoteCreateRequest(BaseModel):
