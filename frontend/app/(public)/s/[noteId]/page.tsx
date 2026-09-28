@@ -1,6 +1,6 @@
 "use client"
 
-import {useEffect, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import {notFound, useParams, useRouter} from "next/navigation";
 import toast from "react-hot-toast";
 
@@ -12,6 +12,9 @@ import {useAuthStore} from "@/store/auth";
 import {useNoteDetail} from "@/hooks/useNoteDetail";
 import {useNoteAutosave} from "@/hooks/useNoteAutoSave";
 import {apiRequest} from "@/lib/api";
+import {NoteDetailResponse} from "@/types/note";
+import {NoteConflictModal, NoteMergeView} from "@/components/note/note_conflict_modal";
+import {applyMerge, ConflictChoice, diff3, htmlBlocks, mergeTitle} from "@/lib/note_merge";
 import {FiAlertTriangle, FiTrash2} from "react-icons/fi";
 
 // Tailwind는 소스에 리터럴로 존재하는 클래스명만 인식하므로 `w-[${n}%]`처럼 동적으로
@@ -37,12 +40,70 @@ export default function Page() {
 
     const isSavable = isEditable && state.status === "ready"
 
-    const {saveNow, conflict, overwrite} = useNoteAutosave({
+    const {saveNow, conflict, overwrite, synced, acceptMerged} = useNoteAutosave({
         noteId,
         draft,
         enabled: isSavable,
         setStatusType,
     })
+
+    /*
+     * 다른 곳에서 먼저 저장했을 때. 서버의 최신본을 받아 기준본(마지막으로 맞춰 둔 내용)·내 내용과 견줘
+     * 무엇이 바뀌었는지 보여 주고 합친다. 다른 곳에서 본문·제목을 바꾸지 않았으면(설정만 바꿈 등)
+     * 물을 것이 없으니 조용히 이어서 저장한다.
+     */
+    const draftRef = useRef(draft)
+    draftRef.current = draft
+    const [merge, setMerge] = useState<(NoteMergeView & { latest: NoteDetailResponse }) | null>(null)
+    const [mergeOpen, setMergeOpen] = useState(false)
+
+    const compareWithLatest = useCallback(async () => {
+        const current = draftRef.current
+        const base = synced()
+        if (!current || !base) return
+        let latest: NoteDetailResponse
+        try {
+            latest = await apiRequest.get<NoteDetailResponse>(`/notes/${noteId}`)
+        } catch {
+            toast.error("최신 내용을 불러오지 못했습니다.")
+            return
+        }
+        const theirs = {title: latest.title ?? "", content: latest.content ?? ""}
+        const chunks = diff3(htmlBlocks(base.content), htmlBlocks(current.content), htmlBlocks(theirs.content))
+        const title = {...mergeTitle(base.title, current.title, theirs.title), base: base.title, mine: current.title, theirs: theirs.title}
+
+        const theirsTouched = title.theirsChanged || chunks.some(chunk => chunk.kind === "theirs" || chunk.kind === "conflict")
+        if (!theirsTouched) {
+            acceptMerged(latest.updated_at, theirs, {title: current.title, content: current.content})
+            return
+        }
+        setMerge({chunks, title, latest})
+        setMergeOpen(true)
+    }, [noteId, synced, acceptMerged])
+
+    // 충돌이 새로 났을 때만 비교한다. compareWithLatest 는 글을 칠 때마다 새로 만들어지므로 ref 로 부른다
+    // (의존성에 넣으면 안내가 떠 있는 동안 한 글자마다 다시 불러와 창을 연다).
+    const compareRef = useRef(compareWithLatest)
+    compareRef.current = compareWithLatest
+    useEffect(() => {
+        if (conflict) void compareRef.current()
+        else {
+            setMerge(null)
+            setMergeOpen(false)
+        }
+    }, [conflict])
+
+    const applyMerged = (choices: Record<number, ConflictChoice>, titleChoice: ConflictChoice) => {
+        if (!merge) return
+        const theirs = {title: merge.latest.title ?? "", content: merge.latest.content ?? ""}
+        const title = merge.title.conflict ? (titleChoice === "theirs" ? theirs.title : merge.title.mine) : merge.title.title
+        const content = applyMerge(merge.chunks, choices).join("")
+        acceptMerged(merge.latest.updated_at, theirs, {title, content})
+        // 화면에 합친 내용을 넣는다. 에디터는 content 가 바뀌면 따라 그린다.
+        setters.setTitle(title)
+        setters.setContent(content)
+        toast.success("다른 곳의 변경을 합쳤습니다.")
+    }
 
     // ⌘/Ctrl + S 로 지금 저장. 브라우저의 '페이지 저장' 대화상자를 대신 가로챈다.
     // 편집할 수 있는 노트에서만 막는다 — 읽기 전용 화면에서는 브라우저 기본 동작이 맞다.
@@ -141,20 +202,14 @@ export default function Page() {
              className="flex flex-wrap items-center gap-2 border-b border-border bg-chip-open-soft px-4 py-2.5 text-[13px] text-chip-open">
             <FiAlertTriangle size={14} className="shrink-0"/>
             <span className="flex-1 min-w-48">
-                다른 곳에서 이 노트를 먼저 저장해 자동 저장을 멈췄습니다. 어느 내용을 남길까요?
+                다른 곳에서 이 노트를 먼저 저장해 자동 저장을 멈췄습니다.
             </span>
-            <div className="flex shrink-0 gap-1.5">
-                <button onClick={reload} title="이 화면에서 고친 내용은 사라집니다"
-                        className="rounded-md bg-surface px-3 py-1 font-medium text-foreground
-                                   border border-border cursor-pointer hover:bg-background">
-                    최신 내용 불러오기
-                </button>
-                <button onClick={overwrite}
-                        className="rounded-md bg-surface px-3 py-1 font-medium text-foreground
-                                   border border-border cursor-pointer hover:bg-background">
-                    지금 내용으로 저장
-                </button>
-            </div>
+            {/* 창을 닫은 뒤에도 이어서 쓸 수 있으므로, 열 때마다 지금 내용으로 다시 견준다. */}
+            <button onClick={() => void compareWithLatest()}
+                    className="shrink-0 rounded-md bg-surface px-3 py-1 font-medium text-foreground
+                               border border-border cursor-pointer hover:bg-background">
+                바뀐 내용 보기
+            </button>
         </div>
     )
 
@@ -182,6 +237,13 @@ export default function Page() {
                     onClick={() => setOpenedSetting(false)}
                 />
             }
+
+            <NoteConflictModal open={mergeOpen}
+                               merge={merge}
+                               onClose={() => setMergeOpen(false)}
+                               onApply={applyMerged}
+                               onUseTheirs={reload}
+                               onKeepMine={overwrite}/>
 
             {token && !isDeleted &&
                 <NoteSettings noteId={noteId}

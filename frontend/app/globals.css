@@ -872,3 +872,20 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
 .tiptap .details [data-type='detailsContent'] > :last-child {
     margin-bottom: 0;
 }
+
+/* 다른 곳의 저장과 합치는 창의 블록 미리보기. 본문 모양(.ProseMirror)을 빌리되 편집 화면의 여백·높이는 뺀다. */
+.ProseMirror.note-diff-block {
+    min-height: 0;
+    padding: 0;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.ProseMirror.note-diff-block p:hover {
+    background: transparent;
+}
+
+.ProseMirror.note-diff-block .tableWrapper,
+.ProseMirror.note-diff-block > table {
+    margin: .25rem 0;
+}
