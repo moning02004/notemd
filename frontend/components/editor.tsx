@@ -21,6 +21,8 @@ import {NotePickerModal} from "@/components/note/note_picker_modal";
 import {NotePeekPanel} from "@/components/note/note_peek_panel";
 import EditorLinkBubble from "@/components/editor_link_bubble";
 import EditorImageBubble from "@/components/editor_image_bubble";
+import EditorTableBubble from "@/components/editor_table_bubble";
+import {CellSelection} from "@tiptap/pm/tables";
 import {Link as LinkIcon} from "lucide-react";
 import {MdWorkspacesFilled} from "react-icons/md";
 
@@ -109,11 +111,12 @@ export function MarkdownEditor({
 
     // 기본 조건(포커스가 있고 글자가 골라져 있을 때)에 더해, 이미지·노트 링크처럼 조각 하나가 통째로
     // 골라진 경우는 뺀다. 거기에는 굵게·기울임이 소용없고, 버블이 이미지나 옆에 펼친 패널을 가린다.
+    // 표 칸을 여러 개 고른 경우도 뺀다. 그때는 표 말풍선(합치기·색칠)이 같은 자리에 뜬다.
     const shouldShowFormatBubble = useCallback(({editor, view, state, element}: {
         editor: Editor, view: EditorView, state: EditorState, element: HTMLElement
     }) => {
         const {selection} = state
-        if (selection instanceof NodeSelection) return false
+        if (selection instanceof NodeSelection || selection instanceof CellSelection) return false
 
         const hasFocus = view.hasFocus() || element.contains(document.activeElement)
         const isEmptyTextBlock = !state.doc.textBetween(selection.from, selection.to).length
@@ -230,6 +233,8 @@ export function MarkdownEditor({
             }
 
             {!isReadonly && scroller && <EditorImageBubble editor={editor} scrollTarget={scroller}/>}
+
+            {!isReadonly && !linkModalOpen && scroller && <EditorTableBubble editor={editor} scrollTarget={scroller}/>}
 
             {
                 !isReadonly && !linkModalOpen && scroller &&

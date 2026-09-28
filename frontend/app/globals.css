@@ -438,28 +438,6 @@ body pre * {
     outline: none;
 }
 
-.ProseMirror table {
-    border-collapse: collapse;
-    width: 90%;
-    table-layout: fixed;
-}
-
-.ProseMirror th,
-.ProseMirror td {
-    border: 1px solid #e5e7eb;
-    padding: 8px;
-    position: relative;
-}
-
-.ProseMirror th {
-    background: var(--sidebar);
-    font-weight: 600;
-}
-
-.ProseMirror tr:hover td {
-    background: var(--background);
-}
-
 /* 인용구·팁. 한글 기울임은 글자가 찌그러져 보여, 기울이지 않고 은은한 바탕과 둥근 모서리로 구분한다. */
 .ProseMirror blockquote {
     border-left: 3px solid var(--border-strong);
@@ -730,23 +708,90 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
     margin: auto;
 }
 
-.ProseMirror table {
-    width: 100%;
+/*
+ * 표.
+ *
+ * 폭은 내용에 맞춰 자동으로 나뉜다(auto). 손으로 맞춘 열만 <col> 에 폭이 박히고 나머지는 남은 자리를 나눈다.
+ * 표가 화면보다 넓어지면 본문이 아니라 표만 가로로 밀린다(모바일에서 열이 한 글자 폭으로 찌그러지지 않게).
+ */
+.ProseMirror .tableWrapper {
+    overflow-x: auto;
     /* 앞뒤 문단이 표 테두리에 붙지 않게 */
+    margin: .75rem 0;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+}
+
+.ProseMirror table {
+    border-collapse: collapse;
+    table-layout: auto;
+    width: 100%;
+    margin: 0;
+    line-height: 1.55;
+}
+
+/* 읽기 전용 화면처럼 감싸는 틀이 없을 때도 앞뒤를 띄운다 */
+.ProseMirror > table {
     margin: .75rem 0;
 }
 
-.ProseMirror table td, .ProseMirror table th {
+.ProseMirror th,
+.ProseMirror td {
     position: relative;
+    border: 1px solid var(--border-strong);
+    padding: 6px 10px;
+    vertical-align: top;
+    text-align: left;
+    /* 한글도 낱말 단위로 줄을 바꾼다. 음절마다 끊기면 좁은 칸에서 읽기 어렵다.
+       긴 주소처럼 끊을 곳이 없는 낱말만 필요할 때 쪼갠다. */
+    word-break: keep-all;
+    overflow-wrap: break-word;
 }
 
-.ProseMirror table td::after, .ProseMirror table th::after {
+/* 칸의 최소 폭. 칸 자체의 min-width 는 브라우저마다 다르게 먹어서 안쪽 글줄에 건다.
+   안쪽 여백(10px × 2)을 더하면 경계를 끌 때의 하한(TABLE_CELL_MIN_WIDTH, 64px)과 맞다. */
+.ProseMirror :is(th, td) > :not(.column-resize-handle) {
+    min-width: 44px;
+}
+
+.ProseMirror :is(th, td) > * + * {
+    margin-top: .25rem;
+}
+
+.ProseMirror th {
+    background: var(--sidebar);
+    font-weight: 600;
+}
+
+/* 여러 칸을 골랐을 때. 칸의 배경색을 덮지 않고 그 위에 옅게 겹친다. */
+.ProseMirror .selectedCell::after {
     content: "";
     position: absolute;
-    top: 0;
-    right: 0;
-    width: 6px;
-    height: 100%;
+    inset: 0;
+    background: var(--accent);
+    opacity: .14;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.ProseMirror .selectedCell {
+    caret-color: transparent;
+}
+
+/* 열 경계를 끄는 손잡이. 경계 가까이에 마우스를 대면 나타난다. */
+.ProseMirror .column-resize-handle {
+    position: absolute;
+    top: -1px;
+    bottom: -1px;
+    right: -2px;
+    width: 3px;
+    background: var(--accent);
+    pointer-events: none;
+    z-index: 2;
+}
+
+.ProseMirror.resize-cursor,
+.ProseMirror.resize-cursor * {
     cursor: col-resize;
 }
 

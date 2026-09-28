@@ -48,7 +48,8 @@ import 'highlight.js/styles/atom-one-dark.css'
 import Image from '@tiptap/extension-image'
 import TextAlign from "@tiptap/extension-text-align";
 import {Dropcursor, Placeholder} from "@tiptap/extensions";
-import {Table, TableCell, TableHeader, TableRow} from "@tiptap/extension-table";
+import {Table, TableRow} from "@tiptap/extension-table";
+import {CustomTableCell, CustomTableHeader, TABLE_CELL_MIN_WIDTH} from "@/lib/table";
 import {TaskItem, TaskList} from "@tiptap/extension-list";
 import FileHandler from "@tiptap/extension-file-handler";
 import Paragraph from '@tiptap/extension-paragraph'
@@ -393,22 +394,6 @@ export const CustomLink = Link.extend({
     inclusive: false,
 })
 
-const CustomTableCell = TableCell.extend({
-    addAttributes() {
-        return {
-            ...this.parent?.(),
-            backgroundColor: {
-                default: null,
-                renderHTML: (attrs) =>
-                    attrs.backgroundColor
-                        ? {style: `background-color: ${attrs.backgroundColor}`}
-                        : {},
-                parseHTML: (el) => el.style.backgroundColor || null,
-            },
-        };
-    },
-});
-
 export function useEditorInstance({initialContent, setContent, uploadFile, onPickNote, onOpenNote, editable = true}: {
     initialContent: string,
     setContent: (value: string) => void,
@@ -472,8 +457,9 @@ export function useEditorInstance({initialContent, setContent, uploadFile, onPic
                 }
             }),
 
-            Table.configure({resizable: true}),
-            TableHeader,
+            // 경계에서 이만큼 안쪽까지 잡힌다. 기본값(5px)은 너무 가늘어 잘 놓친다.
+            Table.configure({resizable: true, handleWidth: 8, cellMinWidth: TABLE_CELL_MIN_WIDTH}),
+            CustomTableHeader,
             CustomTableCell,
             TableRow,
             TextAlign.configure({
