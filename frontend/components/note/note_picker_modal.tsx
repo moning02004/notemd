@@ -29,7 +29,8 @@ const DEBOUNCE_MS = 250
 export function NotePickerModal({open, onClose, onPick, excludeId}: Props) {
     const [keyword, setKeyword] = useState("")
     const [notes, setNotes] = useState<NoteSearchResult[]>([])
-    const [isLoading, setIsLoading] = useState(false)
+    // 받은 목록이 어느 검색어 것인지. 지금 검색어와 다르면 받는 중이다.
+    const [loadedFor, setLoadedFor] = useState<string | null>(null)
     const [cursor, setCursor] = useState(0)
 
     const {data: folderData} = useFolders(open)
@@ -39,17 +40,22 @@ export function NotePickerModal({open, onClose, onPick, excludeId}: Props) {
         () => notes.filter(note => note.hash_id !== excludeId),
         [notes, excludeId])
 
-    useEffect(() => {
-        if (!open) return
-        setKeyword("")
-        setCursor(0)
-    }, [open])
+    // 열릴 때마다 검색어와 고른 줄을 비운다(렌더 중에 앞 상태와 견줘 맞춘다).
+    const [wasOpen, setWasOpen] = useState(open)
+    if (open !== wasOpen) {
+        setWasOpen(open)
+        if (open) {
+            setKeyword("")
+            setCursor(0)
+        }
+    }
+    const requestKey = keyword.trim()
+    const isLoading = open && loadedFor !== requestKey
 
     useEffect(() => {
         if (!open) return
 
         let aborted = false
-        setIsLoading(true)
 
         // 검색어가 없으면 최근 노트. 있으면 검색. 둘 다 같은 엔드포인트다.
         const query = keyword.trim() ? `?keyword=${encodeURIComponent(keyword.trim())}` : "?page=1"
@@ -64,7 +70,7 @@ export function NotePickerModal({open, onClose, onPick, excludeId}: Props) {
                     if (!aborted) setNotes([])
                 })
                 .finally(() => {
-                    if (!aborted) setIsLoading(false)
+                    if (!aborted) setLoadedFor(keyword.trim())
                 })
         }, keyword.trim() ? DEBOUNCE_MS : 0)
 

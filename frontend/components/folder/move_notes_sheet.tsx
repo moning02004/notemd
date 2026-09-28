@@ -55,22 +55,29 @@ export function MoveNotesSheet({open, onClose, noteHashes, currentFolder, onMove
     const canCreate = query.trim().length > 0 &&
         !targets.some(target => target.name.toLowerCase() === query.trim().toLowerCase())
 
+    // 열릴 때마다 검색어와 고른 줄을 비운다(렌더 중에 앞 상태와 견줘 맞춘다).
+    const [wasOpen, setWasOpen] = useState(open)
+    if (open !== wasOpen) {
+        setWasOpen(open)
+        if (open) {
+            setQuery("")
+            setCursor(0)
+        }
+    }
+    // 검색으로 목록이 줄면 고른 줄이 목록 밖에 남지 않게, 쓸 때 끝 줄로 맞춘다.
+    const lastIndex = Math.max(0, matches.length - 1)
+    const active = Math.min(cursor, lastIndex)
+
     useEffect(() => {
         if (!open) return
-        setQuery("")
-        setCursor(0)
         // 모바일에서 키보드가 바로 올라오면 목록이 가려진다. 데스크톱에서만 포커스를 준다.
         if (window.matchMedia("(min-width: 768px)").matches) inputRef.current?.focus()
     }, [open])
 
     useEffect(() => {
-        setCursor(current => Math.min(current, Math.max(0, matches.length - 1)))
-    }, [matches.length])
-
-    useEffect(() => {
         listRef.current?.querySelector<HTMLElement>("[data-active='true']")
             ?.scrollIntoView({block: "nearest"})
-    }, [cursor])
+    }, [active])
 
     if (!open) return null
 
@@ -105,13 +112,13 @@ export function MoveNotesSheet({open, onClose, noteHashes, currentFolder, onMove
             onClose()
         } else if (event.key === "ArrowDown") {
             event.preventDefault()
-            setCursor(current => Math.min(current + 1, matches.length - 1))
+            setCursor(current => Math.min(Math.min(current, lastIndex) + 1, lastIndex))
         } else if (event.key === "ArrowUp") {
             event.preventDefault()
-            setCursor(current => Math.max(current - 1, 0))
+            setCursor(current => Math.max(Math.min(current, lastIndex) - 1, 0))
         } else if (event.key === "Enter") {
             event.preventDefault()
-            if (matches[cursor]) move(matches[cursor])
+            if (matches[active]) move(matches[active])
             else if (canCreate) createAndMove()
         }
     }
@@ -167,13 +174,13 @@ export function MoveNotesSheet({open, onClose, noteHashes, currentFolder, onMove
                         return (
                             <button
                                 key={target.hashId ?? "unfiled"}
-                                data-active={index === cursor}
+                                data-active={index === active}
                                 onMouseEnter={() => setCursor(index)}
                                 onClick={() => move(target)}
                                 disabled={busy}
                                 className={`w-full flex items-center gap-2.5 px-3 rounded-lg text-left
                                     min-h-[52px] md:min-h-[36px] cursor-pointer transition-colors duration-100
-                                    ${index === cursor ? "bg-accent-menu text-accent" : "text-muted hover:bg-background"}`}
+                                    ${index === active ? "bg-accent-menu text-accent" : "text-muted hover:bg-background"}`}
                             >
                                 {target.hashId === null
                                     ? <FiInbox size={16} className="shrink-0"/>

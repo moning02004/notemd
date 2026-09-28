@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useState} from "react";
+import {useSyncExternalStore} from "react";
 import {Topbar} from "@/components/topbar";
 import {useAuthStore} from "@/store/auth";
 import {Sidebar} from "@/components/sidebar";
@@ -13,19 +13,18 @@ import {MoveNotesSheet} from "@/components/folder/move_notes_sheet";
 import {useMoveSheetStore} from "@/store/moveSheet";
 import {AppShellSkeleton} from "@/components/skeleton";
 
+const subscribeNothing = () => () => {}
+
 export default function MainLayout({children}: {
     children: React.ReactNode;
 }) {
 
-    const [mounted, setMounted] = useState(false)
+    // 하이드레이션 중에는 false(서버와 같은 뼈대), 그 뒤 클라이언트에서는 true.
+    const mounted = useSyncExternalStore(subscribeNothing, () => true, () => false)
     const token = useAuthStore(state => state.token)
     const pathname = usePathname()
     const {isOpen: isSearchOpen, close: closeSearch} = useSearchModalStore()
     const moveSheet = useMoveSheetStore()
-
-    useEffect(() => {
-        setMounted(true)
-    }, [])
 
     // sessionStorage 기반 토큰은 클라이언트에서만 읽을 수 있다. 하이드레이션 전에 화면을
     // 그리면 서버('미로그인')와 어긋나 트리를 통째로 다시 그리느라 한 번 번쩍인다.

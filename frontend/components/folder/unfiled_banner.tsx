@@ -1,6 +1,6 @@
 "use client"
 
-import {useEffect, useMemo, useState} from "react"
+import {useMemo, useState} from "react"
 import toast from "react-hot-toast"
 import {useQueryClient} from "@tanstack/react-query"
 import {FiCheck, FiFolderPlus, FiX} from "react-icons/fi"
@@ -23,7 +23,6 @@ export function UnfiledBanner({count}: { count: number }) {
     const queryClient = useQueryClient()
 
     const [dismissed, setDismissed] = useState(false)
-    const [picked, setPicked] = useState<string[]>([])
     const [busy, setBusy] = useState(false)
 
     const suggestions = useMemo(() => (tags ?? [])
@@ -34,9 +33,13 @@ export function UnfiledBanner({count}: { count: number }) {
     // 폴더가 하나도 없고 쓸 만한 태그가 있을 때만 승격을 권한다.
     const canSuggest = (folderData?.folders.length ?? 0) === 0 && suggestions.length > 0
 
-    useEffect(() => {
+    // 권할 태그가 바뀌면 모두 고른 상태에서 다시 시작한다(렌더 중에 앞 목록과 견줘 맞춘다).
+    const [picked, setPicked] = useState<string[]>(() => suggestions.map(tag => tag.keyword))
+    const [pickedFrom, setPickedFrom] = useState(suggestions)
+    if (pickedFrom !== suggestions) {
+        setPickedFrom(suggestions)
         setPicked(suggestions.map(tag => tag.keyword))
-    }, [suggestions])
+    }
 
     if (count === 0 || dismissed || !canSuggest) return null
 

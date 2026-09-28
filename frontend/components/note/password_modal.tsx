@@ -4,9 +4,15 @@ export default function NotePasswordModal({open, onClose, onSubmit}) {
     const [password, setPassword] = useState("");
     const inputRef = useRef(null);
 
+    // 열릴 때마다 입력을 비운다(렌더 중에 앞 상태와 견줘 맞춘다).
+    const [wasOpen, setWasOpen] = useState(open);
+    if (open !== wasOpen) {
+        setWasOpen(open);
+        if (open) setPassword("");
+    }
+
     useEffect(() => {
         if (!open) return;
-        setPassword("");
         inputRef.current?.focus();
 
         const handleEsc = (e) => e.key === "Escape" && onClose();

@@ -35,13 +35,15 @@ type PeekState =
  * 데스크톱에서는 뒤를 가리지 않아 보면서 계속 쓸 수 있고, 모바일에서는 화면을 덮는다.
  */
 export function NotePeekPanel({noteId, onClose, onNavigate, onOpenFull}: Props) {
-    const [state, setState] = useState<PeekState>({status: "loading"})
+    // 받은 결과를 어느 노트 것인지와 함께 둔다. 다른 노트로 바뀌면 받기 전까지 '불러오는 중' 이다.
+    const [loaded, setLoaded] = useState<{ noteId: string, state: PeekState } | null>(null)
+    const state: PeekState = loaded && loaded.noteId === noteId ? loaded.state : {status: "loading"}
 
     useEffect(() => {
         if (!noteId) return
 
         let aborted = false
-        setState({status: "loading"})
+        const setState = (next: PeekState) => setLoaded({noteId, state: next})
 
         apiRequest.get<NoteDetailResponse>(`/notes/${noteId}`)
             .then(note => {

@@ -44,9 +44,11 @@ export function Sidebar() {
     // 다른 메뉴로 가면 폴더는 접는다. 사이드바에 한 번에 한 덩어리만 펼쳐져 있게.
     // pathname 이 아니라 activePath 를 보는 이유: 화면이 바뀐 뒤에 접으면 한 박자 늦어
     // 폴더가 열린 채로 멈칫한다. 누른 순간(목적지가 정해진 순간) 바로 접기 시작한다.
-    useEffect(() => {
+    const [foldedFor, setFoldedFor] = useState(activePath)
+    if (foldedFor !== activePath) {
+        setFoldedFor(activePath)
         if (activePath !== "/") setFoldersOpen(false)
-    }, [activePath])
+    }
 
     // 메뉴는 몇 개 안 되고 어차피 누를 화면이다. 미리 받아두면 눌렀을 때 기다림이 없다.
     useEffect(() => {

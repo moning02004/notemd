@@ -26,11 +26,13 @@ export function ImageViewer() {
     const src = images[index]
     const hasMany = images.length > 1
 
-    // 다른 이미지로 넘어가면 화면 맞춤부터 다시 본다.
-    useEffect(() => {
+    // 다른 이미지로 넘어가면 화면 맞춤부터 다시 본다(렌더 중에 앞 이미지와 견줘 맞춘다).
+    const [shownSrc, setShownSrc] = useState(src)
+    if (shownSrc !== src) {
+        setShownSrc(src)
         setActualSize(false)
         setCanZoom(false)
-    }, [src])
+    }
 
     useEffect(() => {
         if (!isOpen) return

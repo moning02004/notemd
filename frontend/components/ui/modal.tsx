@@ -27,6 +27,9 @@ function useEnterExit(isOpen: boolean, enabled: boolean) {
     const [mounted, setMounted] = useState(isOpen)
     const [shown, setShown] = useState(isOpen && !enabled)
 
+    // 열고 닫는 애니메이션을 프레임·타이머에 맞춰 돌리는 곳이라 effect 안에서 상태를 바꾼다.
+    // (렌더 중에 앞 상태와 견줘 맞추는 방식으로 바꿔 봤더니 StrictMode 에서 mounted 갱신이 사라져 창이 열리지 않았다.)
+    /* eslint-disable react-hooks/set-state-in-effect */
     useEffect(() => {
         if (isOpen) {
             setMounted(true)
@@ -47,6 +50,7 @@ function useEnterExit(isOpen: boolean, enabled: boolean) {
         const timer = setTimeout(() => setMounted(false), DURATION_MS)
         return () => clearTimeout(timer)
     }, [isOpen, enabled])
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     return {mounted, shown}
 }

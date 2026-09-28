@@ -26,9 +26,6 @@ export default function NoteTagInput({selectedTags, setSelectedTags}: Props) {
         fetchTags()
     }, []);
 
-    useEffect(() => {
-        setOpen(query.trim().length > 0);
-    }, [query]);
 
     const addTag = (name: string) => {
         if (selectedTags.includes(name)) return;
@@ -63,7 +60,10 @@ export default function NoteTagInput({selectedTags, setSelectedTags}: Props) {
                     ref={inputRef}
                     type="text"
                     value={query}
-                    onChange={(e) => setQuery(e.target.value)}
+                    onChange={(e) => {
+                        setQuery(e.target.value);
+                        setOpen(e.target.value.trim().length > 0);
+                    }}
                     onKeyUp={handleKeyUp}
                     onClick={() => setOpen(true)}
                     onBlur={() => setTimeout(() => setOpen(false), 150)}

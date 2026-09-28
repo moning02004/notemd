@@ -28,9 +28,6 @@ export default function SettingsWorkspaceInput({selectedWorkspaces, setSelectedW
         if (userHash) fetchWorkspace()
     }, [userHash]);
 
-    useEffect(() => {
-        setOpen(query.trim().length > 0);
-    }, [query]);
 
     const addWorkspace = (workspace: NoteWorkspace) => {
         const alreadySelectedWorkspaceHashIds = selectedWorkspaces.map(x => x.hashId)
@@ -61,7 +58,10 @@ export default function SettingsWorkspaceInput({selectedWorkspaces, setSelectedW
                     ref={inputRef}
                     type="text"
                     value={query}
-                    onChange={(e) => setQuery(e.target.value)}
+                    onChange={(e) => {
+                        setQuery(e.target.value);
+                        setOpen(e.target.value.trim().length > 0);
+                    }}
                     onKeyUp={handleKeyUp}
                     onClick={() => setOpen(true)}
                     onBlur={() => setTimeout(() => setOpen(false), 150)}

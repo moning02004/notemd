@@ -43,21 +43,23 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
     // 고른 결과가 열리는 동안 그 줄에 표시를 남긴다.
     const [openingId, setOpeningId] = useState<string | null>(null)
 
-    useEffect(() => {
+    // 닫히면 검색을 비운다(렌더 중에 앞 상태와 견줘 맞춘다).
+    const [wasOpen, setWasOpen] = useState(isOpen)
+    if (isOpen !== wasOpen) {
+        setWasOpen(isOpen)
         if (!isOpen) {
             setKeyword("")
             setResults([])
             setSearched(false)
             setOpeningId(null)
         }
-    }, [isOpen])
+    }
+    // 검색어를 지우면 지난 결과는 보이지 않는다.
+    const shownResults = keyword ? results : []
+    const didSearch = keyword !== "" && searched
 
     useEffect(() => {
-        if (keyword === "") {
-            setResults([])
-            setSearched(false)
-            return;
-        }
+        if (keyword === "") return
 
         const timer = setTimeout(async () => {
             setIsLoading(true)
@@ -115,8 +117,8 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
                 <div className="flex flex-col flex-1 overflow-y-auto">
                     {isLoading ? (
                         Array.from({length: 4}).map((_, i) => <SkeletonItem key={i}/>)
-                    ) : results.length > 0 ? (
-                        results.map((note) => (
+                    ) : shownResults.length > 0 ? (
+                        shownResults.map((note) => (
                             <div
                                 key={note.hash_id}
                                 className={`w-full border-b border-border p-3 cursor-pointer
@@ -146,7 +148,7 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
                                 </div>
                             </div>
                         ))
-                    ) : searched && !isLoading ? (
+                    ) : didSearch && !isLoading ? (
                         <div className="flex flex-col items-center justify-center flex-1 text-subtle gap-2">
                             <span className="text-4xl">🔍</span>
                             <span className="text-sm">검색 결과가 없습니다</span>

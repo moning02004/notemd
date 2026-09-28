@@ -36,10 +36,16 @@ export default function EditorLinkModal({editor, open, onClose}: Props) {
         ? editor.state.doc.textBetween(editor.state.selection.from, editor.state.selection.to, " ")
         : "";
 
+    // 열리는 순간 지금 링크 주소로 채운다(렌더 중에 앞 상태와 견줘 맞춘다).
+    const [wasOpen, setWasOpen] = useState(open);
+    if (open !== wasOpen) {
+        setWasOpen(open);
+        if (open) setUrl(editor.getAttributes("link").href ?? "");
+    }
+
     useEffect(() => {
         if (!open) return;
 
-        setUrl(editor.getAttributes("link").href ?? "");
         // 모달이 그려진 뒤에 포커스를 줘야 한다
         const raf = requestAnimationFrame(() => {
             inputRef.current?.focus();
