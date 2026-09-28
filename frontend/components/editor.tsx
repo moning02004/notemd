@@ -182,14 +182,15 @@ export function MarkdownEditor({
             {
                 !isReadonly &&
                 <div className="pr-3 bg-editor sticky top-0 z-10 flex shadow-sm">
-                    <div className="flex-1">
+                    {/* min-w-0: 툴바가 제 폭보다 좁아져야 모바일에서 옆으로 밀 수 있다 */}
+                    <div className="flex-1 min-w-0">
                         <MenuBar editor={editor} noteId={paramsNoteId}
                                  tableMenuOpen={tableMenuOpen}
                                  setTableMenuOpen={setTableMenuOpen}
                                  openLinkModal={() => setLinkModalOpen(true)}
                                  openNotePicker={() => setNotePickerOpen(true)}/>
                     </div>
-                    <div className="mb-auto pt-3 md:p-0 md:my-auto text-right">{status}</div>
+                    <div className="shrink-0 my-auto text-right">{status}</div>
                 </div>
             }
             {
