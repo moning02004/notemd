@@ -74,6 +74,16 @@ function buildHeaders(base: HeadersInit | undefined, token: string | null, isMim
     return headers
 }
 
+/** 토큰의 만료 시각(exp)이 30초 안으로 다가왔는지. 읽을 수 없으면 아니라고 보고 서버 판단에 맡긴다. */
+function isExpiringSoon(token: string): boolean {
+    try {
+        const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")))
+        return typeof payload.exp === "number" && payload.exp * 1000 - Date.now() < 30_000
+    } catch {
+        return false
+    }
+}
+
 // 동시에 여러 요청이 401을 받아도 refresh는 한 번만 호출한다.
 let refreshPromise: Promise<string | null> | null = null
 
@@ -126,7 +136,14 @@ async function sendRequest<T = unknown>(endPoint: string,
         headers: buildHeaders(options.headers, token, extraOptions.isMime),
     })
 
-    const token = useAuthStore.getState().token
+    let token = useAuthStore.getState().token
+    /*
+     * 만료된 토큰은 서버가 401 없이 '로그인하지 않음' 으로 본다. 노트 열기처럼 로그인 없이도 되는 요청은
+     * 그러면 401 대신 404(남의 비공개 노트) 를 받아 아래의 재발급 기회가 없다. 새로고침한 노트 화면이
+     * 404 로 뜨던 까닭이다. 보내기 전에 만료가 가까우면 미리 재발급한다.
+     * 재발급이 안 되면 전처럼 원래 토큰으로 보내고, 판단은 서버(401)에 맡긴다.
+     */
+    if (token && isExpiringSoon(token)) token = (await refreshAccessToken()) ?? token
     let response = await send(token)
 
     // 토큰이 없던 요청(공개 노트 등)의 401은 재발급 대상이 아니다. 그대로 에러로 넘긴다.
