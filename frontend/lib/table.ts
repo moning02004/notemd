@@ -40,29 +40,36 @@ export type TableCellVerticalAlign = "top" | "middle" | "bottom"
  *
  * 배경색은 style 만 두면 다시 읽을 때 브라우저가 rgb(...) 로 바꿔 돌려주어 고른 색을 알아볼 수 없다.
  * 고른 값은 data- 속성으로도 적어 두고 그쪽을 먼저 읽는다.
+ *
+ * 값을 style 에 그대로 옮겨 적으므로 색 모양(#hex, rgb/rgba, 이름 있는 색)만 받는다. 붙여 넣은 HTML 의
+ * data-background-color="red; position: fixed; …" 같은 값이 다른 CSS 를 끼워 넣지 못하게 한다.
+ * 공개 노트는 다른 사람에게도 보인다. 읽을 때와 쓸 때 모두 거른다.
  */
+const SAFE_COLOR = /^(#[0-9a-f]{3,8}|rgba?\(\s*[\d.]+%?(\s*,\s*[\d.]+%?){2,3}\s*\)|[a-z]+)$/i
+
+const safeColor = (value: unknown) =>
+    typeof value === "string" && SAFE_COLOR.test(value.trim()) ? value.trim() : null
+
+const safeVerticalAlign = (value: unknown) => (value === "middle" || value === "bottom" ? value : null)
+
 const cellAttributes = {
     backgroundColor: {
         default: null,
         parseHTML: (element: HTMLElement) =>
-            element.getAttribute("data-background-color") || element.style.backgroundColor || null,
-        renderHTML: (attributes: { backgroundColor?: string | null }) =>
-            attributes.backgroundColor
-                ? {
-                    "data-background-color": attributes.backgroundColor,
-                    style: `background-color: ${attributes.backgroundColor}`,
-                }
-                : {},
+            safeColor(element.getAttribute("data-background-color")) ?? safeColor(element.style.backgroundColor),
+        renderHTML: (attributes: { backgroundColor?: string | null }) => {
+            const color = safeColor(attributes.backgroundColor)
+            return color ? {"data-background-color": color, style: `background-color: ${color}`} : {}
+        },
     },
     // 세로 정렬. 정하지 않으면 위(CSS 기본)다. 가로 정렬(align)은 표 확장이 이미 갖고 있다.
     verticalAlign: {
         default: null,
-        parseHTML: (element: HTMLElement) => {
-            const value = element.style.verticalAlign
-            return value === "middle" || value === "bottom" ? value : null
+        parseHTML: (element: HTMLElement) => safeVerticalAlign(element.style.verticalAlign),
+        renderHTML: (attributes: { verticalAlign?: string | null }) => {
+            const value = safeVerticalAlign(attributes.verticalAlign)
+            return value ? {style: `vertical-align: ${value}`} : {}
         },
-        renderHTML: (attributes: { verticalAlign?: string | null }) =>
-            attributes.verticalAlign ? {style: `vertical-align: ${attributes.verticalAlign}`} : {},
     },
 }
 
