@@ -125,10 +125,16 @@ export default function EditorTableBubble({editor, scrollTarget}: Props) {
      */
     const cell = current ?? NO_CELL
 
-    // 표를 벗어났다 돌아오면 열어 두었던 메뉴가 그대로 뜨지 않게 한다.
+    // 표를 벗어났다 돌아오면 열어 두었던 메뉴가 그대로 뜨지 않게, 표를 벗어나는 순간 닫는다.
     useEffect(() => {
-        if (!current) setMenu(null)
-    }, [current])
+        const closeOutsideTable = () => {
+            if (!isInTable(editor.state)) setMenu(null)
+        }
+        editor.on("selectionUpdate", closeOutsideTable)
+        return () => {
+            editor.off("selectionUpdate", closeOutsideTable)
+        }
+    }, [editor])
 
     // 누르는 동안에도 포커스는 에디터에 남아 있으므로 Esc 는 문서에서 듣는다.
     useEffect(() => {

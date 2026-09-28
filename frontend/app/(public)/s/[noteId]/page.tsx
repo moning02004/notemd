@@ -40,11 +40,14 @@ export default function Page() {
 
     const isSavable = isEditable && state.status === "ready"
 
+    // 저장이 거절되면(다른 곳에서 먼저 저장) 곧바로 최신본과 견준다. 견주는 함수는 아래에서 만들어진다.
+    const compareRef = useRef<() => void>(() => {})
     const {saveNow, conflict, overwrite, synced, acceptMerged} = useNoteAutosave({
         noteId,
         draft,
         enabled: isSavable,
         setStatusType,
+        onConflict: () => compareRef.current(),
     })
 
     /*
@@ -52,15 +55,12 @@ export default function Page() {
      * 무엇이 바뀌었는지 보여 주고 합친다. 다른 곳에서 본문·제목을 바꾸지 않았으면(설정만 바꿈 등)
      * 물을 것이 없으니 조용히 이어서 저장한다.
      */
-    const draftRef = useRef(draft)
-    draftRef.current = draft
     const [merge, setMerge] = useState<(NoteMergeView & { latest: NoteDetailResponse }) | null>(null)
     const [mergeOpen, setMergeOpen] = useState(false)
 
     const compareWithLatest = useCallback(async () => {
-        const current = draftRef.current
         const base = synced()
-        if (!current || !base) return
+        if (!draft || !base) return
         let latest: NoteDetailResponse
         try {
             latest = await apiRequest.get<NoteDetailResponse>(`/notes/${noteId}`)
@@ -69,29 +69,23 @@ export default function Page() {
             return
         }
         const theirs = {title: latest.title ?? "", content: latest.content ?? ""}
-        const chunks = diff3(htmlBlocks(base.content), htmlBlocks(current.content), htmlBlocks(theirs.content))
-        const title = {...mergeTitle(base.title, current.title, theirs.title), base: base.title, mine: current.title, theirs: theirs.title}
+        const chunks = diff3(htmlBlocks(base.content), htmlBlocks(draft.content), htmlBlocks(theirs.content))
+        const title = {...mergeTitle(base.title, draft.title, theirs.title), base: base.title, mine: draft.title, theirs: theirs.title}
 
         const theirsTouched = title.theirsChanged || chunks.some(chunk => chunk.kind === "theirs" || chunk.kind === "conflict")
         if (!theirsTouched) {
-            acceptMerged(latest.updated_at, theirs, {title: current.title, content: current.content})
+            acceptMerged(latest.updated_at, theirs, {title: draft.title, content: draft.content})
             return
         }
         setMerge({chunks, title, latest})
         setMergeOpen(true)
-    }, [noteId, synced, acceptMerged])
-
-    // 충돌이 새로 났을 때만 비교한다. compareWithLatest 는 글을 칠 때마다 새로 만들어지므로 ref 로 부른다
-    // (의존성에 넣으면 안내가 떠 있는 동안 한 글자마다 다시 불러와 창을 연다).
-    const compareRef = useRef(compareWithLatest)
-    compareRef.current = compareWithLatest
+    }, [draft, noteId, synced, acceptMerged])
     useEffect(() => {
-        if (conflict) void compareRef.current()
-        else {
-            setMerge(null)
-            setMergeOpen(false)
-        }
-    }, [conflict])
+        compareRef.current = () => void compareWithLatest()
+    }, [compareWithLatest])
+
+    // 충돌이 풀리면(불러오기·덮어쓰기·합치기) 창도 거둔다.
+    const showMerge = conflict && mergeOpen
 
     const applyMerged = (choices: Record<number, ConflictChoice>, titleChoice: ConflictChoice) => {
         if (!merge) return
@@ -238,7 +232,7 @@ export default function Page() {
                 />
             }
 
-            <NoteConflictModal open={mergeOpen}
+            <NoteConflictModal open={showMerge}
                                merge={merge}
                                onClose={() => setMergeOpen(false)}
                                onApply={applyMerged}

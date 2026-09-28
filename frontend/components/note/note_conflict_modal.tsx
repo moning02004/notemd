@@ -1,6 +1,6 @@
 "use client"
 
-import React, {useEffect, useState} from "react"
+import React, {useState} from "react"
 import DOMPurify from "dompurify"
 import {X} from "lucide-react"
 
@@ -84,11 +84,13 @@ export function NoteConflictModal({open, merge, onClose, onApply, onUseTheirs, o
     const [choices, setChoices] = useState<Record<number, ConflictChoice>>({})
     const [titleChoice, setTitleChoice] = useState<ConflictChoice>("mine")
 
-    // 새로 비교할 때마다 고른 것을 비운다.
-    useEffect(() => {
+    // 새로 비교할 때마다 고른 것을 비운다(렌더 중에 앞 비교와 견줘 맞춘다).
+    const [shownMerge, setShownMerge] = useState(merge)
+    if (merge !== shownMerge) {
+        setShownMerge(merge)
         setChoices({})
         setTitleChoice("mine")
-    }, [merge])
+    }
 
     if (!merge) return null
 

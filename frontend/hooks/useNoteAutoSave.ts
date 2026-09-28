@@ -40,11 +40,14 @@ type Options = {
     /** 소유자이고 노트 로딩이 끝났을 때만 true */
     enabled: boolean
     setStatusType: Dispatch<SetStateAction<string>>
+    /** 다른 곳에서 먼저 저장해 저장이 거절됐을 때 한 번 부른다(무엇이 바뀌었는지 보여 주는 곳). */
+    onConflict?: () => void
 }
 
-export function useNoteAutosave({noteId, draft, enabled, setStatusType}: Options) {
+export function useNoteAutosave({noteId, draft, enabled, setStatusType, onConflict}: Options) {
     const patchNote = useNotePatch(setStatusType)
     const patchNoteRef = useRef(patchNote)
+    const onConflictRef = useRef(onConflict)
     const savedRef = useRef<NoteDraft | null>(null)
     // 대기 중인 디바운스. 수동 저장이 이걸 앞당겨 실행한다.
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -89,14 +92,16 @@ export function useNoteAutosave({noteId, draft, enabled, setStatusType}: Options
                     if (patch.content !== undefined) synced.content = patch.content
                 }
                 if (force) markConflict(false)
-            } else if (result.conflict && baseRef.current?.noteId === targetNoteId) {
+            } else if (result.conflict && baseRef.current?.noteId === targetNoteId && !conflictRef.current) {
                 markConflict(true)
+                onConflictRef.current?.()
             }
         })
     }, [markConflict])
 
     useEffect(() => {
         patchNoteRef.current = patchNote
+        onConflictRef.current = onConflict
     })
 
     useEffect(() => {
