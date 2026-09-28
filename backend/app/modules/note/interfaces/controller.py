@@ -60,7 +60,7 @@ def bulk_restore_note(request: NoteHashesRequest, user=Depends(get_current_user)
 
 @router.post("/download")
 async def download_note(request: NoteDownloadRequest, user=Depends(get_current_user),
-                        service: NoteService = Depends(get_note_service)):
+                        service: NoteService = Depends(get_note_service_with_storage)):
     result = await service.download_note(user_hash=user.hash_id,
                                          note_hashes=request.note_hashes,
                                          file_format=request.file_format)

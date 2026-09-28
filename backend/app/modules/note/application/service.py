@@ -387,7 +387,9 @@ class NoteService(Service):
         content = self._resolve_note_links(content, note.user)
 
         if file_format == "pdf":
-            return render_note_pdf(title=note.title, content=content)
+            # 본문 이미지는 저장소에서 받아 넣는다(로컬 디스크든 MinIO 든 저장소가 안다).
+            read_image = self.storage.read if self.storage else None
+            return render_note_pdf(title=note.title, content=content, read_image=read_image)
         return markdownify(content or "").encode("utf-8")
 
     @staticmethod

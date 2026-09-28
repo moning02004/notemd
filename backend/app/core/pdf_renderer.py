@@ -1,8 +1,11 @@
 import html as html_lib
+import mimetypes
 import re
-from pathlib import Path
+from collections.abc import Callable
+from urllib.parse import urlparse
 
 from weasyprint import CSS, HTML
+from weasyprint.urls import URLFetcherResponse
 
 from app.core.config import settings
 
@@ -159,20 +162,31 @@ def _col_widths_to_percent(match: re.Match) -> str:
     return f"<colgroup>{cols}</colgroup>"
 
 
-def _localize_image(match: re.Match) -> str:
-    """이미지 src 를 base_url 기준 상대 경로로 바꾼다.
+# 본문 이미지는 이 주소로 바꿔 두고, PDF 를 그릴 때 저장소에서 받아 넣는다(아래 url_fetcher).
+IMAGE_SCHEME = "note-image"
+UPLOAD_PREFIX = f"/{settings.STORAGE['name']}/"
 
-    업로드 파일은 '/uploads/<파일명>' 으로 저장돼 있다. 외부 URL 이거나 파일이 없으면
-    렌더링이 지연되거나 깨진 이미지가 남으므로 태그째 지운다.
+
+def _upload_name(src: str) -> str | None:
+    """이미지 주소에서 업로드한 파일 이름을 꺼낸다. 업로드한 이미지가 아니면 None.
+
+    편집기는 'http://<API 주소>/uploads/<이름>' 처럼 호스트까지 붙여 저장한다. 호스트는 보지 않는다
+    (배포 주소가 바뀌어도 같은 파일이다). 예전 노트의 '/uploads/<이름>' 도 같이 받는다.
     """
-    src = match.group(1)
-    if not src.startswith("/"):
-        return ""
+    path = urlparse(src).path
+    if not path.startswith(UPLOAD_PREFIX):
+        return None
+    name = path[len(UPLOAD_PREFIX):]
+    return name if name and "/" not in name else None
 
-    relative = src.lstrip("/")
-    if not Path(relative).is_file():
-        return ""
-    return f'<img src="{relative}">'
+
+def _localize_image(match: re.Match) -> str:
+    """업로드한 이미지는 저장소에서 받도록 주소를 바꾸고, 바깥 주소 이미지는 지운다.
+
+    바깥 주소를 PDF 를 그리는 서버가 받으러 가면 느려지거나 서버 안쪽 주소를 건드릴 수 있다.
+    """
+    name = _upload_name(html_lib.unescape(match.group(1)))
+    return f'<img src="{IMAGE_SCHEME}:{name}">' if name else ""
 
 
 def _prepare_html(content: str) -> str:
@@ -196,8 +210,12 @@ def _prepare_html(content: str) -> str:
     return content
 
 
-def render_note_pdf(title: str, content: str) -> bytes:
-    """노트 HTML 을 PDF 바이트로 렌더링한다."""
+def render_note_pdf(title: str, content: str,
+                    read_image: Callable[[str], bytes | None] | None = None) -> bytes:
+    """노트 HTML 을 PDF 바이트로 렌더링한다.
+
+    read_image: 업로드한 파일 이름을 받아 그 바이트를 돌려준다(저장소의 read). 없으면 이미지를 넣지 않는다.
+    """
     heading = html_lib.escape(title or "제목없음")
     body = (
         '<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">'
@@ -206,7 +224,15 @@ def render_note_pdf(title: str, content: str) -> bytes:
         "</body></html>"
     )
 
-    # 이미지 src 가 'uploads/...' 상대 경로이므로 업로드 디렉터리의 상위를 기준으로 잡는다.
-    base_url = Path(settings.STORAGE["name"]).resolve().parent
-    document = HTML(string=body, base_url=str(base_url))
+    def fetch(url: str, *args, **kwargs) -> URLFetcherResponse:
+        # 업로드한 이미지만 저장소에서 받는다. 그 밖의 주소는 어떤 것도 불러오지 않는다.
+        if read_image and url.startswith(f"{IMAGE_SCHEME}:"):
+            name = url[len(IMAGE_SCHEME) + 1:]
+            data = read_image(name)
+            if data is not None:
+                mime_type = mimetypes.guess_type(name)[0] or "application/octet-stream"
+                return URLFetcherResponse(url, body=data, headers={"Content-Type": mime_type})
+        raise ValueError(f"PDF 에 넣지 않는 주소: {url}")
+
+    document = HTML(string=body, url_fetcher=fetch)
     return document.write_pdf(stylesheets=[CSS(string=DEFAULT_CSS)])
