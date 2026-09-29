@@ -1,11 +1,15 @@
 import base64
+import html as html_lib
 import io
 import os
+import posixpath
 import re
 import zipfile
 from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import List
+from urllib.parse import quote
+from zoneinfo import ZoneInfo
 
 import fitz
 from cryptography.exceptions import InvalidTag
@@ -16,8 +20,9 @@ from markdown import markdown
 from markdownify import markdownify
 
 from app.core.config import settings
-from app.core.pdf_renderer import render_note_pdf
-from app.modules.note.application.note_links import NoteLinkState, note_link_hashes, rewrite_note_links
+from app.core.pdf_renderer import render_note_pdf, upload_name
+from app.modules.note.application.note_links import (NOTE_LINK_PATTERN, NoteLinkState, note_link_hashes,
+                                                     rewrite_note_links)
 from app.modules.note.domain.entity import NoteEntity, DownloadResult, build_note_document
 from app.modules.folder.infrastructure.repository import FolderRepository
 from app.modules.note.infrastructure.models import Note, NoteSnapshot
@@ -30,6 +35,55 @@ def _same_moment(a: datetime, b: datetime) -> bool:
     def utc(value: datetime) -> datetime:
         return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
     return utc(a) == utc(b)
+
+
+KST = ZoneInfo("Asia/Seoul")
+
+
+def _zip_time(value: datetime | None) -> tuple:
+    """zip 안 파일의 수정 시각. zip 은 시간대 없이 적으므로 서비스 기준 시간(KST)으로 적는다."""
+    if value is None:
+        return datetime.now(KST).timetuple()[:6]
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(KST).timetuple()[:6]
+
+
+# 내보낸 zip 에서 본문 이미지를 모아 두는 곳(맨 위). 같은 이름의 사용자 폴더는 (2) 로 비켜 준다.
+EXPORT_IMAGE_DIR = "images"
+IMG_SRC_PATTERN = re.compile(r'(<img\b[^>]*\bsrc=")([^"]*)(")')
+HREF_PATTERN = re.compile(r'\shref="[^"]*"')
+
+
+def _relative_link(from_dir: str, target: str) -> str:
+    """zip 안 from_dir 폴더에 있는 파일에서 target 으로 가는 상대 경로. 마크다운 링크에 넣도록 퍼센트 인코딩한다."""
+    return quote(posixpath.relpath(target, from_dir or "."))
+
+
+def _folder_dirs(folders, reserved_root: set[str] = frozenset()) -> dict[int, str]:
+    """폴더 pk → zip 안 경로("상위/하위"). 같은 부모 아래 이름이 겹치면 뒤에 (2), (3) 을 붙인다.
+
+    reserved_root: 맨 위에서 폴더 이름으로 쓰지 않을 이름(내보내기가 따로 쓰는 images 등).
+    """
+    by_parent: dict[int | None, list] = {}
+    for folder in folders:
+        by_parent.setdefault(folder.parent_id, []).append(folder)
+
+    paths: dict[int, str] = {}
+
+    def walk(parent_id: int | None, prefix: str):
+        used: set[str] = set(reserved_root) if parent_id is None else set()
+        for folder in sorted(by_parent.get(parent_id, []), key=lambda f: (f.name, f.pk)):
+            base = "".join(c for c in folder.name if c not in '/\\:*?"<>|').strip().strip(".") or "이름 없는 폴더"
+            name, n = base, 2
+            while name in used:
+                name, n = f"{base} ({n})", n + 1
+            used.add(name)
+            paths[folder.pk] = f"{prefix}{name}"
+            walk(folder.pk, f"{prefix}{name}/")
+
+    walk(None, "")
+    return paths
 
 
 class NoteService(Service):
@@ -416,6 +470,75 @@ class NoteService(Service):
             media_type="application/zip",
             filename="notes.zip",
         )
+
+    def export_notes(self, user: User) -> DownloadResult:
+        """노트 전부를 폴더 구조 그대로 마크다운 zip 으로 내보낸다.
+
+        - 폴더는 zip 안의 폴더가 되고, 미분류 노트는 zip 맨 위에 둔다('미분류' 폴더는 만들지 않는다).
+          빈 폴더도 폴더로 남긴다. 휴지통 노트는 넣지 않는다.
+        - 본문의 노트 링크는 zip 안의 그 노트 파일을 가리키는 상대 경로로 바꾼다(Obsidian 등에서 그대로 열린다).
+          zip 에 없는 노트(휴지통·남의 노트)는 링크를 풀고 제목만 남긴다.
+        - 업로드한 이미지는 저장소에서 받아 images/ 에 담고 본문이 그 파일을 가리키게 한다.
+          바깥 주소 이미지는 그대로 둔다.
+        """
+        folders = FolderRepository(self.repository.db).list_by_user_id(user.pk)
+        dirs = _folder_dirs(folders, reserved_root={EXPORT_IMAGE_DIR})
+        notes = self.repository.list_for_export(user.pk)
+
+        # 링크를 상대 경로로 바꾸려면 모든 노트의 자리를 먼저 정해 둬야 한다.
+        paths: dict[str, str] = {}
+        used_names: dict[str, set] = {}
+        for note in notes:
+            directory = dirs.get(note.folder_id, "")
+            filename = self._unique_filename(note.title or "", "md", used_names.setdefault(directory, set()))
+            paths[note.hash_id] = f"{directory}/{filename}" if directory else filename
+
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+            for folder in folders:
+                zf.writestr(zipfile.ZipInfo(f"{dirs[folder.pk]}/", date_time=_zip_time(folder.updated_at)), "")
+
+            images: dict[str, str | None] = {}  # 업로드 이름 → zip 안 경로(못 받은 것은 None)
+            for note in notes:
+                path = paths[note.hash_id]
+                info = zipfile.ZipInfo(path, date_time=_zip_time(note.updated_at))
+                info.compress_type = zipfile.ZIP_DEFLATED
+                zf.writestr(info, self._export_markdown(note, posixpath.dirname(path), paths, images, zf))
+
+        return DownloadResult(
+            content=buffer.getvalue(),
+            media_type="application/zip",
+            filename=f"note.md-{datetime.now(KST):%Y%m%d}.zip",
+        )
+
+    def _export_markdown(self, note, directory: str, paths: dict[str, str],
+                         images: dict[str, str | None], zf: zipfile.ZipFile) -> bytes:
+        content = self._decrypt_content(note.user, note.content) if note.is_encrypted else note.content
+        content = self._resolve_note_links(content or "", note.user)
+
+        def link(match: re.Match) -> str:
+            target = paths.get(match.group("hash"))
+            if target is None:
+                return match.group("text")
+            attrs = HREF_PATTERN.sub("", match.group("attrs"))
+            return f'<a{attrs} href="{_relative_link(directory, target)}">{match.group("text")}</a>'
+
+        def image(match: re.Match) -> str:
+            name = upload_name(html_lib.unescape(match.group(2)))
+            if not name or not self.storage:
+                return match.group(0)
+            if name not in images:
+                data = self.storage.read(name)
+                images[name] = f"{EXPORT_IMAGE_DIR}/{name}" if data is not None else None
+                if data is not None:
+                    zf.writestr(images[name], data)
+            if images[name] is None:
+                return match.group(0)
+            return f"{match.group(1)}{_relative_link(directory, images[name])}{match.group(3)}"
+
+        content = NOTE_LINK_PATTERN.sub(link, content)
+        content = IMG_SRC_PATTERN.sub(image, content)
+        return markdownify(content).encode("utf-8")
 
     MEDIA_TYPES = {
         "md": "text/markdown",

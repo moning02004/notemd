@@ -9,7 +9,7 @@ import io
 import fitz
 from PIL import Image
 
-from app.core.pdf_renderer import _prepare_html, _upload_name, render_note_pdf
+from app.core.pdf_renderer import _prepare_html, upload_name, render_note_pdf
 from app.core.storages.local_storage import LocalStorage
 from conftest import create_note
 
@@ -25,16 +25,16 @@ def _image_count(pdf: bytes) -> int:
         return sum(len(page.get_images()) for page in document)
 
 
-def test_upload_name_ignores_the_host_the_editor_saved():
-    assert _upload_name("http://localhost:8002/uploads/ab12.png") == "ab12.png"
-    assert _upload_name("https://api.example.com/uploads/ab12.png") == "ab12.png"
-    assert _upload_name("/uploads/ab12.png") == "ab12.png"
+def testupload_name_ignores_the_host_the_editor_saved():
+    assert upload_name("http://localhost:8002/uploads/ab12.png") == "ab12.png"
+    assert upload_name("https://api.example.com/uploads/ab12.png") == "ab12.png"
+    assert upload_name("/uploads/ab12.png") == "ab12.png"
 
 
-def test_upload_name_rejects_other_paths():
-    assert _upload_name("https://example.com/cat.png") is None
-    assert _upload_name("/uploads/../secret.txt") is None
-    assert _upload_name("/uploads/") is None
+def testupload_name_rejects_other_paths():
+    assert upload_name("https://example.com/cat.png") is None
+    assert upload_name("/uploads/../secret.txt") is None
+    assert upload_name("/uploads/") is None
 
 
 def test_local_storage_reads_only_names_it_would_have_saved(tmp_path, monkeypatch):

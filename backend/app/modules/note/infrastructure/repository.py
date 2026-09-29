@@ -119,6 +119,13 @@ class NoteRepository(Repository):
         workspace_ids = {workspace.pk for note in notes for workspace in note.workspaces}
         return notes, self.member_workspace_ids(workspace_ids, user_id)
 
+    def list_for_export(self, user_id: int) -> List[Note]:
+        """내보낼 노트 전부. 휴지통 노트는 뺀다."""
+        return self.db.query(self.DB_MODEL).options(joinedload(self.DB_MODEL.user)).filter(
+            self.DB_MODEL.user_id == user_id,
+            self.DB_MODEL.deleted_at.is_(None),
+        ).order_by(asc(self.DB_MODEL.created_at)).all()
+
     def replace_note_links(self, source: Note, target_hashes: list[str]):
         """source 본문이 가리키는 노트를 target_hashes 로 갈아 적는다. 커밋은 부르는 쪽 몫이다.
 

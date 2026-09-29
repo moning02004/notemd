@@ -78,6 +78,19 @@ async def download_note(request: NoteDownloadRequest, user=Depends(get_current_u
     )
 
 
+@router.get("/export")
+def export_notes(user=Depends(get_current_user), service: NoteService = Depends(get_note_service_with_storage)):
+    """노트 전부를 폴더 구조 그대로 담은 zip. /{note_hash} 보다 먼저 두어야 'export' 가 노트 id 로 잡히지 않는다."""
+    result = service.export_notes(user)
+    encoded_filename = quote(result.filename)
+    return Response(
+        content=result.content,
+        media_type=result.media_type,
+        headers={"Content-Disposition": f"attachment; filename=\"{encoded_filename}\"; "
+                                        f"filename*=UTF-8''{encoded_filename}"},
+    )
+
+
 @router.post("/files")
 async def upload_files_and_create_note(files: list[UploadFile] = File(...),
                                        user=Depends(get_current_user),

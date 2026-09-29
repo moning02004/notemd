@@ -201,7 +201,7 @@ IMAGE_SCHEME = "note-image"
 UPLOAD_PREFIX = f"/{settings.STORAGE['name']}/"
 
 
-def _upload_name(src: str) -> str | None:
+def upload_name(src: str) -> str | None:
     """이미지 주소에서 업로드한 파일 이름을 꺼낸다. 업로드한 이미지가 아니면 None.
 
     편집기는 'http://<API 주소>/uploads/<이름>' 처럼 호스트까지 붙여 저장한다. 호스트는 보지 않는다
@@ -219,7 +219,7 @@ def _localize_image(match: re.Match) -> str:
 
     바깥 주소를 PDF 를 그리는 서버가 받으러 가면 느려지거나 서버 안쪽 주소를 건드릴 수 있다.
     """
-    name = _upload_name(html_lib.unescape(match.group(1)))
+    name = upload_name(html_lib.unescape(match.group(1)))
     return f'<img src="{IMAGE_SCHEME}:{name}">' if name else ""
 
 

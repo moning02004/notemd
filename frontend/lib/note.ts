@@ -28,7 +28,17 @@ export const downloadNoteRequest = async (noteHashes: Array<string>, format: Dow
         {body: JSON.stringify({note_hashes: noteHashes, file_format: format})},
         {isDownloadFile: true}
     );
+    await saveResponseAsFile(res)
+}
 
+/** 노트 전부를 폴더 구조 그대로 담은 마크다운 zip 을 받는다(설정의 데이터 내보내기). */
+export const exportAllNotes = async () => {
+    const res = await apiRequest.get<Response>("/notes/export", {}, {isDownloadFile: true})
+    await saveResponseAsFile(res)
+}
+
+/** 파일 응답을 Content-Disposition 의 이름으로 내려받는다. */
+async function saveResponseAsFile(res: Response) {
     if (!res.ok) {
         throw new Error(`다운로드 실패: ${res.status}`);
     }

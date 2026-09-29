@@ -2,7 +2,9 @@
 
 import {useEffect, useState} from "react";
 import {
+    FiArchive,
     FiClock,
+    FiDownload,
     FiLayers,
     FiPlus,
     FiSliders,
@@ -16,6 +18,7 @@ import {Modal} from "@/components/ui/modal";
 import {SettingsCard} from "@/components/ui/settings_card";
 import {UserAccount, Workspace, WorkspaceMember} from "@/types/workspace";
 import {LoadingPage} from "@/components/loading";
+import {exportAllNotes} from "@/lib/note";
 
 type MemberTab = "users" | "workspaces";
 
@@ -62,6 +65,18 @@ export default function Page() {
                     })
             })
     }, []);
+
+    const [isExporting, setIsExporting] = useState(false)
+    const exportData = async () => {
+        setIsExporting(true)
+        try {
+            await exportAllNotes()
+        } catch {
+            toast.error("내보내기에 실패했습니다.")
+        } finally {
+            setIsExporting(false)
+        }
+    }
 
     const updatePreference = async (patch: Partial<Pick<Preference, "snapshotPolicy" | "trashPolicy">>) => {
         if (!preference) return
@@ -244,6 +259,31 @@ export default function Page() {
                             <option value="30_DAYS">30일 후</option>
                             <option value="NEVER">삭제 안 함</option>
                         </select>
+                    </div>
+                </SettingsCard>
+
+                {/* 데이터 */}
+                <SettingsCard title="데이터" icon={<FiArchive size={11}/>}>
+                    <div className="flex items-center justify-between py-2 gap-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                            <span
+                                className="w-8 h-8 flex items-center justify-center rounded-full bg-accent-soft text-accent shrink-0">
+                                <FiDownload size={14}/>
+                            </span>
+                            <div className="min-w-0">
+                                <p className="text-[14px] text-foreground">데이터 내보내기</p>
+                                <p className="text-[12px] text-subtle">
+                                    모든 노트를 폴더 구조 그대로 마크다운 zip 으로 받아요. 휴지통은 빠져요.
+                                </p>
+                            </div>
+                        </div>
+                        <button onClick={exportData}
+                                disabled={isExporting}
+                                className="shrink-0 px-3 py-1.5 rounded-lg border border-border-strong text-[13px] font-medium
+                                           text-foreground bg-surface cursor-pointer hover:bg-background
+                                           disabled:opacity-50 disabled:cursor-default transition-colors">
+                            {isExporting ? "만드는 중…" : "내보내기"}
+                        </button>
                     </div>
                 </SettingsCard>
 
