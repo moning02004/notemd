@@ -228,10 +228,13 @@ export const NoteSettings = ({
                                         </p>
                                     </div>
                                     <ToggleSwitch checked={passwordInput} activeColor="bg-accent" onClick={() => {
-                                        setStatusType("loading")
                                         if (passwordInput) {
                                             setPassword("")
-                                            setNotePassword(null)
+                                            // 서버는 빈 문자열을 '잠금 해제' 로, null 은 '바꾸지 않음' 으로 읽는다.
+                                            // null 을 보내면 끈 것처럼 보여도 비밀번호가 그대로 남았다.
+                                            // 걸려 있던 비밀번호가 있을 때만 저장이 일어나므로 그때만 저장 중으로 표시한다.
+                                            if (notePassword) setStatusType("loading")
+                                            setNotePassword("")
                                         }
                                         setPasswordInput(!passwordInput)
                                     }}/>
