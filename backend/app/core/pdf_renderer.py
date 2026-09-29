@@ -107,9 +107,43 @@ tr { page-break-inside: avoid; }
 img { max-width: 100%; max-height: 180mm; }
 hr { border: none; border-top: 1px solid #ddd; margin: 4mm 0; }
 
-details { margin: 2mm 0; }
-summary { font-weight: 700; margin-bottom: 1mm; }
+/*
+ * 접기. 화면과 같이 쉐브론 + 굵은 제목, 들여 쓴 본문 왼쪽에 얇은 세로선.
+ * 종이에서는 펼 수 없으므로 닫아 둔 접기도 펼친 채로 싣는다(쉐브론도 늘 펼친 모양 ⌄).
+ */
+details { display: block; margin: 2mm 0; }
+summary {
+    display: block;
+    position: relative;
+    padding-left: 5mm;
+    font-weight: 700;
+    page-break-after: avoid;
+}
+summary::before {
+    content: "";
+    position: absolute;
+    left: 1.1mm;
+    top: 0.5em;
+    width: 1.5mm;
+    height: 1.5mm;
+    border-right: 1.3px solid #555;
+    border-bottom: 1.3px solid #555;
+    transform: rotate(45deg);
+}
+summary:empty::after { content: "제목 없음"; color: #999; font-weight: 400; }
+details [data-type="detailsContent"] {
+    margin: 1mm 0 0 1.85mm;
+    padding-left: 2.8mm;
+    border-left: 1.3px solid #bdbfb9;
+}
+details [data-type="detailsContent"] > :first-child { margin-top: 0; }
+details [data-type="detailsContent"] > :last-child { margin-bottom: 0; }
 """.replace("__FONT_STACK__", FONT_STACK)
+
+EMPTY_DETAILS_BODY = re.compile(
+    r'<div[^>]*\bdata-type="detailsContent"[^>]*>\s*<p>\s*(?:<br\s*/?>)?\s*</p>\s*</div>')
+
+EMPTY_PARAGRAPH = re.compile(r"<p((?:\s[^>]*)?)>\s*(?:<br\s*/?>)?\s*</p>")
 
 CHECKED_MARK = "&#9745;"  # ☑
 UNCHECKED_MARK = "&#9744;"  # ☐
@@ -207,6 +241,12 @@ def _prepare_html(content: str) -> str:
         flags=re.DOTALL,
     )
     content = re.sub(r'<img[^>]*src="([^"]*)"[^>]*>', _localize_image, content)
+    # 제목만 적은 접기는 본문에 빈 문단 하나가 딸려 온다(스키마상 본문이 비어 있을 수 없다).
+    # 화면처럼 감추려면 세로선만 남은 빈 칸이 생기므로 본문째 뺀다.
+    content = EMPTY_DETAILS_BODY.sub("", content)
+    # 에디터에서 Enter 를 여러 번 쳐 둔 빈 줄은 빈 문단(<p></p>)으로 저장된다. 빈 문단은 PDF 에서 높이가 0 이라
+    # 몇 줄을 비워 두든 한 줄 간격으로 뭉쳤다. 보이지 않는 공백을 하나 넣어 화면처럼 한 줄씩 차지하게 한다.
+    content = EMPTY_PARAGRAPH.sub(r"<p\1>&nbsp;</p>", content)
     return content
 
 
