@@ -55,6 +55,20 @@ IMG_SRC_PATTERN = re.compile(r'(<img\b[^>]*\bsrc=")([^"]*)(")')
 HREF_PATTERN = re.compile(r'\shref="[^"]*"')
 
 
+def _note_url(note_hash: str) -> str:
+    """노트 화면의 전체 주소. 내보낸 파일은 앱 밖에서 열리므로 /s/... 만으로는 갈 곳이 없다."""
+    return f"{settings.FRONTEND_URL}/s/{note_hash}"
+
+
+def _absolute_note_links(content: str) -> str:
+    """본문의 노트 링크(href="/s/...")를 scheme 과 host 까지 붙인 전체 주소로 바꾼다."""
+    if not settings.FRONTEND_URL:
+        return content
+    return NOTE_LINK_PATTERN.sub(
+        lambda m: f'<a{HREF_PATTERN.sub("", m.group("attrs"))} href="{_note_url(m.group("hash"))}">{m.group("text")}</a>',
+        content)
+
+
 def _relative_link(from_dir: str, target: str) -> str:
     """zip 안 from_dir 폴더에 있는 파일에서 target 으로 가는 상대 경로. 마크다운 링크에 넣도록 퍼센트 인코딩한다."""
     return quote(posixpath.relpath(target, from_dir or "."))
@@ -477,7 +491,7 @@ class NoteService(Service):
         - 폴더는 zip 안의 폴더가 되고, 미분류 노트는 zip 맨 위에 둔다('미분류' 폴더는 만들지 않는다).
           빈 폴더도 폴더로 남긴다. 휴지통 노트는 넣지 않는다.
         - 본문의 노트 링크는 zip 안의 그 노트 파일을 가리키는 상대 경로로 바꾼다(Obsidian 등에서 그대로 열린다).
-          zip 에 없는 노트(휴지통·남의 노트)는 링크를 풀고 제목만 남긴다.
+          zip 에 없는 노트(휴지통·남의 노트)는 앱의 노트 화면 전체 주소(scheme://host/s/...)로 적는다.
         - 업로드한 이미지는 저장소에서 받아 images/ 에 담고 본문이 그 파일을 가리키게 한다.
           바깥 주소 이미지는 그대로 둔다.
         """
@@ -518,10 +532,10 @@ class NoteService(Service):
 
         def link(match: re.Match) -> str:
             target = paths.get(match.group("hash"))
-            if target is None:
-                return match.group("text")
             attrs = HREF_PATTERN.sub("", match.group("attrs"))
-            return f'<a{attrs} href="{_relative_link(directory, target)}">{match.group("text")}</a>'
+            # zip 에 없는 노트(휴지통·남의 노트)는 앱의 그 노트 화면으로 보낸다.
+            href = _relative_link(directory, target) if target else _note_url(match.group("hash"))
+            return f'<a{attrs} href="{href}">{match.group("text")}</a>'
 
         def image(match: re.Match) -> str:
             name = upload_name(html_lib.unescape(match.group(2)))
@@ -549,6 +563,8 @@ class NoteService(Service):
         """노트 본문을 요청한 형식의 바이트로 만든다. 암호화된 노트는 먼저 복호화한다."""
         content = self._decrypt_content(note.user, note.content) if note.is_encrypted else note.content
         content = self._resolve_note_links(content, note.user)
+        # 받은 파일은 앱 밖에서 열리므로 노트 링크를 전체 주소로 적는다(PDF 의 링크도 눌러서 열리게).
+        content = _absolute_note_links(content)
 
         if file_format == "pdf":
             # 본문 이미지는 저장소에서 받아 넣는다(로컬 디스크든 MinIO 든 저장소가 안다).

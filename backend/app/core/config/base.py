@@ -21,6 +21,9 @@ class BaseAbstractSettings(AbstractSettings):
     KEK = os.environ.get("KEK")
     KEK_VERSION = os.environ.get("KEK_VERSION")
 
+    # 프론트엔드 주소(scheme://host). 내보낸 파일 속 노트 링크를 이 주소로 적는다.
+    FRONTEND_URL: str = os.environ.get("FRONTEND_URL", "").rstrip("/")
+
     # 관리자 가입에 필요한 키. 비어 있으면 관리자 가입을 받지 않는다.
     ADMIN_KEY: str = os.environ.get("ADMIN_KEY", "")
 

@@ -91,7 +91,12 @@ def link(note_hash, title="제목"):
     return f'<a data-note="{note_hash}" href="/s/{note_hash}" class="note-link">{title}</a>'
 
 
-def test_note_links_point_to_the_exported_files(client, auth_headers):
+FRONTEND = "https://note.example.com"
+
+
+def test_note_links_point_to_the_exported_files(client, auth_headers, monkeypatch):
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "FRONTEND_URL", FRONTEND)
     owner = member_headers(client)
     work = make_folder(client, owner, "업무")
     target = create_note(client, owner, title="대상 노트", folder=work)
@@ -108,9 +113,37 @@ def test_note_links_point_to_the_exported_files(client, auth_headers):
     # 파일 이름의 한글·공백은 퍼센트 인코딩된다(마크다운 링크 주소에 공백을 둘 수 없다).
     assert "[대상 노트](%EC%97%85%EB%AC%B4/%EB%8C%80%EC%83%81%20%EB%85%B8%ED%8A%B8.md)" in top
     assert "[대상 노트](%EB%8C%80%EC%83%81%20%EB%85%B8%ED%8A%B8.md)" in beside
-    # zip 에 없는 노트는 링크를 풀고 제목만 남긴다. 서버 주소(/s/...)는 zip 밖에서 열리지 않는다.
-    assert "/s/" not in top
-    assert "버린 노트" in top and "[버린 노트]" not in top
+    # zip 에 없는 노트는 앱의 노트 화면 전체 주소로 적는다. '/s/...' 만으로는 zip 밖에서 갈 곳이 없다.
+    assert f"[버린 노트]({FRONTEND}/s/{trashed})" in top
+    assert "](/s/" not in top
+
+
+def test_downloaded_markdown_links_use_the_full_address(client, auth_headers, monkeypatch):
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "FRONTEND_URL", FRONTEND)
+    owner = member_headers(client)
+    target = create_note(client, owner, title="대상 노트")
+    source = create_note(client, owner, title="가리키는 노트", content=f"<p>{link(target)}</p>")
+
+    response = client.post("/notes/download", headers=owner, json={"note_hashes": [source], "file_format": "md"})
+
+    assert response.status_code == 200
+    assert f"[대상 노트]({FRONTEND}/s/{target})" in response.content.decode()
+
+
+def test_pdf_note_links_use_the_full_address(client, auth_headers, monkeypatch):
+    import fitz
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "FRONTEND_URL", FRONTEND)
+    owner = member_headers(client)
+    target = create_note(client, owner, title="대상 노트")
+    source = create_note(client, owner, title="가리키는 노트", content=f"<p>{link(target)}</p>")
+
+    response = client.post("/notes/download", headers=owner, json={"note_hashes": [source], "file_format": "pdf"})
+
+    with fitz.open(stream=response.content, filetype="pdf") as document:
+        uris = [item.get("uri") for page in document for item in page.get_links()]
+    assert f"{FRONTEND}/s/{target}" in uris
 
 
 def _png() -> bytes:
