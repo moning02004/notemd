@@ -19,7 +19,7 @@ from fastapi_clean_archi.core.commons.service import Service
 from markdown import markdown
 
 from app.core.config import settings
-from app.core.markdown_renderer import html_to_markdown
+from app.core.markdown_renderer import html_to_markdown, markdown_to_html
 from app.core.pdf_renderer import render_note_pdf, upload_name
 from app.modules.note.application.note_links import (NOTE_LINK_PATTERN, NoteLinkState, note_link_hashes,
                                                      rewrite_note_links)
@@ -444,12 +444,12 @@ class NoteService(Service):
                                    "html", "css", "json", "xml", "yaml", "yml",
                                    "ini", "conf", "cfg", "toml"]:
                     content = f"```{file_format}\n{content}\n```"
-                content = self._replace_outside_codeblock(content)
 
             note_entity = NoteEntity(
                 user_id=user_id,
                 title=title,
-                content=markdown(content, extensions=['fenced_code'])
+                content=markdown(content, extensions=['fenced_code']) if filetype == "pdf"
+                else markdown_to_html(content),
             )
             note = self.repository.create_note(note_entity)
             self.indexing_note(note)
@@ -592,17 +592,6 @@ class NoteService(Service):
             i += 1
         used_names.add(filename)
         return filename
-
-    @classmethod
-    def _replace_outside_codeblock(cls, content):
-        # ```로 감싸진 코드블록을 기준으로 분리 (홀수 인덱스가 코드블록)
-        parts = re.split(r'(```.*?```)', content, flags=re.DOTALL)
-
-        for i in range(len(parts)):
-            if i % 2 == 0:  # 코드블록이 아닌 부분만 치환
-                parts[i] = parts[i].replace("\n\n\n", "\n\n&nbsp;\n\n")
-
-        return "".join(parts)
 
     def get_note_snapshots(self, user_id, note_hash):
         note = self._get_owned_note(user_id, note_hash)

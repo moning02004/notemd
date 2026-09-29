@@ -63,3 +63,44 @@ def test_upload_requires_auth(client):
     response = client.post("/notes/files", files=[("files", ("a.md", b"# a", "text/markdown"))])
 
     assert response.status_code == 401
+
+
+def test_blank_lines_in_markdown_become_empty_lines_in_the_note(client, auth_headers):
+    # 글 줄 사이의 빈 줄 k 개는 비운 줄 k 개다. 연달은 빈 줄이 하나로 합쳐지면 안 된다.
+    ensure_preference(client, auth_headers)
+    upload(client, auth_headers, [("files", ("줄.md", "위\n\n\n아래".encode(), "text/markdown"))])
+
+    note_hash = only_note(client, auth_headers)["hash_id"]
+    content = client.get(f"/notes/{note_hash}", headers=auth_headers).json()["content"]
+    assert content.replace("\n", "") == "<p>위</p><p></p><p></p><p>아래</p>"
+
+
+def test_code_blocks_and_tables_are_imported_as_they_are(client, auth_headers):
+    ensure_preference(client, auth_headers)
+    text = "앞\n\n```\nx\n\n\ny\n```\n\n| 머리 |\n| --- |\n| 칸 |\n"
+    upload(client, auth_headers, [("files", ("블록.md", text.encode(), "text/markdown"))])
+
+    note_hash = only_note(client, auth_headers)["hash_id"]
+    content = client.get(f"/notes/{note_hash}", headers=auth_headers).json()["content"]
+    assert "<pre><code>x\n\n\ny\n</code></pre>" in content
+    assert "<table>" in content and "<td>칸</td>" in content
+    assert "<p></p>" not in content
+
+
+def test_exported_markdown_comes_back_with_the_same_blank_lines():
+    from app.core.markdown_renderer import html_to_markdown, markdown_to_html
+
+    original = ("<h2>제목</h2><p></p><p>본문</p><p></p><p></p><p>다음</p>"
+                "<ul><li>항목</li></ul><p></p><p>뒤</p><pre><code>x\n\n\ny\n</code></pre><p></p><p>끝</p>")
+    back = markdown_to_html(html_to_markdown(original))
+
+    assert back.replace("\n", "") == original.replace("\n", "")
+
+
+def test_break_blank_line_does_not_split_the_paragraph():
+    from app.core.markdown_renderer import html_to_markdown, markdown_to_html
+
+    back = markdown_to_html(html_to_markdown("<p>한 줄<br><br>비우고</p>"))
+
+    assert back.count("<p>") == 1
+    assert back.count("<br />") == 2

@@ -183,26 +183,41 @@ def test_uploaded_images_are_bundled_and_outside_images_are_left_alone(client, a
     assert f"(../images/{name})" in zf.read("업무/옆 사진.md").decode()
 
 
-def test_blank_lines_survive_in_markdown():
+def test_lines_follow_the_editor():
     from app.core.markdown_renderer import html_to_markdown
 
-    md = html_to_markdown('<p>위</p><p></p><p></p><p>아래</p>'
-                          '<p>한 줄<br>다음 줄<br><br>비운 줄 다음</p>')
+    md = html_to_markdown('<p>첫 줄</p><p>둘째 줄</p><p></p><p></p><p>빈 줄 둘 아래</p>')
 
-    # 빈 문단 둘은 &nbsp; 두 줄로, <br> 로 비운 줄도 &nbsp; 로 남는다.
-    assert "위\n\n&nbsp;\n\n&nbsp;\n\n아래" in md
-    assert "한 줄  \n다음 줄  \n&nbsp;  \n비운 줄 다음" in md
-
-
-def test_code_blocks_are_not_touched_by_blank_line_marks():
-    from app.core.markdown_renderer import html_to_markdown
-
-    md = html_to_markdown("<pre><code>a\n\n\nb</code></pre>")
+    # 에디터에서 한 줄씩 쓴 문단은 한 줄씩(줄 끝 공백 두 칸 = 줄바꿈), 비워 둔 줄은 그 수만큼 빈 줄.
+    assert md == "첫 줄  \n둘째 줄\n\n\n빈 줄 둘 아래\n"
     assert "&nbsp;" not in md
+
+
+def test_blocks_keep_the_blank_line_markdown_needs():
+    from app.core.markdown_renderer import html_to_markdown
+
+    md = html_to_markdown("<h2>제목</h2><p>본문</p><ul><li><p>항목</p></li></ul><p>뒤</p>")
+
+    assert md == "## 제목\n\n본문\n\n- 항목\n\n뒤\n"
+
+
+def test_empty_table_cells_stay_empty():
+    from app.core.markdown_renderer import html_to_markdown
+
+    md = html_to_markdown("<table><tbody><tr><th><p>머리</p></th></tr><tr><td><p></p></td></tr></tbody></table>")
+
+    assert "&nbsp;" not in md
+    assert "|  |" in md
+
+
+def test_code_blocks_keep_their_own_blank_lines():
+    from app.core.markdown_renderer import html_to_markdown
+
+    assert "x\n\n\ny" in html_to_markdown("<pre><code>x\n\n\ny</code></pre>")
 
 
 def test_exported_file_keeps_blank_lines(client, auth_headers):
     owner = member_headers(client)
     create_note(client, owner, title="줄", content="<p>위</p><p></p><p></p><p>아래</p>")
 
-    assert "위\n\n&nbsp;\n\n&nbsp;\n\n아래" in export(client, owner).read("줄.md").decode()
+    assert export(client, owner).read("줄.md").decode() == "위\n\n\n아래\n"
