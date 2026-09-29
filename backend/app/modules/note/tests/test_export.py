@@ -77,10 +77,11 @@ def test_encrypted_notes_are_exported_as_plain_markdown(client, auth_headers):
 
 def test_folder_names_that_cannot_be_paths_are_cleaned(client, auth_headers):
     owner = member_headers(client)
-    odd = make_folder(client, owner, "a/b:c")
-    create_note(client, owner, title="안", folder=odd)
+    odd = make_folder(client, owner, "9/25: 회의")
+    create_note(client, owner, title="Q&A: 정리?", folder=odd)
 
-    assert "abc/안.md" in export(client, owner).namelist()
+    # 쓸 수 없는 글자는 지우지 않고 비슷한 전각 글자로 바꾼다('9/25' 가 '925' 가 되면 뜻이 바뀐다).
+    assert "9／25： 회의/Q&A： 정리？.md" in export(client, owner).namelist()
 
 
 def test_export_needs_login(client):

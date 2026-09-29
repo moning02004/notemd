@@ -84,3 +84,15 @@ def test_cannot_download_another_users_note(client, auth_headers):
     response = download(client, other_headers, [note_hash])
 
     assert response.status_code == 404
+
+
+
+def test_downloaded_file_name_keeps_characters_it_cannot_use(client, auth_headers):
+    from urllib.parse import unquote
+
+    note_hash = create_note(client, auth_headers, title="9/25 회의: 정리?")
+
+    response = download(client, auth_headers, [note_hash])
+
+    # 쓸 수 없는 글자는 지우지 않고 전각 글자로 바꾼다. 지우면 '9/25' 가 '925' 가 된다.
+    assert "9／25 회의： 정리？.md" in unquote(response.headers["content-disposition"])

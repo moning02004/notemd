@@ -39,6 +39,14 @@ def _same_moment(a: datetime, b: datetime) -> bool:
 
 KST = ZoneInfo("Asia/Seoul")
 
+# 파일·폴더 이름에 쓸 수 없는 글자는 지우지 않고 비슷하게 생긴 전각 글자로 바꾼다.
+# 지우면 '9/25 회의' 가 '925 회의' 가 되어 뜻이 바뀐다.
+FILENAME_SAFE = str.maketrans('/\\:*?"<>|', "／＼：＊？＂＜＞｜")
+
+
+def _safe_name(name: str) -> str:
+    return (name or "").translate(FILENAME_SAFE).strip()
+
 
 def _zip_time(value: datetime | None) -> tuple:
     """zip 안 파일의 수정 시각. zip 은 시간대 없이 적으므로 서비스 기준 시간(KST)으로 적는다."""
@@ -88,7 +96,7 @@ def _folder_dirs(folders, reserved_root: set[str] = frozenset()) -> dict[int, st
     def walk(parent_id: int | None, prefix: str):
         used: set[str] = set(reserved_root) if parent_id is None else set()
         for folder in sorted(by_parent.get(parent_id, []), key=lambda f: (f.name, f.pk)):
-            base = "".join(c for c in folder.name if c not in '/\\:*?"<>|').strip().strip(".") or "이름 없는 폴더"
+            base = _safe_name(folder.name).strip(".") or "이름 없는 폴더"
             name, n = base, 2
             while name in used:
                 name, n = f"{base} ({n})", n + 1
@@ -574,9 +582,8 @@ class NoteService(Service):
 
     @staticmethod
     def _safe_filename(title: str, file_format: str = "md") -> str:
-        # 파일명에 쓸 수 없는 문자 제거 (간단 버전)
-        invalid_chars = '/\\:*?"<>|'
-        cleaned = "".join(c for c in title if c not in invalid_chars).strip() or "제목없음"
+        # 파일명에 쓸 수 없는 글자는 전각 글자로 바꾼다(_safe_name).
+        cleaned = _safe_name(title) or "제목없음"
         suffix = f".{file_format}"
         if cleaned.endswith(suffix):
             cleaned = cleaned[:-len(suffix)]
