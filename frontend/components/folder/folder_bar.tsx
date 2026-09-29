@@ -6,7 +6,7 @@ import {useProgressRouter} from "@/hooks/useProgressRouter"
 import {FiChevronDown, FiChevronLeft, FiChevronRight, FiFolder, FiInbox} from "react-icons/fi"
 import {LuBookText} from "react-icons/lu"
 import {useFolders} from "@/hooks/useFolders"
-import {useFolderUiStore} from "@/store/folderUi"
+import {useIncludeSub} from "@/hooks/useIncludeSub"
 import {findFolder, folderPathLabel, FolderNode} from "@/types/folder"
 
 function useFolderNavigation() {
@@ -17,6 +17,8 @@ function useFolderNavigation() {
         const next = new URLSearchParams(searchParams.toString())
         next.delete("folder")
         next.delete("unfiled")
+        // 하위 포함은 폴더 안에서만 뜻이 있다. 폴더를 옮겨 다닐 때는 들고 다닌다.
+        if (!folderHash || unfiled) next.delete("include_sub")
         if (unfiled) next.set("unfiled", "1")
         else if (folderHash) next.set("folder", folderHash)
         router.push(next.toString() ? `/?${next.toString()}` : "/")
@@ -38,7 +40,7 @@ function useFolderNavigation() {
 export function FolderBar() {
     const {data} = useFolders()
     const {goTo, folderHash, unfiled} = useFolderNavigation()
-    const {includeSub, setIncludeSub} = useFolderUiStore()
+    const [includeSub, setIncludeSub] = useIncludeSub()
 
     const folders = data?.folders ?? []
     const current = findFolder(folders, folderHash)
@@ -157,7 +159,7 @@ const COLLAPSE_THRESHOLD = 4
 export function FolderDrilldown() {
     const {data} = useFolders()
     const {goTo, folderHash, unfiled} = useFolderNavigation()
-    const {includeSub} = useFolderUiStore()
+    const [includeSub] = useIncludeSub()
 
     const folders = data?.folders ?? []
     const current = findFolder(folders, folderHash)

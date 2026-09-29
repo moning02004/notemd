@@ -19,7 +19,7 @@ import {useViewModeStore} from "@/store/viewMode";
 import {FolderBar, FolderDrilldown} from "@/components/folder/folder_bar";
 import {UnfiledBanner} from "@/components/folder/unfiled_banner";
 import {useMoveSheetStore} from "@/store/moveSheet";
-import {useFolderUiStore} from "@/store/folderUi";
+import {useIncludeSub} from "@/hooks/useIncludeSub";
 import {useFolders} from "@/hooks/useFolders";
 import {findFolder} from "@/types/folder";
 
@@ -32,7 +32,7 @@ function NoteListContent() {
     const {userHash} = useAuthStore.getState()
 
     const openMoveSheet = useMoveSheetStore(state => state.openSheet)
-    const includeSub = useFolderUiStore(state => state.includeSub)
+    const [includeSub] = useIncludeSub()
 
     const folderHash = searchParams.get("folder")
     const isUnfiled = searchParams.get("unfiled") === "1"
