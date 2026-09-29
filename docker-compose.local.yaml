@@ -34,6 +34,8 @@ services:
       SECRET_KEY: "c4a4211e8ec70dcea5234660a2c269de280b456e9f8c9714007d7badcd2bbd66"
       KEK: "TLDcEswH87ZHq40sDFe+VWyGUVvcMzF36JUpRMse704="
       KEK_VERSION: "1"
+      # 관리자 가입에 필요한 키. 저장소 루트의 .env 에서 읽는다. 비어 있으면 관리자 가입을 받지 않는다.
+      ADMIN_KEY: "${ADMIN_KEY:-}"
 
       FRONTEND_URL: "http://localhost:3000"
 

@@ -1,4 +1,4 @@
-from conftest import SIGNUP_PAYLOAD, signup, login
+from conftest import SIGNUP_PAYLOAD, signup, login, member_headers
 
 
 def test_check_returns_false_when_no_user_exists(client):
@@ -131,7 +131,7 @@ def test_get_workspaces_for_user_returns_all_workspaces_for_superuser(client, au
 
 
 def test_add_user(client, auth_headers):
-    response = client.post("/users", json={
+    response = client.post("/users", headers=auth_headers, json={
         "username": SIGNUP_PAYLOAD["password1"],
         "name": SIGNUP_PAYLOAD["password1"],
     })
@@ -141,3 +141,37 @@ def test_add_user(client, auth_headers):
     response = client.get("/users", headers=auth_headers)
     assert response.status_code == 200
     assert len(response.json()) == 1
+
+
+def test_admin_signup_needs_the_admin_key(client):
+    for wrong in ({"admin_key": "wrong-key"}, {"admin_key": None}):
+        response = signup(client, **wrong)
+        assert response.status_code == 403
+        assert response.json()["detail"] == "관리자 키가 일치하지 않습니다."
+    assert client.get("/check").json()["exists"] is False
+
+    assert signup(client).status_code == 201
+
+
+def test_admin_signup_is_refused_when_the_server_has_no_admin_key(client, monkeypatch):
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "ADMIN_KEY", "")
+
+    assert signup(client, admin_key="").status_code == 403
+
+
+def test_anonymous_cannot_add_a_user(client, auth_headers):
+    response = client.post("/users", json={"username": "intruder", "name": "침입자"})
+    assert response.status_code == 401
+
+
+def test_member_cannot_add_a_user(client, auth_headers):
+    member = member_headers(client)
+    response = client.post("/users", headers=member, json={"username": "intruder", "name": "침입자"})
+    assert response.status_code == 403
+
+
+def test_added_user_is_not_a_superuser(client, auth_headers):
+    member = member_headers(client)
+    # 최고 관리자만 볼 수 있는 목록이다.
+    assert client.get("/users", headers=member).status_code == 403

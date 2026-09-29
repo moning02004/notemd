@@ -21,6 +21,9 @@ class BaseAbstractSettings(AbstractSettings):
     KEK = os.environ.get("KEK")
     KEK_VERSION = os.environ.get("KEK_VERSION")
 
+    # 관리자 가입에 필요한 키. 비어 있으면 관리자 가입을 받지 않는다.
+    ADMIN_KEY: str = os.environ.get("ADMIN_KEY", "")
+
     # Celery / Redis settings
     REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 

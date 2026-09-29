@@ -41,12 +41,22 @@ def client(db_session):
     app.dependency_overrides.clear()
 
 
+TEST_ADMIN_KEY = "test-admin-key"
+
 SIGNUP_PAYLOAD = {
     "username": "tester",
     "password1": "password123!",
     "password2": "password123!",
     "name": "테스터",
+    "admin_key": TEST_ADMIN_KEY,
 }
+
+
+@pytest.fixture(autouse=True)
+def admin_key(monkeypatch):
+    """관리자 가입은 서버의 ADMIN_KEY 를 알아야 된다. 테스트에서는 알려진 값으로 고정한다."""
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "ADMIN_KEY", TEST_ADMIN_KEY)
 
 
 def signup(client, **overrides):
@@ -131,12 +141,14 @@ MEMBER_PASSWORD = "0000"
 
 
 def create_member(client, username="member", name="멤버"):
-    """관리자가 발급하는 일반 계정. 비밀번호를 생략하면 초기값 0000 에 is_superuser=False 가 된다.
+    """관리자가 발급하는 일반 계정. 관리자(SIGNUP_PAYLOAD)가 먼저 가입해 있어야 한다. 비밀번호를 생략하면 초기값 0000 에 is_superuser=False 가 된다.
 
     최고 관리자는 소유자가 아닌 노트도 열 수 있으므로(서비스의 is_superuser 분기),
     '남의 노트에 접근할 수 없다' 류의 테스트는 반드시 이 일반 계정으로 해야 한다.
     """
-    response = client.post("/users", json={"username": username, "name": name})
+    # 일반 사용자는 관리자만 추가할 수 있다. 먼저 가입해 둔 관리자(SIGNUP_PAYLOAD)로 로그인해 만든다.
+    admin = {"Authorization": f"Bearer {login(client).json()['access_token']}"}
+    response = client.post("/users", headers=admin, json={"username": username, "name": name})
     assert response.status_code == 201, response.text
     return response.json()["user_hash"]
 

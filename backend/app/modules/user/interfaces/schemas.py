@@ -14,6 +14,8 @@ class SignupSchema(pydantic.BaseModel):
     password1: str = None
     password2: str = None
     name: str
+    # 관리자 가입(비밀번호를 정해 가입)일 때만 쓴다. 서버의 ADMIN_KEY 와 같아야 한다.
+    admin_key: str | None = None
 
 
 class ChangePasswordRequest(pydantic.BaseModel):

@@ -15,14 +15,16 @@ export const SignupPage = ({
     const passwordRef = useRef<HTMLInputElement>(null)
     const passwordConfirmRef = useRef<HTMLInputElement>(null)
     const nameRef = useRef<HTMLInputElement>(null)
+    const adminKeyRef = useRef<HTMLInputElement>(null)
 
     const registerAccount = async () => {
         const username = usernameRef.current;
         const name = nameRef.current;
         const password = passwordRef.current;
         const password2 = passwordConfirmRef.current;
+        const adminKey = adminKeyRef.current;
 
-        if (!username || !name || !password || !password2) return;
+        if (!username || !name || !password || !password2 || !adminKey) return;
 
         if (password.value != password2.value) {
             setErrorMessage("비밀번호를 확인해주세요.")
@@ -35,6 +37,7 @@ export const SignupPage = ({
                 password1: password.value,
                 password2: password2.value,
                 name: name.value,
+                admin_key: adminKey.value,
             })
         }).then(() => {
             setExistsAccount(true)
@@ -102,6 +105,11 @@ export const SignupPage = ({
                             <label className="block text-[11.5px] font-bold text-muted mb-1.5">이름</label>
                             <input ref={nameRef} type="text" placeholder="표시할 이름"
                                    onKeyUp={isEnterSignup} className={inputClass}/>
+                        </div>
+                        <div>
+                            <label className="block text-[11.5px] font-bold text-muted mb-1.5">관리자 키</label>
+                            <input ref={adminKeyRef} type="password" placeholder="서버에 설정한 ADMIN_KEY"
+                                   autoComplete="off" onKeyUp={isEnterSignup} className={inputClass}/>
                         </div>
                     </div>
 
