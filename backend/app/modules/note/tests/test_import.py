@@ -104,3 +104,48 @@ def test_break_blank_line_does_not_split_the_paragraph():
 
     assert back.count("<p>") == 1
     assert back.count("<br />") == 2
+
+
+def test_task_lists_are_imported_as_task_lists():
+    from app.core.markdown_renderer import markdown_to_html
+
+    html = markdown_to_html("- [x] 한 일\n- [ ] 할 일\n    - [ ] 안쪽\n")
+
+    assert html.count('<ul data-type="taskList">') == 2
+    assert '<li data-checked="true" data-type="taskItem"><p>한 일</p></li>' in html
+    assert '<li data-checked="false" data-type="taskItem"><p>안쪽</p></li>' in html
+    assert "[x]" not in html and "[ ]" not in html
+
+
+def test_mixed_list_is_left_as_an_ordinary_list():
+    from app.core.markdown_renderer import markdown_to_html
+
+    html = markdown_to_html("- [x] 한 일\n- 그냥 항목\n")
+
+    assert "taskList" not in html
+
+
+def test_details_are_imported_as_collapsible_blocks():
+    from app.core.markdown_renderer import markdown_to_html
+
+    html = markdown_to_html("<details open>\n<summary>제목</summary>\n\n본문  \n둘째 줄\n\n- 항목\n\n</details>\n\n"
+                            "<details>\n<summary>제목만</summary>\n</details>\n")
+
+    assert '<details open=""><summary>제목</summary><div data-type="detailsContent">' in html
+    assert "<p>본문<br/>\n둘째 줄</p>" in html and "<li>항목</li>" in html
+    # 본문 없는 접기는 에디터처럼 빈 문단 하나를 둔다(스키마상 본문이 비어 있을 수 없다).
+    assert '<details><summary>제목만</summary><div data-type="detailsContent"><p></p></div></details>' in html
+
+
+def test_task_lists_and_details_survive_a_round_trip():
+    import re
+    from app.core.markdown_renderer import html_to_markdown, markdown_to_html
+
+    original = ('<details class="details"><summary>할 일 묶음</summary><div data-type="detailsContent">'
+                '<ul data-type="taskList"><li data-checked="true" data-type="taskItem"><label><input type="checkbox" '
+                'checked="checked"><span></span></label><div><p>끝낸 일</p></div></li></ul></div></details>')
+    back = markdown_to_html(html_to_markdown(original))
+
+    assert re.sub(r"\s+", "", back) == ('<details><summary>할일묶음</summary><divdata-type="detailsContent">'
+                                        '<uldata-type="taskList"><lidata-checked="true"data-type="taskItem">'
+                                        '<p>끝낸일</p></li></ul></div></details>')

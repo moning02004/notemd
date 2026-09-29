@@ -221,3 +221,44 @@ def test_exported_file_keeps_blank_lines(client, auth_headers):
     create_note(client, owner, title="줄", content="<p>위</p><p></p><p></p><p>아래</p>")
 
     assert export(client, owner).read("줄.md").decode() == "위\n\n\n아래\n"
+
+
+TASK_LIST = ('<ul data-type="taskList">'
+             '<li data-checked="true" data-type="taskItem"><label><input type="checkbox" checked="checked"><span></span>'
+             '</label><div><p>한 일</p></div></li>'
+             '<li data-checked="false" data-type="taskItem"><label><input type="checkbox"><span></span></label>'
+             '<div><p>할 일</p><ul data-type="taskList"><li data-checked="false" data-type="taskItem"><label>'
+             '<input type="checkbox"><span></span></label><div><p>안쪽</p></div></li></ul></div></li></ul>')
+
+
+def test_task_lists_keep_their_checks():
+    from app.core.markdown_renderer import html_to_markdown
+
+    # 하위 목록은 네 칸 들여 쓴다(가져오기의 python-markdown 이 네 칸부터 하위 목록으로 읽는다).
+    assert html_to_markdown(TASK_LIST) == "- [x] 한 일\n- [ ] 할 일\n    - [ ] 안쪽\n"
+
+
+def test_details_are_kept_as_html_details():
+    from app.core.markdown_renderer import html_to_markdown
+
+    md = html_to_markdown('<details class="details" open=""><summary>제목</summary>'
+                          '<div data-type="detailsContent"><p>본문</p><p>둘째 줄</p></div></details>'
+                          '<details class="details"><summary>닫힌 것</summary>'
+                          '<div data-type="detailsContent"><p>숨은 본문</p></div></details>')
+
+    assert md == ("<details open>\n<summary>제목</summary>\n\n본문  \n둘째 줄\n\n</details>\n\n"
+                  "<details>\n<summary>닫힌 것</summary>\n\n숨은 본문\n\n</details>\n")
+
+
+def test_underscores_are_escaped_only_where_they_could_become_emphasis():
+    from app.core.markdown_renderer import html_to_markdown, markdown_to_html
+
+    md = html_to_markdown("<p>ADMIN_KEY 와 snake_case, _강조_ 와 __굵게__</p><pre><code>a_b _c_</code></pre>")
+
+    # 글자 사이의 밑줄은 그대로, 강조로 읽힐 수 있는 밑줄만 \_ 로. 코드 안은 건드리지 않는다.
+    assert "ADMIN_KEY 와 snake_case, \\_강조\\_ 와 \\_\\_굵게\\_\\_" in md
+    assert "a_b _c_" in md
+    # 다시 가져오면 글자 그대로다(기울임·굵게로 바뀌지 않는다).
+    back = markdown_to_html(md)
+    assert "ADMIN_KEY 와 snake_case, _강조_ 와 __굵게__" in back
+    assert "<em>" not in back and "<strong>" not in back
