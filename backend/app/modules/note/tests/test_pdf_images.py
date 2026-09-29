@@ -25,13 +25,13 @@ def _image_count(pdf: bytes) -> int:
         return sum(len(page.get_images()) for page in document)
 
 
-def testupload_name_ignores_the_host_the_editor_saved():
+def test_upload_name_ignores_the_host_the_editor_saved():
     assert upload_name("http://localhost:8002/uploads/ab12.png") == "ab12.png"
     assert upload_name("https://api.example.com/uploads/ab12.png") == "ab12.png"
     assert upload_name("/uploads/ab12.png") == "ab12.png"
 
 
-def testupload_name_rejects_other_paths():
+def test_upload_name_rejects_other_paths():
     assert upload_name("https://example.com/cat.png") is None
     assert upload_name("/uploads/../secret.txt") is None
     assert upload_name("/uploads/") is None
