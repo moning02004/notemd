@@ -19,6 +19,7 @@ import {useAuthStore} from "@/store/auth";
 import EditorLinkModal from "@/components/editor_link_modal";
 import {NotePickerModal} from "@/components/note/note_picker_modal";
 import {NotePeekPanel} from "@/components/note/note_peek_panel";
+import {NoteBacklinks} from "@/components/note/note_backlinks";
 import EditorLinkBubble from "@/components/editor_link_bubble";
 import EditorImageBubble from "@/components/editor_image_bubble";
 import EditorTableBubble from "@/components/editor_table_bubble";
@@ -282,13 +283,15 @@ export function MarkdownEditor({
                     }}/>
             }
 
-            <div className={`flex-20 bg-surface ${widthClass} mx-auto`}>
+            {/* 짧은 노트에서는 본문이 남는 높이를 채우고 백링크는 맨 아래에, 긴 노트에서는 본문 뒤에 온다. */}
+            <div className={`flex-20 flex flex-col bg-surface ${widthClass} mx-auto`}>
                 <EditorContent editor={editor}
-                               className="h-[100%]"
+                               className="flex-1"
                                onClick={() => {
                                    setTableMenuOpen(false)
                                    setOpenedSetting(false)
                                }}/>
+                {token && <NoteBacklinks noteId={paramsNoteId} onOpen={setPeekNoteId}/>}
             </div>
         </div>
     );

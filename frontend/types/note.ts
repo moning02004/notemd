@@ -57,3 +57,11 @@ export interface NoteSearchResult {
     created_at: string;
     folder: NoteFolder | null;
 }
+/** 이 노트를 가리키는 노트. 보는 사람이 열 수 있는 것만 온다. */
+export interface NoteBacklink {
+    hash_id: string;
+    /** 잠긴 노트(비밀번호가 걸린 남의 노트)는 비어 있다. */
+    title: string;
+    is_locked: boolean;
+    updated_at: string;
+}

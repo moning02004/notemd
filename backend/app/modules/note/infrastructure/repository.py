@@ -4,13 +4,13 @@ from typing import List, Any
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from fastapi_clean_archi.core.commons.repository import Repository
-from sqlalchemy import case, desc, asc
+from sqlalchemy import case, desc, asc, delete, insert, or_
 from sqlalchemy.orm import joinedload
 
 from app.core.config import settings
 from app.modules.note.domain.entity import SnapshotEntity
 from app.modules.folder.infrastructure.models import Folder
-from app.modules.note.infrastructure.models import Note
+from app.modules.note.infrastructure.models import Note, note_link
 from app.modules.note.infrastructure.models import NoteSnapshot
 from app.modules.tag.infrastructure.models import Tag
 from app.modules.user.infrastructure.models import User
@@ -117,14 +117,39 @@ class NoteRepository(Repository):
         ).filter(self.DB_MODEL.hash_id.in_(note_hashes)).all()
 
         workspace_ids = {workspace.pk for note in notes for workspace in note.workspaces}
-        if not user_id or not workspace_ids:
-            return notes, set()
+        return notes, self.member_workspace_ids(workspace_ids, user_id)
 
+    def replace_note_links(self, source: Note, target_hashes: list[str]):
+        """source 본문이 가리키는 노트를 target_hashes 로 갈아 적는다. 커밋은 부르는 쪽 몫이다.
+
+        없는 노트와 자기 자신은 뺀다. 휴지통에 있는 노트는 남긴다(복원하면 다시 백링크가 보여야 한다).
+        """
+        self.db.execute(delete(note_link).where(note_link.c.source_note_id == source.pk))
+        if not target_hashes:
+            return
+        target_ids = [pk for (pk,) in self.db.query(self.DB_MODEL.pk)
+                      .filter(self.DB_MODEL.hash_id.in_(target_hashes), self.DB_MODEL.pk != source.pk)]
+        if target_ids:
+            self.db.execute(insert(note_link),
+                            [{"source_note_id": source.pk, "target_note_id": pk} for pk in target_ids])
+
+    def get_backlink_sources(self, target: Note):
+        """target 을 가리키는 노트들. 휴지통에 있는 노트는 뺀다. 최근에 고친 것부터."""
+        return self.db.query(self.DB_MODEL).options(
+            joinedload(self.DB_MODEL.workspaces),
+        ).join(note_link, note_link.c.source_note_id == self.DB_MODEL.pk).filter(
+            note_link.c.target_note_id == target.pk,
+            self.DB_MODEL.deleted_at.is_(None),
+        ).order_by(desc(self.DB_MODEL.updated_at)).all()
+
+    def member_workspace_ids(self, workspace_ids: set[int], user_id: int | None) -> set[int]:
+        if not user_id or not workspace_ids:
+            return set()
         rows = self.db.query(workspace_member.c.workspace_id).filter(
             workspace_member.c.workspace_id.in_(workspace_ids),
             workspace_member.c.user_id == user_id,
         ).all()
-        return notes, {row[0] for row in rows}
+        return {row[0] for row in rows}
 
     def get_shared_workspace(self, workspace_hashes: list, user_id: int):
         if not workspace_hashes or not user_id:
@@ -229,9 +254,7 @@ class NoteRepository(Repository):
             self.DB_MODEL.user_id == user_id,
             self.DB_MODEL.hash_id.in_(note_hashes)
         ).all()
-        for note in notes:
-            self.db.delete(note)
-        self.db.commit()
+        self.hard_delete_notes(notes)
 
     def find_expired_trash_notes(self, user, cutoff: datetime):
         return self.db.query(self.DB_MODEL).options(
@@ -243,6 +266,11 @@ class NoteRepository(Repository):
         ).all()
 
     def hard_delete_notes(self, notes: List[Note]):
+        # Postgres 는 FK 의 ON DELETE CASCADE 로 지우지만, SQLite 는 FK 를 강제하지 않아 직접 지운다.
+        note_ids = [note.pk for note in notes]
+        if note_ids:
+            self.db.execute(delete(note_link).where(or_(note_link.c.source_note_id.in_(note_ids),
+                                                        note_link.c.target_note_id.in_(note_ids))))
         for note in notes:
             self.db.delete(note)
         self.db.commit()

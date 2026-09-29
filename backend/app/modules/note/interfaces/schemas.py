@@ -190,3 +190,11 @@ class NoteSnapshotSchema(BaseModel):
     #
     #     value = re.sub(r'\n{3,}', '\n\n', "\n".join(values))
     #     return value.strip()
+
+
+class NoteBacklinkSchema(BaseModel):
+    hash_id: str
+    # 잠긴 노트(비밀번호가 걸린 남의 노트)는 제목을 비워 보낸다.
+    title: str
+    is_locked: bool
+    updated_at: datetime

@@ -172,27 +172,62 @@ class NoteService(Service):
         if not hashes:
             return content
 
-        viewer_id = viewer.pk if viewer else None
-        targets, member_workspace_ids = self.repository.get_link_targets(hashes, viewer_id)
-
-        resolved = {}
-        for target in targets:
-            is_owner = viewer_id is not None and target.user_id == viewer_id
-            can_read = (is_owner or target.is_public
-                        or bool(viewer and viewer.is_superuser)
-                        or any(workspace.pk in member_workspace_ids for workspace in target.workspaces))
-
-            if not can_read:
-                state = NoteLinkState.UNAVAILABLE
-            elif target.password and not is_owner:
-                state = NoteLinkState.LOCKED
-            elif target.deleted_at:
-                state = NoteLinkState.DELETED
-            else:
-                state = NoteLinkState.OK
-            resolved[target.hash_id] = (state, target.title or "")
-
+        targets, member_workspace_ids = self.repository.get_link_targets(hashes, viewer.pk if viewer else None)
+        resolved = {target.hash_id: (self._link_state(target, viewer, member_workspace_ids), target.title or "")
+                    for target in targets}
         return rewrite_note_links(content, resolved)
+
+    @staticmethod
+    def _link_state(note: Note, viewer: User | None, member_workspace_ids: set[int]) -> NoteLinkState:
+        """보는 사람이 링크 너머의 노트를 열 수 있는지. 권한 판단은 get_note_by_hash_id 와 같다."""
+        is_owner = viewer is not None and note.user_id == viewer.pk
+        can_read = (is_owner or note.is_public
+                    or bool(viewer and viewer.is_superuser)
+                    or any(workspace.pk in member_workspace_ids for workspace in note.workspaces))
+
+        if not can_read:
+            return NoteLinkState.UNAVAILABLE
+        if note.password and not is_owner:
+            return NoteLinkState.LOCKED
+        if note.deleted_at:
+            return NoteLinkState.DELETED
+        return NoteLinkState.OK
+
+    def get_backlinks(self, viewer: User, note_hash: str) -> list[dict]:
+        """이 노트를 가리키는 노트 중 보는 사람이 열 수 있는 것.
+
+        대상 노트의 비밀번호는 묻지 않는다. 돌려주는 것은 보는 사람이 원래 열 수 있는 노트뿐이고,
+        그 노트들의 본문에는 이미 이 링크가 보이기 때문이다. 대신 대상 노트를 볼 수 없는 사람에게는
+        노트가 있는지조차 알리지 않는다.
+        """
+        target = self.repository.get_by_hash_id(hash_id=note_hash)
+        if target is None:
+            raise self.NotFoundNote
+        target_workspaces = self.repository.member_workspace_ids({w.pk for w in target.workspaces}, viewer.pk)
+        target_state = self._link_state(target, viewer, target_workspaces)
+        if target_state == NoteLinkState.UNAVAILABLE:
+            raise self.NotFoundNote
+        if target_state == NoteLinkState.DELETED and target.user_id != viewer.pk:
+            raise self.DeletedNote
+
+        sources = self.repository.get_backlink_sources(target)
+        member_workspace_ids = self.repository.member_workspace_ids(
+            {workspace.pk for source in sources for workspace in source.workspaces}, viewer.pk)
+
+        backlinks = []
+        for source in sources:
+            state = self._link_state(source, viewer, member_workspace_ids)
+            if state == NoteLinkState.UNAVAILABLE:
+                continue
+            locked = state == NoteLinkState.LOCKED
+            backlinks.append({
+                "hash_id": source.hash_id,
+                # 잠긴 노트는 제목도 비밀번호 뒤에 있다(본문 링크와 같은 규칙).
+                "title": "" if locked else (source.title or ""),
+                "is_locked": locked,
+                "updated_at": source.updated_at,
+            })
+        return backlinks
 
     def _store_note_links(self, content: str) -> str:
         """저장할 본문의 노트 링크를 실제 제목으로 채우고, 보는 사람에 따라 붙었던 상태는 뗀다.
@@ -225,6 +260,8 @@ class NoteService(Service):
             self._decrypt_content(owner, note.content) if note.is_encrypted else note.content)
         if request.content:
             content = self._store_note_links(content)
+        # 암호화하기 전의 평문에서 링크를 뽑아 둔다. 표에 적는 건 권한을 확인한 뒤다.
+        linked_hashes = note_link_hashes(content) if request.content else None
 
         is_encrypted = request.is_encrypted if request.is_encrypted is not None else note.is_encrypted
         if is_encrypted:
@@ -262,6 +299,10 @@ class NoteService(Service):
         folder_id = -1
         if "folder" in request.model_fields_set:
             folder_id = self._folder_pk(note.user_id, request.folder)
+
+        if linked_hashes is not None:
+            # repository.update_note 가 함께 커밋한다.
+            self.repository.replace_note_links(note, linked_hashes)
 
         note = self.repository.update_note(user_id=user.pk,
                                            note=note,

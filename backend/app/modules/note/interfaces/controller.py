@@ -9,7 +9,7 @@ from app.modules.note.application.service import NoteService
 from app.modules.note.interfaces.dependencies import get_note_service, get_note_service_with_storage
 from app.modules.note.interfaces.schemas import NoteListSchema, NoteCreateSchema, \
     NoteDetailSchema, NoteUpdateRequest, QueryParams, NoteHashesRequest, SnapshotRequest, NoteSnapshotSchema, \
-    NoteRequest, NoteDownloadRequest, NoteCreateRequest
+    NoteRequest, NoteDownloadRequest, NoteCreateRequest, NoteBacklinkSchema
 
 router = APIRouter(prefix="/notes", tags=["Notes"])
 
@@ -105,6 +105,12 @@ def update_note(note_hash: str,
                 service: NoteService = Depends(get_note_service)):
     note = service.update_note(user=user, note_hash=note_hash, request=request)
     return note
+
+
+@router.get("/{note_hash}/backlinks", response_model=List[NoteBacklinkSchema])
+def get_note_backlinks(note_hash: str, user=Depends(get_current_user),
+                       service: NoteService = Depends(get_note_service)):
+    return service.get_backlinks(viewer=user, note_hash=note_hash)
 
 
 @router.post("/{note_hash}/images")

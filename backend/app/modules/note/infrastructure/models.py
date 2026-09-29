@@ -9,6 +9,16 @@ workspace_note = Table(
     Column("workspace_id", ForeignKey("workspace.id"), primary_key=True),
 )
 
+# 본문의 노트 링크(<a data-note>)를 저장할 때마다 옮겨 적는 표. "이 노트를 가리키는 노트"(백링크)를 찾는 데 쓴다.
+# 본문은 암호화돼 있을 수 있어 DB 에서 긁을 수 없으므로, 평문을 가진 저장 시점에 따로 적어 둔다.
+# 어느 쪽 노트든 영구 삭제되면 함께 지워진다.
+note_link = Table(
+    "note_link",
+    BaseModel.metadata,
+    Column("source_note_id", ForeignKey("note.id", ondelete="CASCADE"), primary_key=True),
+    Column("target_note_id", ForeignKey("note.id", ondelete="CASCADE"), primary_key=True, index=True),
+)
+
 
 class Note(BaseModel):
     user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
