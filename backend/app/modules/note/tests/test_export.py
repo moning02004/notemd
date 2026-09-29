@@ -148,3 +148,28 @@ def test_uploaded_images_are_bundled_and_outside_images_are_left_alone(client, a
     assert f"(images/{name})" in zf.read("사진.md").decode()
     assert f"({outside})" in zf.read("사진.md").decode()
     assert f"(../images/{name})" in zf.read("업무/옆 사진.md").decode()
+
+
+def test_blank_lines_survive_in_markdown():
+    from app.core.markdown_renderer import html_to_markdown
+
+    md = html_to_markdown('<p>위</p><p></p><p></p><p>아래</p>'
+                          '<p>한 줄<br>다음 줄<br><br>비운 줄 다음</p>')
+
+    # 빈 문단 둘은 &nbsp; 두 줄로, <br> 로 비운 줄도 &nbsp; 로 남는다.
+    assert "위\n\n&nbsp;\n\n&nbsp;\n\n아래" in md
+    assert "한 줄  \n다음 줄  \n&nbsp;  \n비운 줄 다음" in md
+
+
+def test_code_blocks_are_not_touched_by_blank_line_marks():
+    from app.core.markdown_renderer import html_to_markdown
+
+    md = html_to_markdown("<pre><code>a\n\n\nb</code></pre>")
+    assert "&nbsp;" not in md
+
+
+def test_exported_file_keeps_blank_lines(client, auth_headers):
+    owner = member_headers(client)
+    create_note(client, owner, title="줄", content="<p>위</p><p></p><p></p><p>아래</p>")
+
+    assert "위\n\n&nbsp;\n\n&nbsp;\n\n아래" in export(client, owner).read("줄.md").decode()

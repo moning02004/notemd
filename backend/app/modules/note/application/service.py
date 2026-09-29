@@ -17,9 +17,9 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from fastapi import HTTPException
 from fastapi_clean_archi.core.commons.service import Service
 from markdown import markdown
-from markdownify import markdownify
 
 from app.core.config import settings
+from app.core.markdown_renderer import html_to_markdown
 from app.core.pdf_renderer import render_note_pdf, upload_name
 from app.modules.note.application.note_links import (NOTE_LINK_PATTERN, NoteLinkState, note_link_hashes,
                                                      rewrite_note_links)
@@ -538,7 +538,7 @@ class NoteService(Service):
 
         content = NOTE_LINK_PATTERN.sub(link, content)
         content = IMG_SRC_PATTERN.sub(image, content)
-        return markdownify(content).encode("utf-8")
+        return html_to_markdown(content).encode("utf-8")
 
     MEDIA_TYPES = {
         "md": "text/markdown",
@@ -554,7 +554,7 @@ class NoteService(Service):
             # 본문 이미지는 저장소에서 받아 넣는다(로컬 디스크든 MinIO 든 저장소가 안다).
             read_image = self.storage.read if self.storage else None
             return render_note_pdf(title=note.title, content=content, read_image=read_image)
-        return markdownify(content or "").encode("utf-8")
+        return html_to_markdown(content).encode("utf-8")
 
     @staticmethod
     def _safe_filename(title: str, file_format: str = "md") -> str:
