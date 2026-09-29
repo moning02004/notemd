@@ -9,6 +9,7 @@ import {EditorView, NodeView} from '@tiptap/pm/view'
 import {Plugin, PluginKey} from '@tiptap/pm/state'
 import {useImageViewerStore} from "@/store/imageViewer";
 import {Details, DetailsContent, DetailsSummary} from '@tiptap/extension-details'
+import {detailsNestingGuard} from "@/lib/details_nesting";
 
 import Document from '@tiptap/extension-document'
 import javascript from 'highlight.js/lib/languages/javascript'
@@ -110,6 +111,10 @@ export const CustomDetails = Details.extend({
                 return parent?.setDetails?.()(props) ?? false
             },
         }
+    },
+
+    addProseMirrorPlugins() {
+        return [...(this.parent?.() ?? []), detailsNestingGuard()]
     },
 
     // open 어트리뷰트는 persist: true 일 때만 생기고 기본값이 false 라
