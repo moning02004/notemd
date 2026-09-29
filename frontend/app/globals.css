@@ -852,35 +852,57 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
     width: 100%;
 }
 
+/*
+ * 접기. 테두리 상자 대신 쉐브론 + 제목 한 줄로 두어 본문 흐름을 끊지 않는다(노션의 토글처럼).
+ * 펼친 내용은 제목 글자 자리에 맞춰 들여 쓰고, 쉐브론 아래로 내려오는 얇은 세로선으로 어디까지가
+ * 접히는 내용인지 보여준다. 제목과 내용 사이 간격은 내용 쪽에 두어, 접었을 때 빈 자리가 남지 않는다.
+ */
 .tiptap .details {
+    --details-toggle: 1.5rem;
+    --details-gap: .25rem;
     display: flex;
-    gap: 0.25rem;
-    margin: 1rem 0;
-    padding: 0.5rem;
-    border: 1px solid var(--border);
-    border-radius: 0.5rem;
+    gap: var(--details-gap);
+    margin: .5rem 0;
 }
 
 .tiptap .details > button {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 1.25rem;
-    height: 1.5rem;
+    width: var(--details-toggle);
+    /* 제목 한 줄 높이(본문 줄 높이)에 맞춰 쉐브론이 글자 가운데 오게 한다. */
+    height: 1.75em;
     flex-shrink: 0;
+    color: color-mix(in srgb, var(--muted), var(--foreground) 50%);
     background: transparent;
-    border-radius: 4px;
+    border-radius: 5px;
     cursor: pointer;
+    transition: background-color .15s ease, color .15s ease;
 }
 
+.tiptap .details > button:hover {
+    background: var(--background);
+    color: var(--foreground);
+}
+
+.tiptap .details > button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+/* 글꼴마다 모양이 다른 ▶ 글자 대신 테두리 두 변으로 그린 쉐브론. 닫히면 오른쪽(›), 펼치면 아래(⌄). */
 .tiptap .details > button::before {
-    content: '▶';
-    font-size: 0.625rem;
-    transition: transform 0.15s ease;
+    content: '';
+    width: .4rem;
+    height: .4rem;
+    border-right: 1.75px solid currentColor;
+    border-bottom: 1.75px solid currentColor;
+    transform: translateX(-1px) rotate(-45deg);
+    transition: transform .15s ease;
 }
 
 .tiptap .details.is-open > button::before {
-    transform: rotate(90deg);
+    transform: translateY(-2px) rotate(45deg);
 }
 
 .tiptap .details > div {
@@ -891,7 +913,32 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
 .tiptap .details summary {
     font-weight: 600;
     list-style: none;
-    margin-bottom: 0.5rem;
+}
+
+/* 제목을 비워 두면 쉐브론만 덩그러니 남아 무엇을 접었는지 알 수 없다. */
+.tiptap .details summary:is(:empty, :has(> br:only-child))::before {
+    content: '제목 없음';
+    color: var(--subtle);
+    font-weight: 500;
+    pointer-events: none;
+}
+
+.tiptap .details [data-type='detailsContent'] {
+    margin-top: .25rem;
+    /* 세로선이 쉐브론 한가운데 오도록 왼쪽으로 당기고, 글자는 제목 글자 자리로 되돌린다. */
+    --details-rule: 1.5px;
+    margin-left: calc(var(--details-toggle) / -2 - var(--details-gap));
+    padding-left: calc(var(--details-toggle) / 2 + var(--details-gap) - var(--details-rule));
+    border-left: var(--details-rule) solid color-mix(in srgb, var(--border-strong), var(--muted) 45%);
+}
+
+/* 본문이 빈 줄 하나뿐이고 커서가 거기 없으면 접어 둔다(lib/details_body.ts). 제목에서 Enter 를 치면 다시 보인다.
+   display:none 은 details 확장이 '접힌 내용' 으로 보고 커서를 튕겨 내므로 높이만 0 으로 한다. */
+.tiptap .details [data-type='detailsContent']:has(> .is-empty-body) {
+    height: 0;
+    margin-top: 0;
+    overflow: hidden;
+    border-left-color: transparent;
 }
 
 /* 접은 내용 안의 문단은 본문 문단 여백(padding)에서 빠져 있어 줄줄이 붙는다. 문단 사이를 조금 띄운다. */

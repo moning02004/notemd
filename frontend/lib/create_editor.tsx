@@ -10,6 +10,7 @@ import {Plugin, PluginKey} from '@tiptap/pm/state'
 import {useImageViewerStore} from "@/store/imageViewer";
 import {Details, DetailsContent, DetailsSummary} from '@tiptap/extension-details'
 import {detailsNestingGuard} from "@/lib/details_nesting";
+import {emptyDetailsBody, enterEmptyDetailsBody} from "@/lib/details_body";
 
 import Document from '@tiptap/extension-document'
 import javascript from 'highlight.js/lib/languages/javascript'
@@ -114,7 +115,15 @@ export const CustomDetails = Details.extend({
     },
 
     addProseMirrorPlugins() {
-        return [...(this.parent?.() ?? []), detailsNestingGuard()]
+        return [...(this.parent?.() ?? []), detailsNestingGuard(), emptyDetailsBody()]
+    },
+
+    addKeyboardShortcuts() {
+        const parent = this.parent?.() ?? {}
+        return {
+            ...parent,
+            Enter: props => enterEmptyDetailsBody(props.editor) || (parent.Enter?.(props) ?? false),
+        }
     },
 
     // open 어트리뷰트는 persist: true 일 때만 생기고 기본값이 false 라
