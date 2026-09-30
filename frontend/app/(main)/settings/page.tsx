@@ -273,7 +273,7 @@ export default function Page() {
                             <div className="min-w-0">
                                 <p className="text-[14px] text-foreground">데이터 내보내기</p>
                                 <p className="text-[12px] text-subtle">
-                                    모든 노트를 폴더 구조 그대로 마크다운 zip 으로 받아요. 휴지통은 빠져요.
+                                    노트(폴더 구조 그대로)·스냅샷·템플릿을 마크다운 zip 으로 받아요. 휴지통은 빠져요.
                                 </p>
                             </div>
                         </div>

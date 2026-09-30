@@ -1,5 +1,6 @@
-"""설정의 데이터 내보내기: 노트 전부를 폴더 구조 그대로 담은 마크다운 zip."""
+"""설정의 데이터 내보내기: 노트(폴더 구조 그대로)·스냅샷·템플릿을 담은 마크다운 zip."""
 import io
+import re
 import zipfile
 
 from conftest import create_note, member_headers
@@ -32,13 +33,13 @@ def test_notes_follow_their_folders_and_unfiled_notes_sit_at_the_root(client, au
     zf = export(client, owner)
     names = set(zf.namelist())
 
-    assert "미분류 메모.md" in names
-    assert "업무/할 일.md" in names
-    assert "업무/회의/9월 회의.md" in names
+    assert "노트/미분류 메모.md" in names
+    assert "노트/업무/할 일.md" in names
+    assert "노트/업무/회의/9월 회의.md" in names
     # 빈 폴더도 구조로 남는다. '미분류' 폴더는 만들지 않는다.
-    assert "빈 폴더/" in names
-    assert not any(name.startswith("미분류/") for name in names)
-    assert "맨 위" in zf.read("미분류 메모.md").decode()
+    assert "노트/빈 폴더/" in names
+    assert not any("미분류/" in name for name in names)
+    assert "맨 위" in zf.read("노트/미분류 메모.md").decode()
 
 
 def test_same_names_do_not_overwrite_each_other(client, auth_headers):
@@ -50,8 +51,8 @@ def test_same_names_do_not_overwrite_each_other(client, auth_headers):
 
     names = set(export(client, owner).namelist())
 
-    assert {"같은 이름/", "같은 이름 (2)/"} <= names
-    assert {"메모.md", "메모_1.md"} <= names
+    assert {"노트/같은 이름/", "노트/같은 이름 (2)/"} <= names
+    assert {"노트/메모.md", "노트/메모_1.md"} <= names
 
 
 def test_trash_and_other_peoples_notes_are_left_out(client, auth_headers):
@@ -63,8 +64,8 @@ def test_trash_and_other_peoples_notes_are_left_out(client, auth_headers):
     stranger = member_headers(client, username="stranger", name="남")
     create_note(client, stranger, title="남의 노트")
 
-    names = export(client, owner).namelist()
-    assert names == ["남길 노트.md"]
+    files = [name for name in export(client, owner).namelist() if not name.endswith("/")]
+    assert files == ["노트/남길 노트.md"]
     assert kept
 
 
@@ -72,7 +73,7 @@ def test_encrypted_notes_are_exported_as_plain_markdown(client, auth_headers):
     owner = member_headers(client)
     create_note(client, owner, title="비밀", content="<p>풀어서 나가야 한다</p>", is_encrypted=True)
 
-    assert "풀어서 나가야 한다" in export(client, owner).read("비밀.md").decode()
+    assert "풀어서 나가야 한다" in export(client, owner).read("노트/비밀.md").decode()
 
 
 def test_folder_names_that_cannot_be_paths_are_cleaned(client, auth_headers):
@@ -81,7 +82,7 @@ def test_folder_names_that_cannot_be_paths_are_cleaned(client, auth_headers):
     create_note(client, owner, title="Q&A: 정리?", folder=odd)
 
     # 쓸 수 없는 글자는 지우지 않고 비슷한 전각 글자로 바꾼다('9/25' 가 '925' 가 되면 뜻이 바뀐다).
-    assert "9／25： 회의/Q&A： 정리？.md" in export(client, owner).namelist()
+    assert "노트/9／25： 회의/Q&A： 정리？.md" in export(client, owner).namelist()
 
 
 def test_export_needs_login(client):
@@ -108,8 +109,8 @@ def test_note_links_point_to_the_exported_files(client, auth_headers, monkeypatc
     create_note(client, owner, title="옆자리", content=f"<p>{link(target)}</p>", folder=work)
 
     zf = export(client, owner)
-    top = zf.read("맨 위.md").decode()
-    beside = zf.read("업무/옆자리.md").decode()
+    top = zf.read("노트/맨 위.md").decode()
+    beside = zf.read("노트/업무/옆자리.md").decode()
 
     # 파일 이름의 한글·공백은 퍼센트 인코딩된다(마크다운 링크 주소에 공백을 둘 수 없다).
     assert "[대상 노트](%EC%97%85%EB%AC%B4/%EB%8C%80%EC%83%81%20%EB%85%B8%ED%8A%B8.md)" in top
@@ -158,7 +159,7 @@ def _png() -> bytes:
 def test_uploaded_images_are_bundled_and_outside_images_are_left_alone(client, auth_headers):
     owner = member_headers(client)
     work = make_folder(client, owner, "업무")
-    make_folder(client, owner, "images")  # 내보내기가 쓰는 이름과 겹치는 사용자 폴더
+    make_folder(client, owner, "images")  # 맨 위 images/ 와 이름이 같은 사용자 폴더
     top = create_note(client, owner, title="사진")
     beside = create_note(client, owner, title="옆 사진", folder=work)
 
@@ -174,14 +175,14 @@ def test_uploaded_images_are_bundled_and_outside_images_are_left_alone(client, a
     zf = export(client, owner)
     names = zf.namelist()
 
-    # 같은 이미지는 한 번만 담는다. 사용자 폴더 images 는 비켜선다.
+    # 같은 이미지는 한 번만 담는다. 사용자 폴더 images 는 노트/ 아래에 있어 섞이지 않는다.
     assert names.count(f"images/{name}") == 1
     assert zf.read(f"images/{name}") == _png()
-    assert "images (2)/" in names
+    assert "노트/images/" in names
 
-    assert f"(images/{name})" in zf.read("사진.md").decode()
-    assert f"({outside})" in zf.read("사진.md").decode()
-    assert f"(../images/{name})" in zf.read("업무/옆 사진.md").decode()
+    assert f"(../images/{name})" in zf.read("노트/사진.md").decode()
+    assert f"({outside})" in zf.read("노트/사진.md").decode()
+    assert f"(../../images/{name})" in zf.read("노트/업무/옆 사진.md").decode()
 
 
 def test_lines_follow_the_editor():
@@ -221,7 +222,7 @@ def test_exported_file_keeps_blank_lines(client, auth_headers):
     owner = member_headers(client)
     create_note(client, owner, title="줄", content="<p>위</p><p></p><p></p><p>아래</p>")
 
-    assert export(client, owner).read("줄.md").decode() == "위\n\n\n아래\n"
+    assert export(client, owner).read("노트/줄.md").decode() == "위\n\n\n아래\n"
 
 
 TASK_LIST = ('<ul data-type="taskList">'
@@ -263,3 +264,77 @@ def test_underscores_are_escaped_only_where_they_could_become_emphasis():
     back = markdown_to_html(md)
     assert "ADMIN_KEY 와 snake_case, _강조_ 와 __굵게__" in back
     assert "<em>" not in back and "<strong>" not in back
+
+
+def test_top_level_is_notes_snapshots_and_templates(client, auth_headers):
+    owner = member_headers(client)
+    create_note(client, owner, title="메모")
+
+    names = export(client, owner).namelist()
+
+    assert {"노트/", "스냅샷/", "템플릿/"} <= set(names)
+    assert all(name.split("/")[0] in {"노트", "스냅샷", "템플릿", "images"} for name in names)
+
+
+def test_snapshots_sit_in_a_folder_named_after_their_note(client, auth_headers):
+    owner = member_headers(client)
+    work = make_folder(client, owner, "업무")
+    note = create_note(client, owner, title="회의", content="<p>첫 판</p>", folder=work)
+    assert client.post(f"/notes/{note}/snapshots", headers=owner, json={"description": "배포 전"}).status_code == 200
+    client.patch(f"/notes/{note}", headers=owner, json={"content": "<p>둘째 판</p>"})
+    client.post(f"/notes/{note}/snapshots", headers=owner, json={"description": ""})  # 자동 이름(auto_…)
+
+    zf = export(client, owner)
+    snapshots = sorted(name for name in zf.namelist() if name.startswith("스냅샷/업무/회의/"))
+
+    assert len(snapshots) == 2
+    manual = next(name for name in snapshots if name.endswith(" 배포 전.md"))
+    auto = next(name for name in snapshots if name != manual)
+    # 파일 이름은 '만든 시각 설명'. 자동 스냅샷은 시각만.
+    assert re.fullmatch(r"스냅샷/업무/회의/\d{4}-\d{2}-\d{2} \d{2}\.\d{2}\.\d{2} 배포 전\.md", manual)
+    assert re.fullmatch(r"스냅샷/업무/회의/\d{4}-\d{2}-\d{2} \d{2}\.\d{2}\.\d{2}(_\d+)?\.md", auto)
+
+    text = zf.read(manual).decode()
+    assert text.startswith('---\ntitle: "회의"\nnote: "노트/업무/회의.md"\ncreated: "')
+    assert 'description: "배포 전"' in text
+    assert text.endswith("---\n\n첫 판\n")
+    assert 'description: "자동 저장"' in zf.read(auto).decode()
+
+
+def test_snapshots_of_encrypted_notes_are_exported_as_plain_markdown(client, auth_headers):
+    owner = member_headers(client)
+    note = create_note(client, owner, title="비밀", content="<p>찍을 때 본문</p>", is_encrypted=True)
+    client.post(f"/notes/{note}/snapshots", headers=owner, json={"description": "암호화된 판"})
+
+    zf = export(client, owner)
+    snapshot = next(name for name in zf.namelist() if name.startswith("스냅샷/비밀/"))
+
+    assert "찍을 때 본문" in zf.read(snapshot).decode()
+
+
+def test_templates_are_exported_by_name(client, auth_headers):
+    owner = member_headers(client)
+    response = client.post("/templates", headers=owner, json={
+        "name": "회의록 양식", "description": "주간 회의용", "title": "주간 회의",
+        "content": '<ul data-type="taskList"><li data-checked="false" data-type="taskItem"><label>'
+                   '<input type="checkbox"><span></span></label><div><p>안건</p></div></li></ul>'})
+    assert response.status_code == 200, response.text
+
+    text = export(client, owner).read("템플릿/회의록 양식.md").decode()
+
+    assert text == '---\ntitle: "주간 회의"\ndescription: "주간 회의용"\n---\n\n- [ ] 안건\n'
+
+
+def test_snapshot_and_template_links_and_images_point_into_the_zip(client, auth_headers):
+    owner = member_headers(client)
+    target = create_note(client, owner, title="대상")
+    note = create_note(client, owner, title="가리킴", content=f"<p>{link(target)}</p>")
+    client.post(f"/notes/{note}/snapshots", headers=owner, json={"description": "링크"})
+    client.post("/templates", headers=owner, json={"name": "양식", "description": "", "title": "",
+                                                  "content": f"<p>{link(target)}</p>"})
+
+    zf = export(client, owner)
+    snapshot = next(name for name in zf.namelist() if name.startswith("스냅샷/가리킴/"))
+
+    assert "[대상](../../%EB%85%B8%ED%8A%B8/%EB%8C%80%EC%83%81.md)" in zf.read(snapshot).decode()
+    assert "[대상](../%EB%85%B8%ED%8A%B8/%EB%8C%80%EC%83%81.md)" in zf.read("템플릿/양식.md").decode()

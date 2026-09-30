@@ -293,6 +293,13 @@ class NoteRepository(Repository):
             self.db.refresh(note)
         return notes
 
+    def list_snapshots_for_export(self, note_ids: list[int]) -> List[NoteSnapshot]:
+        """내보낼 노트들의 스냅샷. 오래된 것부터."""
+        if not note_ids:
+            return []
+        return self.db.query(NoteSnapshot).filter(NoteSnapshot.note_id.in_(note_ids)) \
+            .order_by(asc(NoteSnapshot.created_at)).all()
+
     def find_note_snapshots(self, note_hash: str):
         queryset = self.db.query(NoteSnapshot).join(NoteSnapshot.note).filter(
             Note.hash_id == note_hash,

@@ -31,7 +31,7 @@ export const downloadNoteRequest = async (noteHashes: Array<string>, format: Dow
     await saveResponseAsFile(res)
 }
 
-/** 노트 전부를 폴더 구조 그대로 담은 마크다운 zip 을 받는다(설정의 데이터 내보내기). */
+/** 노트·스냅샷·템플릿을 담은 마크다운 zip 을 받는다(설정의 데이터 내보내기). */
 export const exportAllNotes = async () => {
     const res = await apiRequest.get<Response>("/notes/export", {}, {isDownloadFile: true})
     await saveResponseAsFile(res)

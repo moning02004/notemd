@@ -1,6 +1,7 @@
 import base64
 import html as html_lib
 import io
+import json
 import os
 import posixpath
 import re
@@ -25,6 +26,7 @@ from app.modules.note.application.note_links import (NOTE_LINK_PATTERN, NoteLink
                                                      rewrite_note_links)
 from app.modules.note.domain.entity import NoteEntity, DownloadResult, build_note_document
 from app.modules.folder.infrastructure.repository import FolderRepository
+from app.modules.template.infrastructure.repository import TemplateRepository
 from app.modules.note.infrastructure.models import Note, NoteSnapshot
 from app.modules.user.infrastructure.models import User
 from app.modules.user.infrastructure.repository import UserRepository
@@ -48,16 +50,24 @@ def _safe_name(name: str) -> str:
     return (name or "").translate(FILENAME_SAFE).strip()
 
 
-def _zip_time(value: datetime | None) -> tuple:
-    """zip 안 파일의 수정 시각. zip 은 시간대 없이 적으므로 서비스 기준 시간(KST)으로 적는다."""
+def _zip_datetime(value: datetime | None) -> datetime:
+    """서비스 기준 시간(KST)의 시각. SQLite 는 시간대 없이(UTC) 돌려준다."""
     if value is None:
-        return datetime.now(KST).timetuple()[:6]
+        return datetime.now(KST)
     if value.tzinfo is None:
         value = value.replace(tzinfo=timezone.utc)
-    return value.astimezone(KST).timetuple()[:6]
+    return value.astimezone(KST)
 
 
-# 내보낸 zip 에서 본문 이미지를 모아 두는 곳(맨 위). 같은 이름의 사용자 폴더는 (2) 로 비켜 준다.
+def _zip_time(value: datetime | None) -> tuple:
+    """zip 안 파일의 수정 시각. zip 은 시간대 없이 적으므로 서비스 기준 시간(KST)으로 적는다."""
+    return _zip_datetime(value).timetuple()[:6]
+
+
+# 데이터 내보내기 zip 의 맨 위 구조. 이미지는 노트·스냅샷·템플릿이 함께 쓴다.
+EXPORT_NOTES_DIR = "노트"
+EXPORT_SNAPSHOTS_DIR = "스냅샷"
+EXPORT_TEMPLATES_DIR = "템플릿"
 EXPORT_IMAGE_DIR = "images"
 IMG_SRC_PATTERN = re.compile(r'(<img\b[^>]*\bsrc=")([^"]*)(")')
 HREF_PATTERN = re.compile(r'\shref="[^"]*"')
@@ -82,11 +92,26 @@ def _relative_link(from_dir: str, target: str) -> str:
     return quote(posixpath.relpath(target, from_dir or "."))
 
 
-def _folder_dirs(folders, reserved_root: set[str] = frozenset()) -> dict[int, str]:
-    """폴더 pk → zip 안 경로("상위/하위"). 같은 부모 아래 이름이 겹치면 뒤에 (2), (3) 을 붙인다.
+def _front_matter(fields: dict[str, str]) -> str:
+    """파일 맨 위의 정보(YAML front matter). Obsidian 등이 읽는다. 값은 JSON 문자열로 적어 따옴표·콜론이 섞여도 된다."""
+    lines = [f"{key}: {json.dumps(value, ensure_ascii=False)}" for key, value in fields.items() if value]
+    return "---\n" + "\n".join(lines) + "\n---\n\n"
 
-    reserved_root: 맨 위에서 폴더 이름으로 쓰지 않을 이름(내보내기가 따로 쓰는 images 등).
+
+def _snapshot_label(description: str | None) -> tuple[str, str]:
+    """스냅샷 설명 → (파일 이름에 붙일 말, front matter 에 적을 설명).
+
+    자동 스냅샷은 'auto_<시각>' 이나 'auto_<시각>_by_<이름>' 으로 저장된다. 파일 이름에는 시각만으로 충분하다.
     """
+    description = (description or "").strip()
+    if not description.startswith("auto_"):
+        return description, description
+    editor = description.split("_by_", 1)[1] if "_by_" in description else ""
+    return "", f"자동 저장 ({editor})" if editor else "자동 저장"
+
+
+def _folder_dirs(folders) -> dict[int, str]:
+    """폴더 pk → 노트 폴더 안의 경로("상위/하위"). 같은 부모 아래 이름이 겹치면 뒤에 (2), (3) 을 붙인다."""
     by_parent: dict[int | None, list] = {}
     for folder in folders:
         by_parent.setdefault(folder.parent_id, []).append(folder)
@@ -94,7 +119,7 @@ def _folder_dirs(folders, reserved_root: set[str] = frozenset()) -> dict[int, st
     paths: dict[int, str] = {}
 
     def walk(parent_id: int | None, prefix: str):
-        used: set[str] = set(reserved_root) if parent_id is None else set()
+        used: set[str] = set()
         for folder in sorted(by_parent.get(parent_id, []), key=lambda f: (f.name, f.pk)):
             base = _safe_name(folder.name).strip(".") or "이름 없는 폴더"
             name, n = base, 2
@@ -494,38 +519,79 @@ class NoteService(Service):
         )
 
     def export_notes(self, user: User) -> DownloadResult:
-        """노트 전부를 폴더 구조 그대로 마크다운 zip 으로 내보낸다.
+        """노트·스냅샷·템플릿을 마크다운 zip 으로 내보낸다.
 
-        - 폴더는 zip 안의 폴더가 되고, 미분류 노트는 zip 맨 위에 둔다('미분류' 폴더는 만들지 않는다).
-          빈 폴더도 폴더로 남긴다. 휴지통 노트는 넣지 않는다.
-        - 본문의 노트 링크는 zip 안의 그 노트 파일을 가리키는 상대 경로로 바꾼다(Obsidian 등에서 그대로 열린다).
-          zip 에 없는 노트(휴지통·남의 노트)는 앱의 노트 화면 전체 주소(scheme://host/s/...)로 적는다.
-        - 업로드한 이미지는 저장소에서 받아 images/ 에 담고 본문이 그 파일을 가리키게 한다.
-          바깥 주소 이미지는 그대로 둔다.
+            노트/    폴더 구조 그대로. 미분류 노트는 노트/ 바로 아래('미분류' 폴더는 만들지 않는다). 빈 폴더도 남긴다.
+            스냅샷/  노트 자리를 따라간 폴더(노트/업무/회의.md → 스냅샷/업무/회의/) 안에 '만든 시각 설명.md'.
+            템플릿/  템플릿마다 '이름.md'.
+            images/  업로드한 이미지. 셋이 함께 쓴다.
+
+        휴지통 노트와 그 스냅샷은 넣지 않는다. 암호화된 것은 풀어서 넣는다.
+        본문의 노트 링크는 zip 안의 그 노트 파일을 가리키는 상대 경로로 바꾸고(Obsidian 등에서 그대로 열린다),
+        zip 에 없는 노트(휴지통·남의 노트)는 앱의 노트 화면 전체 주소(scheme://host/s/...)로 적는다.
+        업로드한 이미지는 저장소에서 받아 images/ 에 담고 본문이 그 파일을 가리키게 한다. 바깥 주소 이미지는 그대로 둔다.
         """
-        folders = FolderRepository(self.repository.db).list_by_user_id(user.pk)
-        dirs = _folder_dirs(folders, reserved_root={EXPORT_IMAGE_DIR})
+        db = self.repository.db
+        folders = FolderRepository(db).list_by_user_id(user.pk)
+        dirs = {pk: f"{EXPORT_NOTES_DIR}/{path}" for pk, path in _folder_dirs(folders).items()}
         notes = self.repository.list_for_export(user.pk)
+        snapshots = self.repository.list_snapshots_for_export([note.pk for note in notes])
+        templates = TemplateRepository(db).list_by_user_id(user.pk)
 
         # 링크를 상대 경로로 바꾸려면 모든 노트의 자리를 먼저 정해 둬야 한다.
         paths: dict[str, str] = {}
         used_names: dict[str, set] = {}
         for note in notes:
-            directory = dirs.get(note.folder_id, "")
+            directory = dirs.get(note.folder_id, EXPORT_NOTES_DIR)
             filename = self._unique_filename(note.title or "", "md", used_names.setdefault(directory, set()))
-            paths[note.hash_id] = f"{directory}/{filename}" if directory else filename
+            paths[note.hash_id] = f"{directory}/{filename}"
 
         buffer = io.BytesIO()
+        images: dict[str, str | None] = {}  # 업로드 이름 → zip 안 경로(못 받은 것은 None)
+
+        def write(path: str, when: datetime | None, text: str):
+            info = zipfile.ZipInfo(path, date_time=_zip_time(when))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            zf.writestr(info, text.encode("utf-8"))
+
         with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+            now = datetime.now(timezone.utc)
+            for top in (EXPORT_NOTES_DIR, EXPORT_SNAPSHOTS_DIR, EXPORT_TEMPLATES_DIR):
+                zf.writestr(zipfile.ZipInfo(f"{top}/", date_time=_zip_time(now)), "")
             for folder in folders:
                 zf.writestr(zipfile.ZipInfo(f"{dirs[folder.pk]}/", date_time=_zip_time(folder.updated_at)), "")
 
-            images: dict[str, str | None] = {}  # 업로드 이름 → zip 안 경로(못 받은 것은 None)
             for note in notes:
                 path = paths[note.hash_id]
-                info = zipfile.ZipInfo(path, date_time=_zip_time(note.updated_at))
-                info.compress_type = zipfile.ZIP_DEFLATED
-                zf.writestr(info, self._export_markdown(note, posixpath.dirname(path), paths, images, zf))
+                content = self._decrypt_content(user, note.content) if note.is_encrypted else note.content
+                write(path, note.updated_at, self._export_markdown(content, user, posixpath.dirname(path),
+                                                                   paths, images, zf))
+
+            notes_by_pk = {note.pk: note for note in notes}
+            used_snapshot_names: dict[str, set] = {}
+            for snapshot in snapshots:
+                note_path = paths[notes_by_pk[snapshot.note_id].hash_id]
+                directory = f"{EXPORT_SNAPSHOTS_DIR}/{note_path[len(EXPORT_NOTES_DIR) + 1:-len('.md')]}"
+                label, description = _snapshot_label(snapshot.description)
+                name = f"{_zip_datetime(snapshot.created_at):%Y-%m-%d %H.%M.%S}"
+                name = f"{name} {label}" if label else name
+                filename = self._unique_filename(name, "md", used_snapshot_names.setdefault(directory, set()))
+                header = _front_matter({
+                    "title": snapshot.title or "",
+                    "note": note_path,
+                    "created": f"{_zip_datetime(snapshot.created_at):%Y-%m-%d %H:%M:%S}",
+                    "description": description,
+                })
+                body = self._export_markdown(self._snapshot_content(user, snapshot), user, directory,
+                                             paths, images, zf)
+                write(f"{directory}/{filename}", snapshot.created_at, header + body)
+
+            used_template_names: set = set()
+            for template in templates:
+                filename = self._unique_filename(template.name or "", "md", used_template_names)
+                header = _front_matter({"title": template.title or "", "description": template.description or ""})
+                body = self._export_markdown(template.content or "", user, EXPORT_TEMPLATES_DIR, paths, images, zf)
+                write(f"{EXPORT_TEMPLATES_DIR}/{filename}", template.updated_at, header + body)
 
         return DownloadResult(
             content=buffer.getvalue(),
@@ -533,10 +599,16 @@ class NoteService(Service):
             filename=f"note.md-{datetime.now(KST):%Y%m%d}.zip",
         )
 
-    def _export_markdown(self, note, directory: str, paths: dict[str, str],
-                         images: dict[str, str | None], zf: zipfile.ZipFile) -> bytes:
-        content = self._decrypt_content(note.user, note.content) if note.is_encrypted else note.content
-        content = self._resolve_note_links(content or "", note.user)
+    def _snapshot_content(self, owner: User, snapshot: NoteSnapshot) -> str:
+        """스냅샷은 찍을 때의 저장본을 그대로 담아 두므로 그때 노트가 암호화돼 있었으면 암호문이다."""
+        try:
+            return self._decrypt_content(owner, snapshot.content or "")
+        except InvalidTag:
+            return snapshot.content or ""
+
+    def _export_markdown(self, content: str | None, owner: User, directory: str, paths: dict[str, str],
+                         images: dict[str, str | None], zf: zipfile.ZipFile) -> str:
+        content = self._resolve_note_links(content or "", owner)
 
         def link(match: re.Match) -> str:
             target = paths.get(match.group("hash"))
@@ -560,7 +632,7 @@ class NoteService(Service):
 
         content = NOTE_LINK_PATTERN.sub(link, content)
         content = IMG_SRC_PATTERN.sub(image, content)
-        return html_to_markdown(content).encode("utf-8")
+        return html_to_markdown(content)
 
     MEDIA_TYPES = {
         "md": "text/markdown",
