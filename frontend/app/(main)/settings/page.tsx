@@ -20,6 +20,7 @@ import {SettingsCard} from "@/components/ui/settings_card";
 import {UserAccount, Workspace, WorkspaceMember} from "@/types/workspace";
 import {LoadingPage} from "@/components/loading";
 import {exportAllNotes} from "@/lib/note";
+import {SettingsApiTokens} from "@/components/settings_api_tokens";
 
 type MemberTab = "users" | "workspaces";
 
@@ -316,6 +317,8 @@ export default function Page() {
                         </button>
                     </div>
                 </SettingsCard>
+
+                <SettingsApiTokens/>
 
                 {preference.isSuperuser &&
                     <SettingsCard title="구성원" icon={<FiLayers size={11}/>}>
