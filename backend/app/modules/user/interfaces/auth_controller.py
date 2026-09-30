@@ -49,9 +49,10 @@ def check_service(service: UserService = Depends(get_user_service)):
 def obtain_token(request: TokenObtainSchema,
                  response: Response,
                  service: UserService = Depends(get_user_service)):
-    token_info, user_hash = service.obtain_token(request)
+    token_info, user_hash, must_change_password = service.obtain_token(request)
     _set_refresh_token_cookie(response, token_info["refresh_token"])
-    return TokenResponse(access_token=token_info["access_token"], user_hash=user_hash)
+    return TokenResponse(access_token=token_info["access_token"], user_hash=user_hash,
+                         must_change_password=must_change_password)
 
 
 @router.post("/auth/refresh-token", response_model=TokenResponse)
@@ -60,9 +61,10 @@ def refresh_token(response: Response, refreshtoken: str | None = Cookie(default=
     if not refreshtoken or not verify_refresh_token(refreshtoken):
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
-    token_info, user_hash = service.refresh_token(refreshtoken)
+    token_info, user_hash, must_change_password = service.refresh_token(refreshtoken)
     _set_refresh_token_cookie(response, token_info["refresh_token"])
-    return TokenResponse(access_token=token_info["access_token"], user_hash=user_hash)
+    return TokenResponse(access_token=token_info["access_token"], user_hash=user_hash,
+                         must_change_password=must_change_password)
 
 
 @router.delete("/auth/token", response_model=MessageResponse)

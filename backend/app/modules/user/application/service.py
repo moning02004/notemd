@@ -1,4 +1,5 @@
 import hmac
+import secrets
 
 from fastapi import HTTPException
 from fastapi_clean_archi.core.auth import hash_password
@@ -9,6 +10,15 @@ from app.core.jwt_util import jwt_manager, verify_refresh_token
 from app.modules.user.domain.entity import UserEntity
 from app.modules.workspace.domain.entity import WorkspaceEntity
 from app.modules.workspace.infrastructure.repository import WorkspaceRepository
+
+
+# 헷갈리기 쉬운 글자(0/o, 1/l/i)를 뺀 소문자·숫자. 불러 주거나 옮겨 적기 쉽게 네 글자씩 끊는다.
+TEMPORARY_PASSWORD_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789"
+
+
+def _temporary_password() -> str:
+    """관리자가 일반 사용자를 추가할 때 주는 임시 비밀번호. 예: k7mq-3xpd-9wha (약 59비트)."""
+    return "-".join("".join(secrets.choice(TEMPORARY_PASSWORD_ALPHABET) for _ in range(4)) for _ in range(3))
 
 
 class UserService(Service):
@@ -30,7 +40,7 @@ class UserService(Service):
             raise self.NotFoundUser
 
         tokens = jwt_manager.create({"user_hash": user_entity.user_hash})
-        return tokens, user_entity.user_hash
+        return tokens, user_entity.user_hash, bool(user.must_change_password)
 
     def refresh_token(self, token):
         if not verify_refresh_token(token):
@@ -42,7 +52,7 @@ class UserService(Service):
             raise self.NotFoundUser
 
         new_tokens = jwt_manager.create({"user_hash": user.hash_id})
-        return new_tokens, user.hash_id
+        return new_tokens, user.hash_id, bool(user.must_change_password)
 
     def list_members(self):
         return self.repository.find_members()
@@ -51,7 +61,9 @@ class UserService(Service):
         """계정을 만든다. 두 갈래뿐이다.
 
         - 관리자 가입: 비밀번호를 정해 가입한다. 서버의 ADMIN_KEY 를 아는 사람만 된다.
-        - 일반 사용자 추가: 관리자가 로그인한 채 비밀번호 없이 만든다. 초기 비밀번호는 0000.
+        - 일반 사용자 추가: 관리자가 로그인한 채 비밀번호 없이 만든다. 무작위 임시 비밀번호를 만들어
+          (계정, 임시 비밀번호) 로 돌려준다. 처음 로그인하면 새 비밀번호로 바꿔야 한다(예전에는 모두 0000).
+        관리자 가입은 (계정, None) 을 돌려준다.
         예전에는 로그인하지 않은 요청을 막지 않아, 누구나 관리자나 일반 계정을 만들 수 있었다.
         """
         is_superuser = request.password1 is not None
@@ -68,9 +80,10 @@ class UserService(Service):
         if self.repository.find_user_by_username(request.username):
             raise HTTPException(status_code=400, detail="이미 존재하는 사용자 이름입니다.")
 
+        temporary_password = None
         if not is_superuser:
-            request.password1 = "0000"
-            request.password2 = request.password1
+            temporary_password = _temporary_password()
+            request.password1 = request.password2 = temporary_password
 
         if request.password1 != request.password2:
             raise HTTPException(status_code=400, detail="비밀번호가 일치하지 않습니다.")
@@ -78,8 +91,9 @@ class UserService(Service):
         user = self.repository.create_user(username=request.username,
                                            hashed_password=hash_password(request.password1),
                                            name=request.name,
-                                           is_superuser=is_superuser)
-        return user
+                                           is_superuser=is_superuser,
+                                           must_change_password=temporary_password is not None)
+        return user, temporary_password
 
     def exists_user(self):
         return self.repository.exists_user()

@@ -117,7 +117,9 @@ export default function Page() {
         if (!newName.trim() || !newUsername.trim()) return
 
         await apiRequest.post("/users", {body: JSON.stringify({username: newUsername, name: newName})})
-            .then((user: { user_hash: string, username: string, name: string, created_at: string }) => {
+            .then((user: {
+                user_hash: string, username: string, name: string, created_at: string, temporary_password: string
+            }) => {
                 const createdUser = {
                     userHash: user.user_hash,
                     username: user.username,
@@ -127,7 +129,21 @@ export default function Page() {
                 setUsers([...users, createdUser])
                 setNewName("")
                 setNewUsername("")
+                // 임시 비밀번호는 이 응답에서만 받는다. 창을 닫으면 다시 볼 수 없다.
+                setIssued({name: user.name, username: user.username, password: user.temporary_password})
             })
+            .catch(error => toast.error(error?.detail || "사용자를 추가하지 못했습니다."))
+    }
+
+    const [issued, setIssued] = useState<{ name: string, username: string, password: string } | null>(null)
+    const copyIssuedPassword = async () => {
+        if (!issued) return
+        try {
+            await navigator.clipboard.writeText(issued.password)
+            toast.success("임시 비밀번호를 복사했습니다.")
+        } catch {
+            toast.error("복사하지 못했습니다. 직접 골라 복사해주세요.")
+        }
     }
 
     const deleteWorkspace = async (workspace: Workspace) => {
@@ -362,7 +378,9 @@ export default function Page() {
                                             사용자 추가
                                         </button>
                                     </div>
-                                    <p className="text-[12px] text-subtle">초기 비밀번호는 0000 입니다.</p>
+                                    <p className="text-[12px] text-subtle">
+                                        추가하면 임시 비밀번호를 한 번 보여 드려요. 처음 로그인할 때 새 비밀번호로 바꾸게 돼요.
+                                    </p>
                                 </div>
                             </div>
                         ) : (
@@ -429,6 +447,37 @@ export default function Page() {
                     </SettingsCard>
                 }
             </div>
+
+            {/* 새 사용자의 임시 비밀번호. 이 창을 닫으면 다시 볼 수 없으니 바깥을 눌러도 닫히지 않게 한다. */}
+            <Modal isOpen={!!issued} closeOnBackdropClick={false} onClose={() => setIssued(null)}
+                   className="w-full max-w-sm rounded-2xl bg-surface p-6 shadow-2xl">
+                {issued && (
+                    <div className="flex flex-col gap-4">
+                        <div>
+                            <p className="text-[16px] font-medium text-foreground">{issued.name} 님을 추가했어요</p>
+                            <p className="text-[13px] text-muted mt-1">
+                                아이디 <span className="font-mono text-foreground">{issued.username}</span> 와 아래 임시 비밀번호를
+                                전해 주세요. 처음 로그인하면 새 비밀번호로 바꾸게 돼요.
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-2 rounded-lg border border-border-strong bg-background px-3 py-2.5">
+                            <span aria-label="임시 비밀번호"
+                                  className="flex-1 font-mono text-[17px] tracking-wide text-foreground select-all">
+                                {issued.password}
+                            </span>
+                            <button onClick={() => void copyIssuedPassword()}
+                                    className="shrink-0 px-2.5 py-1 rounded-md text-[12.5px] text-accent border border-border-strong hover:bg-accent-soft cursor-pointer">
+                                복사
+                            </button>
+                        </div>
+                        <p className="text-[12px] text-danger">이 창을 닫으면 임시 비밀번호를 다시 볼 수 없어요.</p>
+                        <button onClick={() => setIssued(null)}
+                                className="w-full py-2.5 rounded-lg bg-accent text-white text-[14px] font-medium cursor-pointer hover:bg-accent-hover">
+                            전달했어요, 닫기
+                        </button>
+                    </div>
+                )}
+            </Modal>
 
             {(preference.isSuperuser && openWorkspace) && (
                 <Modal isOpen={!!openWorkspace} variant="sheet"

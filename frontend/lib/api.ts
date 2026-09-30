@@ -97,7 +97,7 @@ async function runRefresh(): Promise<string | null> {
         if (!response.ok) return null
 
         const data = await response.json() as AuthTokenResponse
-        useAuthStore.getState().setAuth(data.access_token, data.user_hash)
+        useAuthStore.getState().setAuth(data.access_token, data.user_hash, data.must_change_password)
         return data.access_token
     } catch {
         return null

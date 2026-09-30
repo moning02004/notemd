@@ -31,6 +31,8 @@ class ExistsResponse(pydantic.BaseModel):
 class TokenResponse(pydantic.BaseModel):
     access_token: str
     user_hash: str
+    # 임시 비밀번호로 들어왔다. 앱은 새 비밀번호를 정하기 전까지 다른 화면을 보여주지 않는다.
+    must_change_password: bool = False
 
 
 class UserCreateResponse(pydantic.BaseModel):
@@ -51,6 +53,11 @@ class UserInfoResponse(pydantic.BaseModel):
     @field_serializer("created_at")
     def serialize_created_at(self, value: datetime, _info):
         return value.strftime("%Y-%m-%d %H:%M:%S")
+
+
+class UserCreatedResponse(UserInfoResponse):
+    # 관리자가 일반 사용자를 추가했을 때만 채운다. 이 응답에서 한 번만 보여주고 서버에는 해시만 남는다.
+    temporary_password: str | None = None
 
 
 class MessageResponse(pydantic.BaseModel):

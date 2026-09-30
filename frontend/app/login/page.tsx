@@ -47,7 +47,7 @@ export default function Page() {
 
             if (refreshRes.ok) {
                 const data: AuthTokenResponse = await refreshRes.json();
-                setAuth(data.access_token, data.user_hash);
+                setAuth(data.access_token, data.user_hash, data.must_change_password);
                 window.location.replace("/")
             } else {
                 Cookies.remove('auto-login')
@@ -90,7 +90,7 @@ export default function Page() {
         } else {
             Cookies.remove('auto-login')
         }
-        setAuth(data.access_token, data.user_hash)
+        setAuth(data.access_token, data.user_hash, data.must_change_password)
         window.location.href = "/"
     }
     const isEnterLogin = (e: React.KeyboardEvent<HTMLInputElement>) => {

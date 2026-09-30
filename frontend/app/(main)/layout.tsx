@@ -12,6 +12,7 @@ import {SearchModal} from "@/components/search_modal";
 import {MoveNotesSheet} from "@/components/folder/move_notes_sheet";
 import {useMoveSheetStore} from "@/store/moveSheet";
 import {AppShellSkeleton} from "@/components/skeleton";
+import {PasswordChangeRequired} from "@/components/password_change_required";
 
 const subscribeNothing = () => () => {}
 
@@ -22,6 +23,7 @@ export default function MainLayout({children}: {
     // 하이드레이션 중에는 false(서버와 같은 뼈대), 그 뒤 클라이언트에서는 true.
     const mounted = useSyncExternalStore(subscribeNothing, () => true, () => false)
     const token = useAuthStore(state => state.token)
+    const mustChangePassword = useAuthStore(state => state.mustChangePassword)
     const pathname = usePathname()
     const {isOpen: isSearchOpen, close: closeSearch} = useSearchModalStore()
     const moveSheet = useMoveSheetStore()
@@ -38,6 +40,9 @@ export default function MainLayout({children}: {
             </Providers>
         </div>
     )
+
+    // 임시 비밀번호로 들어왔으면 새 비밀번호를 정하기 전까지 앱을 열지 않는다.
+    if (mustChangePassword) return <Providers><PasswordChangeRequired/></Providers>
 
     const isSettingsPage = pathname.startsWith("/settings")
     const isTrashPage = pathname.startsWith("/deleted")

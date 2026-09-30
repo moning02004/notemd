@@ -137,11 +137,14 @@ def search_index(monkeypatch):
     return index
 
 
-MEMBER_PASSWORD = "0000"
+# 관리자가 추가한 일반 계정의 임시 비밀번호. 추가할 때 응답으로 한 번만 받으므로 여기 적어 둔다.
+# 테스트마다 새 DB 라 계정 이름이 겹쳐도 마지막에 만든 것이 맞다.
+MEMBER_PASSWORDS: dict[str, str] = {}
 
 
 def create_member(client, username="member", name="멤버"):
-    """관리자가 발급하는 일반 계정. 관리자(SIGNUP_PAYLOAD)가 먼저 가입해 있어야 한다. 비밀번호를 생략하면 초기값 0000 에 is_superuser=False 가 된다.
+    """관리자가 발급하는 일반 계정(is_superuser=False). 관리자(SIGNUP_PAYLOAD)가 먼저 가입해 있어야 한다.
+    임시 비밀번호로 시작한다.
 
     최고 관리자는 소유자가 아닌 노트도 열 수 있으므로(서비스의 is_superuser 분기),
     '남의 노트에 접근할 수 없다' 류의 테스트는 반드시 이 일반 계정으로 해야 한다.
@@ -150,6 +153,7 @@ def create_member(client, username="member", name="멤버"):
     admin = {"Authorization": f"Bearer {login(client).json()['access_token']}"}
     response = client.post("/users", headers=admin, json={"username": username, "name": name})
     assert response.status_code == 201, response.text
+    MEMBER_PASSWORDS[username] = response.json()["temporary_password"]
     return response.json()["user_hash"]
 
 
@@ -157,7 +161,7 @@ def login_member(client, username="member"):
     """이미 발급된 일반 계정으로 로그인해 인증 헤더를 만든다."""
     response = client.post("/auth/obtain-token", json={
         "username": username,
-        "password": MEMBER_PASSWORD,
+        "password": MEMBER_PASSWORDS[username],
     })
     assert response.status_code == 200, response.text
     return {"Authorization": f"Bearer {response.json()['access_token']}"}

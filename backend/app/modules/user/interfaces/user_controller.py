@@ -6,7 +6,7 @@ from app.core.dependancies import get_current_user, get_super_user, get_user_or_
 from app.modules.user.application.service import UserService
 from app.modules.user.infrastructure.models import User
 from app.modules.user.interfaces.dependencies import get_user_service
-from app.modules.user.interfaces.schemas import ChangePasswordRequest, SignupSchema, UserCreateResponse, \
+from app.modules.user.interfaces.schemas import ChangePasswordRequest, SignupSchema, UserCreatedResponse, \
     UserInfoResponse
 from app.modules.workspace.interfaces.schemas import WorkspaceInfoResponse
 
@@ -19,11 +19,13 @@ def list_members(service: UserService = Depends(get_user_service), _: User = Dep
     return user
 
 
-@router.post("", response_model=UserInfoResponse, status_code=201)
+@router.post("", response_model=UserCreatedResponse, status_code=201)
 def create_user(request: SignupSchema, service: UserService = Depends(get_user_service),
                 user: User = Depends(get_user_or_none)):
-    user = service.create_user(user, request)
-    return user
+    created, temporary_password = service.create_user(user, request)
+    response = UserCreatedResponse.model_validate(created)
+    response.temporary_password = temporary_password
+    return response
 
 
 @router.get("/{user_hash}", response_model=UserInfoResponse)

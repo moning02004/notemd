@@ -51,6 +51,7 @@ class UserRepository(Repository):
 
     def update_password(self, user: User, hashed_password: str):
         user.hashed_password = hashed_password
+        user.must_change_password = False
         self.db.commit()
         self.db.refresh(user)
         return user

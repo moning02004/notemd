@@ -1,5 +1,5 @@
 from fastapi_clean_archi.core.db.base import BaseModel
-from sqlalchemy import Column, String, Integer, Boolean, LargeBinary, ForeignKey
+from sqlalchemy import Column, String, Integer, Boolean, LargeBinary, ForeignKey, false
 from sqlalchemy.orm import relationship
 
 
@@ -9,6 +9,9 @@ class User(BaseModel):
     name = Column(String, nullable=False)
     is_superuser = Column(Boolean, default=False)
     is_approval = Column(Boolean, default=False)
+    # 관리자가 만든 계정은 임시 비밀번호로 시작한다. 처음 로그인하면 새 비밀번호로 바꾸기 전까지 앱을 쓸 수 없다.
+    # 이 칸이 생기기 전의 계정은 false 로 둔다(바꾸고 싶은 사람은 내 정보에서 바꾼다).
+    must_change_password = Column(Boolean, nullable=False, default=False, server_default=false())
 
     # relationships
     notes = relationship("Note", back_populates="user", cascade="all, delete-orphan")

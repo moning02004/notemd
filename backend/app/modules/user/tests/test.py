@@ -175,3 +175,44 @@ def test_added_user_is_not_a_superuser(client, auth_headers):
     member = member_headers(client)
     # 최고 관리자만 볼 수 있는 목록이다.
     assert client.get("/users", headers=member).status_code == 403
+
+
+def test_added_user_gets_a_one_time_temporary_password(client, auth_headers):
+    import re
+
+    response = client.post("/users", headers=auth_headers, json={"username": "newbie", "name": "새 사람"})
+    temporary = response.json()["temporary_password"]
+
+    assert response.status_code == 201
+    assert temporary != "0000"
+    assert re.fullmatch(r"[a-z2-9]{4}-[a-z2-9]{4}-[a-z2-9]{4}", temporary)
+    assert not set(temporary) & set("01oil")
+    # 다시 볼 수 없다: 목록·조회 응답에는 없다.
+    assert all("temporary_password" not in user for user in client.get("/users", headers=auth_headers).json())
+
+    # 두 번 만들면 다른 비밀번호다.
+    other = client.post("/users", headers=auth_headers, json={"username": "newbie2", "name": "또"}).json()
+    assert other["temporary_password"] != temporary
+
+
+def test_temporary_password_must_be_changed_on_first_login(client, auth_headers):
+    temporary = client.post("/users", headers=auth_headers,
+                            json={"username": "newbie", "name": "새 사람"}).json()["temporary_password"]
+
+    first = client.post("/auth/obtain-token", json={"username": "newbie", "password": temporary})
+    assert first.status_code == 200
+    assert first.json()["must_change_password"] is True
+
+    headers = {"Authorization": f"Bearer {first.json()['access_token']}"}
+    changed = client.patch("/users/change-password", headers=headers, json={
+        "current_password": temporary, "new_password1": "my-own-pass!", "new_password2": "my-own-pass!"})
+    assert changed.status_code == 204
+
+    again = client.post("/auth/obtain-token", json={"username": "newbie", "password": "my-own-pass!"})
+    assert again.json()["must_change_password"] is False
+
+
+def test_admin_signup_does_not_need_a_password_change(client):
+    signup(client)
+
+    assert login(client).json()["must_change_password"] is False
