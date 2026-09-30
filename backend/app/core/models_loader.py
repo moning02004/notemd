@@ -18,7 +18,7 @@ def load_all_models() -> None:
         try:
             importlib.import_module(name)
         except ModuleNotFoundError as err:
-            # models 모듈이 없는 모듈은 건너뛴다.
+            # models 모듈이 없는 모듈은 건너뛴다(infrastructure 패키지부터 없는 collab 같은 모듈 포함).
             # 그 안에서 난 import 실패까지 삼키면 원인을 못 찾으니 그대로 올린다.
-            if err.name != name:
+            if err.name not in (name, name.rsplit(".", 1)[0]):
                 raise

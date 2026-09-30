@@ -37,3 +37,15 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/notemd_frontend:latest
           build-args: |
             NEXT_PUBLIC_API_HOST=${{ secrets.NEXT_PUBLIC_API_HOST }}
+            NEXT_PUBLIC_COLLAB_URL=${{ secrets.NEXT_PUBLIC_COLLAB_URL }}
+
+      # 공동 편집 서버(4.0). 에디터 스키마(frontend/lib/editor_schema.ts)를 담아야 해서 저장소 루트에서 빌드한다.
+      - name: Build and push for collab
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./collab/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/notemd_collab:${{ github.event.release.tag_name }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/notemd_collab:latest

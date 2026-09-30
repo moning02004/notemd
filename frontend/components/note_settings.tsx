@@ -3,7 +3,7 @@ import {apiRequest} from "@/lib/api";
 import toast from "react-hot-toast";
 import NoteTagInput from "@/components/note_tag_input";
 import {TemplateManageModal} from "@/components/template/manage_modal";
-import {Dispatch, SetStateAction, useState} from "react";
+import {useState} from "react";
 import {FaHistory} from "react-icons/fa";
 import {NoteSnapshotManageModal} from "@/components/note_snapshot_manage_modal";
 import {ToggleSwitch} from "@/components/ui/toggle_switch";
@@ -34,8 +34,8 @@ interface SettingsProps {
     isOpenedSetting: boolean;
     editorWidth: number;
 
-    setTitle: Dispatch<SetStateAction<string>>;
-    setContent: Dispatch<SetStateAction<string>>;
+    setTitle: (value: string) => void;
+    setContent: (value: string) => void;
     currentTitle: string;
     currentContent: string;
     afterApplyTemplate: () => void

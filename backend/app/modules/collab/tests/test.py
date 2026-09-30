@@ -221,3 +221,111 @@ def test_toggling_encryption_re_encrypts_the_ydoc(client, auth_headers, db_sessi
     client.patch(f"/notes/{note}", headers=owner, json={"is_encrypted": False})
     db_session.refresh(stored)
     assert bytes(stored.ydoc) == b"plain-yjs"
+
+
+# ---------------------------------------------------------------- 에이전트 덧붙이기는 collab 을 거친다
+
+def agent_token(client, headers):
+    return client.post("/api-tokens", headers=headers, json={"name": "Claude", "scope": "write"}).json()["token"]
+
+
+@pytest.fixture()
+def fake_collab(client, monkeypatch):
+    """collab 서버 대신. flush 는 '열려 있던 문서' 를 저장하고, append 는 덧붙여 저장한다(진짜 collab 처럼 내부 API 로)."""
+    from app.modules.collab.application import client as collab_client
+    calls = []
+    open_docs = {}  # 누가 열어 두고 아직 저장되지 않은 본문
+
+    def post(note_hash, action, body=None):
+        calls.append(action)
+        state = internal(client, "GET", f"/notes/{note_hash}/state").json()
+        html = open_docs.pop(note_hash, state["html"])
+        if action == "flush":
+            if html != state["html"]:
+                store(client, note_hash, html=html, title=state["title"])
+        else:
+            store(client, note_hash, html=html + body["html"], title=state["title"])
+
+    monkeypatch.setattr(collab_client, "_post", post)
+    return {"calls": calls, "open_docs": open_docs}
+
+
+def test_agent_append_goes_through_collab(client, auth_headers, db_session, fake_collab):
+    owner = member_headers(client)
+    note = create_note(client, owner, title="일지", content="<p>월요일</p>")
+    # 누가 편집 중이라 collab 메모리에만 있는 내용(아직 저장 전)
+    fake_collab["open_docs"][note] = "<p>월요일</p><p>편집 중</p>"
+
+    response = client.post(f"/api/v1/notes/{note}/append", headers={"Authorization": f"Bearer {agent_token(client, owner)}"},
+                           json={"content": "화요일"})
+
+    assert response.status_code == 200, response.text
+    assert fake_collab["calls"] == ["flush", "append"]
+    # 편집 중이던 내용이 덮이지 않고, 그 뒤에 붙었다
+    assert client.get(f"/notes/{note}", headers=owner).json()["content"] == "<p>월요일</p><p>편집 중</p><p>화요일</p>"
+    # 덧붙이기 전 스냅샷에는 편집 중이던 내용까지 담긴다(먼저 저장하게 했으므로)
+    from app.modules.note.infrastructure.models import NoteSnapshot
+    snapshot = db_session.query(NoteSnapshot).order_by(NoteSnapshot.pk.desc()).first()
+    assert snapshot.content == "<p>월요일</p><p>편집 중</p>"
+
+
+def test_agent_append_falls_back_to_the_db_without_collab(client, auth_headers):
+    """collab 을 안 쓰거나 꺼져 있으면(conftest 기본) 예전처럼 DB 에 쓰고 낡은 Y 문서를 비운다."""
+    owner = member_headers(client)
+    note = create_note(client, owner, title="일지", content="<p>월요일</p>")
+    store(client, note, html="<p>월요일</p>")
+
+    response = client.post(f"/api/v1/notes/{note}/append", headers={"Authorization": f"Bearer {agent_token(client, owner)}"},
+                           json={"content": "화요일"})
+
+    assert response.status_code == 200, response.text
+    state = internal(client, "GET", f"/notes/{note}/state").json()
+    assert state["html"] == "<p>월요일</p><p>화요일</p>"
+    assert state["ydoc"] is None
+
+
+def test_agent_append_reports_a_collab_failure(client, auth_headers, monkeypatch):
+    """collab 에 닿았는데 저장을 못 했으면 DB 에 몰래 쓰지 않고 알린다(열린 문서를 덮지 않기 위해)."""
+    import httpx
+    from conftest import REAL_COLLAB_POST
+    from app.core.config import settings
+    from app.modules.collab.application import client as collab_client
+    owner = member_headers(client)
+    note = create_note(client, owner, title="일지", content="<p>월요일</p>")
+    sent = []
+
+    def collab_answers(url, **kwargs):
+        sent.append((url, kwargs["headers"]["X-Collab-Secret"]))
+        return httpx.Response(200 if url.endswith("/flush") else 502, text="store failed")
+
+    monkeypatch.setattr(collab_client, "_post", REAL_COLLAB_POST)
+    monkeypatch.setattr(collab_client.httpx, "post", collab_answers)
+    monkeypatch.setattr(settings, "COLLAB_INTERNAL_URL", "http://collab:1234")
+
+    response = client.post(f"/api/v1/notes/{note}/append", headers={"Authorization": f"Bearer {agent_token(client, owner)}"},
+                           json={"content": "화요일"})
+
+    assert response.status_code == 503
+    assert sent == [(f"http://collab:1234/internal/notes/{note}/flush", SECRET),
+                    (f"http://collab:1234/internal/notes/{note}/append", SECRET)]
+    assert client.get(f"/notes/{note}", headers=owner).json()["content"] == "<p>월요일</p>"
+
+
+def test_unreachable_collab_falls_back_to_the_db(client, auth_headers, monkeypatch):
+    import httpx
+    from conftest import REAL_COLLAB_POST
+    from app.modules.collab.application import client as collab_client
+    owner = member_headers(client)
+    note = create_note(client, owner, title="일지", content="<p>월요일</p>")
+
+    def refused(url, **kwargs):
+        raise httpx.ConnectError("refused")
+
+    monkeypatch.setattr(collab_client, "_post", REAL_COLLAB_POST)
+    monkeypatch.setattr(collab_client.httpx, "post", refused)
+
+    response = client.post(f"/api/v1/notes/{note}/append", headers={"Authorization": f"Bearer {agent_token(client, owner)}"},
+                           json={"content": "화요일"})
+
+    assert response.status_code == 200, response.text
+    assert client.get(f"/notes/{note}", headers=owner).json()["content"] == "<p>월요일</p><p>화요일</p>"

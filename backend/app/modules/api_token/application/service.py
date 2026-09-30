@@ -8,6 +8,8 @@ from fastapi_clean_archi.core.commons.service import Service
 
 from app.core.config import settings
 from app.core.markdown_renderer import html_to_markdown, markdown_to_html
+from app.modules.collab.application import client as collab_client
+from app.modules.collab.application.client import CollabUnavailable
 from app.modules.folder.application.service import FolderService
 from app.modules.folder.infrastructure.repository import FolderRepository
 from app.modules.note.application.service import NoteService, _absolute_note_links
@@ -76,14 +78,34 @@ class AgentNoteService:
         return note
 
     def append_to_note(self, user, token, note_hash: str, markdown: str):
-        note = self._get_own_note(user, note_hash)
+        self._get_own_note(user, note_hash)
         if not (markdown or "").strip():
             raise HTTPException(status_code=400, detail="덧붙일 내용을 입력해주세요.")
+        addition = markdown_to_html(markdown)
 
-        current = self._plain_content(note)
+        # 공동 편집(4.0): 누가 노트를 열어 두고 있어도 덮이지 않게 collab 에 맡긴다. 열린 문서의 저장은 몇 초씩
+        # 늦으므로, 스냅샷에 지금 모습이 담기도록 먼저 저장하게 한다. collab 을 안 쓰면 예전처럼 DB 에 쓴다.
+        try:
+            collab_client.flush(note_hash)
+            use_collab = True
+        except CollabUnavailable:
+            use_collab = False
+        # collab 은 다른 세션(내부 API)으로 저장했다. 이 세션이 들고 있는 노트는 낡았다.
+        self.db.expire_all()
+        note = self._get_own_note(user, note_hash)
+
         # 덧붙이기 전 모습을 남겨 둔다. 에이전트가 잘못 쓴 것을 스냅샷에서 되돌릴 수 있다.
         self.notes.repository.add_note_snapshot(description=f"API 토큰 '{token.name}' 덧붙이기 전", note=note)
-        addition = markdown_to_html(markdown)
+
+        if use_collab:
+            try:
+                collab_client.append(note_hash, addition)
+                self.db.expire_all()
+                return self.notes.repository.get_by_hash_id(hash_id=note_hash)
+            except CollabUnavailable:
+                pass
+
+        current = self._plain_content(note)
         content = addition if current.strip() in ("", "<p></p>") else current + addition
         self.notes.update_note(user, note_hash, NoteUpdateRequest(content=content))
         return self.notes.repository.get_by_hash_id(hash_id=note_hash)

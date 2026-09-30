@@ -1,5 +1,5 @@
 // components/template/manage_modal.tsx
-import {Dispatch, SetStateAction, useEffect, useState} from "react";
+import {useEffect, useState} from "react";
 import {FiTrash2} from "react-icons/fi";
 import toast from "react-hot-toast";
 import DOMPurify from "dompurify";
@@ -13,8 +13,8 @@ interface Props {
     currentTitle: string;
     currentContent: string;
 
-    setTitle: Dispatch<SetStateAction<string>>;
-    setContent: Dispatch<SetStateAction<string>>;
+    setTitle: (value: string) => void;
+    setContent: (value: string) => void;
     afterApplyTemplate: () => void;
 }
 

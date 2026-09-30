@@ -40,12 +40,16 @@ export function titleOf(doc: Y.Doc): string {
     return doc.getText(TITLE_FIELD).toString()
 }
 
-/** 마크다운에서 바꾼 HTML 을 문서 끝에 붙인다(에이전트 덧붙이기). */
+/** 마크다운에서 바꾼 HTML 을 문서 끝에 붙인다(에이전트 덧붙이기). 빈 노트면 빈 줄을 남기지 않고 바꾼다. */
 export function appendHtml(doc: Y.Doc, html: string): void {
     const addition = generateJSON(html, SCHEMA_EXTENSIONS)
     const fragment = doc.getXmlFragment(BODY_FIELD)
     const scratch = new Y.Doc()
     prosemirrorJSONToYXmlFragment(schema, addition, scratch.getXmlFragment(BODY_FIELD))
     const nodes = scratch.getXmlFragment(BODY_FIELD).toArray().map(node => (node as Y.XmlElement).clone())
-    doc.transact(() => fragment.insert(fragment.length, nodes))
+    const isEmpty = bodyHtml(doc) === "<p></p>"
+    doc.transact(() => {
+        if (isEmpty) fragment.delete(0, fragment.length)
+        fragment.insert(fragment.length, nodes)
+    })
 }

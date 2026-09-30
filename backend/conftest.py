@@ -6,7 +6,11 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.core.session import get_db
+from app.modules.collab.application import client as collab_client
 from main import app
+
+# 아래 no_collab_server 가 테스트마다 바꿔 끼우기 전의 진짜 함수. collab 에 보내는 요청 자체를 볼 테스트가 쓴다.
+REAL_COLLAB_POST = collab_client._post
 
 TEST_DATABASE_URL = "sqlite://"
 
@@ -57,6 +61,16 @@ def admin_key(monkeypatch):
     """관리자 가입은 서버의 ADMIN_KEY 를 알아야 된다. 테스트에서는 알려진 값으로 고정한다."""
     from app.core.config import settings
     monkeypatch.setattr(settings, "ADMIN_KEY", TEST_ADMIN_KEY)
+
+
+@pytest.fixture(autouse=True)
+def no_collab_server(monkeypatch):
+    """테스트는 collab 서버에 닿지 않는다(닿으면 개발 DB 를 보는 진짜 collab 이 답한다).
+    collab 을 거치는 동작을 볼 테스트는 이 함수를 다시 바꿔 끼운다."""
+    def unavailable(*args, **kwargs):
+        raise collab_client.CollabUnavailable()
+
+    monkeypatch.setattr(collab_client, "_post", unavailable)
 
 
 def signup(client, **overrides):
