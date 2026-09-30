@@ -1,5 +1,5 @@
 from fastapi_clean_archi.core.db.base import BaseModel
-from sqlalchemy import Column, String, Text, ForeignKey, Integer, Boolean, DateTime, Table
+from sqlalchemy import Column, String, Text, ForeignKey, Integer, Boolean, DateTime, LargeBinary, Table
 from sqlalchemy.orm import relationship
 
 workspace_note = Table(
@@ -31,6 +31,10 @@ class Note(BaseModel):
 
     password = Column(String, nullable=True)
     is_encrypted = Column(Boolean, default=False)
+
+    # 공동 편집(4.0)의 Y 문서(Yjs 상태). 비어 있으면 처음 열 때 content(HTML)로 만든다.
+    # content 는 검색·내보내기·API·백링크가 읽는 사본으로 계속 채운다. 암호화 노트는 이것도 암호화해 둔다.
+    ydoc = Column(LargeBinary, nullable=True)
 
     # 폴더가 없으면 '미분류'. 폴더를 지우면 SET NULL 로 비워져 복구 시 미분류로 돌아간다.
     folder_id = Column(Integer, ForeignKey("folder.id", ondelete="SET NULL"), nullable=True, index=True)

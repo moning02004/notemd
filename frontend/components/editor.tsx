@@ -20,6 +20,7 @@ import EditorLinkModal from "@/components/editor_link_modal";
 import {NotePickerModal} from "@/components/note/note_picker_modal";
 import {NotePeekPanel} from "@/components/note/note_peek_panel";
 import {NoteBacklinks} from "@/components/note/note_backlinks";
+import type {CollabSession} from "@/hooks/useCollabDocument";
 import EditorLinkBubble from "@/components/editor_link_bubble";
 import EditorImageBubble from "@/components/editor_image_bubble";
 import EditorTableBubble from "@/components/editor_table_bubble";
@@ -41,6 +42,8 @@ interface EditorProps {
     widthClass: string;
     /** 제목줄 바로 아래에 띄울 안내(휴지통에 있는 노트 등) */
     notice?: React.ReactNode;
+    /** 공동 편집(4.0). 있으면 본문을 Y 문서에서 받고 content 로 덮어쓰지 않는다. */
+    collab?: CollabSession | null;
 }
 
 export function MarkdownEditor({
@@ -54,7 +57,8 @@ export function MarkdownEditor({
                                    isReadonly,
                                    statusType,
                                    widthClass,
-                                   notice
+                                   notice,
+                                   collab = null,
                                }: EditorProps
 ) {
     const titleRef = React.useRef<HTMLInputElement>(null);
@@ -75,6 +79,7 @@ export function MarkdownEditor({
     const {token} = useAuthStore.getState();
 
     const editor = useEditorInstance({
+        collab,
         initialContent: content,
         setContent: setContent,
         onPickNote: () => setNotePickerOpen(true),
@@ -96,12 +101,14 @@ export function MarkdownEditor({
         }
     })
 
+    // 바깥에서 content 를 바꾸면(불러오기·템플릿 등) 에디터에 넣는다. 공동 편집에서는 본문의 주인이 Y 문서라
+    // 넣지 않는다. 서버 문서를 받기 전에 넣으면 받아 온 내용과 섞여 두 번 들어간다.
     useEffect(() => {
-        if (!editor) return
+        if (!editor || collab) return
         if (editor.getHTML() === content) return
 
         editor.commands.setContent(content)
-    }, [content, editor])
+    }, [content, editor, collab])
 
     useEffect(() => {
         editor?.setEditable(!isReadonly);

@@ -12,24 +12,35 @@ const sameList = (a: readonly string[], b: readonly string[]) =>
 
 const workspaceIds = (draft: NoteDraft) => draft.workspaces.map(workspace => workspace.hashId)
 
-/** 마지막으로 저장한 스냅샷과 비교해 바뀐 필드만 서버 형식으로 만든다. */
-function buildPatch(saved: NoteDraft, next: NoteDraft): NotePatchData {
+/**
+ * 마지막으로 저장한 스냅샷과 비교해 바뀐 필드만 서버 형식으로 만든다.
+ *
+ * collab: 공동 편집 중이면 본문·제목은 collab 서버가 저장하므로 넣지 않는다. 설정(공개·태그·폴더 등)만 보낸다.
+ * 예전처럼 본문을 같이 보내면 낡은 HTML 로 collab 의 저장을 덮어쓴다.
+ */
+function buildPatch(saved: NoteDraft, next: NoteDraft, collab = false): NotePatchData {
     const patch: NotePatchData = {}
 
-    if (saved.title !== next.title) patch.title = next.title
-    if (saved.content !== next.content) patch.content = next.content
+    if (!collab && saved.title !== next.title) patch.title = next.title
+    if (!collab && saved.content !== next.content) patch.content = next.content
     if (saved.isPublic !== next.isPublic) patch.is_public = next.isPublic
     if (saved.isProtected !== next.isProtected) patch.is_protected = next.isProtected
     // if (saved.isEncrypted !== next.isEncrypted) patch.is_encrypted = next.isEncrypted
     if (saved.password !== next.password) patch.password = next.password
-    patch.is_first_edit = Cookies.get("is_first_edit") === "1"
-    patch.is_encrypted = next.isEncrypted
+    if (collab) {
+        // 늘 싣던 두 값을 바뀌었을 때만 싣는다. 그래야 타이핑만으로는 PATCH 가 나가지 않는다.
+        if (saved.isEncrypted !== next.isEncrypted) patch.is_encrypted = next.isEncrypted
+    } else {
+        patch.is_first_edit = Cookies.get("is_first_edit") === "1"
+        patch.is_encrypted = next.isEncrypted
+    }
 
     if (!sameList(saved.tags, next.tags)) patch.tags = next.tags
     if (!sameList(workspaceIds(saved), workspaceIds(next))) patch.workspaces = workspaceIds(next)
 
     // 암호화 설정이 바뀌면 서버가 본문을 다시 처리해야 하므로 content를 함께 보낸다.
-    if ("is_encrypted" in patch || "password" in patch) patch.content = next.content
+    // (공동 편집 중에는 서버가 저장된 본문으로 처리한다.)
+    if (!collab && ("is_encrypted" in patch || "password" in patch)) patch.content = next.content
 
     return patch
 }
@@ -42,9 +53,11 @@ type Options = {
     setStatusType: Dispatch<SetStateAction<string>>
     /** 다른 곳에서 먼저 저장해 저장이 거절됐을 때 한 번 부른다(무엇이 바뀌었는지 보여 주는 곳). */
     onConflict?: () => void
+    /** 공동 편집 중: 본문·제목은 collab 서버가 저장한다. 설정만 PATCH 한다. */
+    collab?: boolean
 }
 
-export function useNoteAutosave({noteId, draft, enabled, setStatusType, onConflict}: Options) {
+export function useNoteAutosave({noteId, draft, enabled, setStatusType, onConflict, collab = false}: Options) {
     const patchNote = useNotePatch(setStatusType)
     const patchNoteRef = useRef(patchNote)
     const onConflictRef = useRef(onConflict)
@@ -124,7 +137,7 @@ export function useNoteAutosave({noteId, draft, enabled, setStatusType, onConfli
         // 충돌을 정리하기 전에는 저장하지 않는다. 고친 내용은 화면(draft)에 그대로 남아 있다.
         if (conflictRef.current) return
 
-        const patch = buildPatch(savedRef.current, draft)
+        const patch = buildPatch(savedRef.current, draft, collab)
         if (Object.keys(patch).length === 0) return
 
         // 본문/제목은 타이핑이 멈춘 뒤에, 설정 변경은 즉시 저장한다.
@@ -144,7 +157,7 @@ export function useNoteAutosave({noteId, draft, enabled, setStatusType, onConfli
             clearTimeout(timer)
             if (timerRef.current === timer) timerRef.current = null
         }
-    }, [draft, enabled, noteId, setStatusType, send, markConflict])
+    }, [draft, enabled, noteId, setStatusType, send, markConflict, collab])
 
     /*
      * 본문의 노트 링크나 사이드바로 다른 노트에 옮겨 가면 위 effect 의 정리 함수가
@@ -178,22 +191,22 @@ export function useNoteAutosave({noteId, draft, enabled, setStatusType, onConfli
             timerRef.current = null
         }
 
-        const patch = buildPatch(savedRef.current ?? draft, draft)
+        const patch = buildPatch(savedRef.current ?? draft, draft, collab)
         pendingRef.current = null
         savedRef.current = draft
         setStatusType("loading")
         send(noteId, patch)
         return true
-    }, [draft, enabled, noteId, setStatusType, send])
+    }, [draft, enabled, noteId, setStatusType, send, collab])
 
     /** 충돌했을 때 다른 곳의 저장을 덮어쓰고 지금 화면의 내용으로 저장한다. */
     const overwrite = useCallback(() => {
         if (!enabled || !draft) return
-        const patch = {...buildPatch(savedRef.current ?? draft, draft), title: draft.title, content: draft.content}
+        const patch = {...buildPatch(savedRef.current ?? draft, draft, collab), title: draft.title, content: draft.content}
         savedRef.current = draft
         setStatusType("loading")
         send(noteId, patch, true)
-    }, [draft, enabled, noteId, setStatusType, send])
+    }, [draft, enabled, noteId, setStatusType, send, collab])
 
     /** 합칠 때 기준본. 마지막으로 서버와 맞춰 둔 제목·본문이다. */
     const synced = useCallback(() => {

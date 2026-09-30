@@ -1,0 +1,7 @@
+# collab/Dockerfile 은 저장소 루트를 빌드 컨텍스트로 쓴다. 필요한 것만 보낸다.
+*
+!collab/package.json
+!collab/package-lock.json
+!collab/src
+collab/src/editor_schema.ts
+!frontend/lib/editor_schema.ts
