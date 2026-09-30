@@ -157,7 +157,9 @@ export default function Page() {
                     )}
 
                     <label htmlFor="auto_login" className="flex items-center gap-2 text-[12.5px] text-muted font-semibold cursor-pointer mb-5 select-none">
-                        <input ref={authLoginRef} type="checkbox" id="auto_login" className="w-4 h-4 accent-accent cursor-pointer"/>
+                        {/* 셀프호스팅으로 혼자·소수가 쓰는 앱이라 켜 둔 채로 시작한다. 공용 기기에서는 끄고 들어오면 된다. */}
+                        <input ref={authLoginRef} type="checkbox" id="auto_login" defaultChecked
+                               className="w-4 h-4 accent-accent cursor-pointer"/>
                         로그인 상태 유지
                     </label>
 
