@@ -216,3 +216,33 @@ def test_admin_signup_does_not_need_a_password_change(client):
     signup(client)
 
     assert login(client).json()["must_change_password"] is False
+
+
+def test_user_info_needs_login(client, auth_headers):
+    user_hash = login(client).json()["user_hash"]
+
+    assert client.get(f"/users/{user_hash}").status_code == 401
+    assert client.get(f"/users/{user_hash}/workspaces").status_code == 401
+
+
+def test_member_sees_only_their_own_info(client, auth_headers):
+    admin_hash = login(client).json()["user_hash"]
+    member = member_headers(client)
+    member_hash = client.get("/users", headers=auth_headers).json()[0]["user_hash"]
+
+    assert client.get(f"/users/{member_hash}", headers=member).status_code == 200
+    assert client.get(f"/users/{member_hash}/workspaces", headers=member).status_code == 200
+    # 남의 계정은 있는지조차 알리지 않는다(없는 계정과 같은 404).
+    assert client.get(f"/users/{admin_hash}", headers=member).status_code == 404
+    assert client.get(f"/users/{admin_hash}/workspaces", headers=member).status_code == 404
+    assert client.get("/users/no-such-user", headers=member).status_code == 404
+
+
+def test_admin_can_see_members_info(client, auth_headers):
+    member_headers(client)
+    member_hash = client.get("/users", headers=auth_headers).json()[0]["user_hash"]
+
+    response = client.get(f"/users/{member_hash}", headers=auth_headers)
+
+    assert response.status_code == 200
+    assert response.json()["username"] == "member"

@@ -29,14 +29,16 @@ def create_user(request: SignupSchema, service: UserService = Depends(get_user_s
 
 
 @router.get("/{user_hash}", response_model=UserInfoResponse)
-def get_user_info(user_hash: str, service: UserService = Depends(get_user_service)):
-    user = service.get_user_info(user_hash)
+def get_user_info(user_hash: str, viewer: User = Depends(get_current_user),
+                  service: UserService = Depends(get_user_service)):
+    user = service.get_user_info(viewer, user_hash)
     return user
 
 
 @router.get("/{user_hash}/workspaces", response_model=List[WorkspaceInfoResponse])
-def get_workspaces_for_user(user_hash: str, service: UserService = Depends(get_user_service)):
-    workspaces = service.get_workspaces_for_user(user_hash)
+def get_workspaces_for_user(user_hash: str, viewer: User = Depends(get_current_user),
+                            service: UserService = Depends(get_user_service)):
+    workspaces = service.get_workspaces_for_user(viewer, user_hash)
     return workspaces
 
 

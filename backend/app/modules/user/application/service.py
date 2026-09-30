@@ -111,16 +111,21 @@ class UserService(Service):
         hashed_password = hash_password(new_password1)
         self.repository.update_password(user=user, hashed_password=hashed_password)
 
-    def get_user_info(self, user_hash: str):
+    def _get_visible_user(self, viewer, user_hash: str):
+        """본인이나 관리자만 계정 정보를 볼 수 있다. 예전에는 로그인하지 않아도 hash 만 알면 아이디·이름·
+        참여 워크스페이스가 보였다. 남의 계정은 있는지조차 알리지 않도록 없는 계정과 같이 404 로 답한다."""
+        if viewer.hash_id != user_hash and not viewer.is_superuser:
+            raise self.NotFoundUser
         user = self.repository.get_user_by_user_hash(user_hash)
         if not user:
             raise self.NotFoundUser
         return user
 
-    def get_workspaces_for_user(self, user_hash: str):
-        user = self.repository.get_user_by_user_hash(user_hash)
-        if not user:
-            raise self.NotFoundUser
+    def get_user_info(self, viewer, user_hash: str):
+        return self._get_visible_user(viewer, user_hash)
+
+    def get_workspaces_for_user(self, viewer, user_hash: str):
+        user = self._get_visible_user(viewer, user_hash)
 
         if user.is_superuser:
             workspaces = WorkspaceRepository(self.repository.db).find_workspace_by_user_hash(user_hash)
