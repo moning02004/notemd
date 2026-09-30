@@ -48,26 +48,31 @@ class ApiCaller:
     token: ApiToken
 
 
-def api_token_caller(scope: str):
-    """/api/v1 의 인증. 'Authorization: Bearer mdn_…' 개인 API 토큰만 받는다(로그인 토큰은 받지 않는다).
+def authenticate(authorization: str | None, db, scope: str) -> ApiCaller:
+    """'Authorization: Bearer mdn_…' 개인 API 토큰을 확인한다. /api/v1 과 MCP 서버가 함께 쓴다.
 
-    scope 가 read 이면 read_write 토큰만 통과한다. 쓰기는 모든 토큰이 할 수 있다.
+    로그인 토큰은 받지 않는다. scope 가 read 이면 read_write 토큰만 통과한다(쓰기는 모든 토큰).
     """
+    raw = (authorization or "").removeprefix("Bearer ").strip()
+    if not raw.startswith(TOKEN_PREFIX):
+        raise HTTPException(status_code=401, detail="API 토큰이 필요합니다. 'Authorization: Bearer mdn_…'")
+
+    repository = ApiTokenRepository(db)
+    token = repository.find_by_token_hash(hash_token(raw))
+    if token is None:
+        raise HTTPException(status_code=401, detail="API 토큰이 올바르지 않거나 폐기되었습니다.")
+    if scope == "read" and token.scope != "read_write":
+        raise HTTPException(status_code=403, detail="이 토큰에는 읽기 권한이 없습니다.")
+
+    _check_rate_limit(token.hash_id)
+    repository.touch(token)
+    return ApiCaller(user=token.user, token=token)
+
+
+def api_token_caller(scope: str):
+    """/api/v1 의 인증 의존성."""
 
     def dependency(request: Request, db=Depends(get_db)) -> ApiCaller:
-        raw = request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
-        if not raw.startswith(TOKEN_PREFIX):
-            raise HTTPException(status_code=401, detail="API 토큰이 필요합니다. 'Authorization: Bearer mdn_…'")
-
-        repository = ApiTokenRepository(db)
-        token = repository.find_by_token_hash(hash_token(raw))
-        if token is None:
-            raise HTTPException(status_code=401, detail="API 토큰이 올바르지 않거나 폐기되었습니다.")
-        if scope == "read" and token.scope != "read_write":
-            raise HTTPException(status_code=403, detail="이 토큰에는 읽기 권한이 없습니다.")
-
-        _check_rate_limit(token.hash_id)
-        repository.touch(token)
-        return ApiCaller(user=token.user, token=token)
+        return authenticate(request.headers.get("Authorization"), db, scope)
 
     return dependency

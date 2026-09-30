@@ -76,12 +76,18 @@ export function SettingsApiTokens() {
         }
     }
 
-    const example = issued && [
-        `curl -X POST ${API_HOST ?? ""}/api/v1/notes \\`,
-        `  -H "Authorization: Bearer ${issued.token}" \\`,
-        `  -H "Content-Type: application/json" \\`,
-        `  -d '{"title": "오늘 회의", "folder": "업무/회의", "content": "- [ ] 할 일"}'`,
-    ].join("\n")
+    // 에이전트에 붙이는 두 가지 방법. MCP 를 지원하는 에이전트(Claude Code 등)는 명령 한 줄이면 도구로 쓴다.
+    const examples = issued ? {
+        mcp: `claude mcp add --transport http notemd ${API_HOST ?? ""}/mcp \\\n  --header "Authorization: Bearer ${issued.token}"`,
+        curl: [
+            `curl -X POST ${API_HOST ?? ""}/api/v1/notes \\`,
+            `  -H "Authorization: Bearer ${issued.token}" \\`,
+            `  -H "Content-Type: application/json" \\`,
+            `  -d '{"title": "오늘 회의", "folder": "업무/회의", "content": "- [ ] 할 일"}'`,
+        ].join("\n"),
+    } : null
+    const [exampleKind, setExampleKind] = useState<"mcp" | "curl">("mcp")
+    const example = examples?.[exampleKind] ?? ""
 
     return (
         <SettingsCard title="API 토큰" icon={<FiCode size={11}/>}>
@@ -157,7 +163,16 @@ export function SettingsApiTokens() {
                         </div>
                         <div>
                             <div className="flex items-center justify-between mb-1">
-                                <p className="text-[12px] text-muted">예: 노트 만들기</p>
+                                <div className="flex gap-1" role="tablist" aria-label="연결 방법">
+                                    {([["mcp", "에이전트(MCP)에 연결"], ["curl", "API 로 노트 만들기"]] as const).map(([kind, label]) => (
+                                        <button key={kind} role="tab" aria-selected={exampleKind === kind}
+                                                onClick={() => setExampleKind(kind)}
+                                                className={`px-2 py-0.5 rounded text-[12px] cursor-pointer ${exampleKind === kind
+                                                    ? "bg-accent-soft text-accent" : "text-muted hover:text-foreground"}`}>
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
                                 <button onClick={() => example && void copy(example, "예시")}
                                         className="text-[12px] text-accent cursor-pointer hover:underline">예시 복사</button>
                             </div>

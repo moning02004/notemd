@@ -18,6 +18,8 @@ flower==2.0.1
 redis==5.0.1
 meilisearch
 markdown
+# AI 에이전트용 MCP 서버(/mcp). 2.x 는 1.x 와 API 가 달라(FastMCP → MCPServer) 테스트한 판에 묶어 둔다.
+mcp==2.2.0
 pymupdf
 markdownify
 weasyprint

@@ -10,6 +10,7 @@ from starlette.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.middlewares.token import AuthTokenMiddleware
 from app.modules.api_token.interfaces.controller import router as api_token_router, v1_router as agent_v1_router
+from app.modules.api_token.interfaces.mcp import mcp_app, mcp_server
 from app.modules.folder.interfaces.controller import router as folder_router
 from app.modules.note.interfaces.controller import router as note_router
 from app.modules.preference.interfaces.controller import router as preference_router
@@ -31,7 +32,9 @@ for module in modules:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     SearchRepository().ensure_index()
-    yield
+    # MCP 서버(/mcp)의 요청 처리기는 앱이 떠 있는 동안 돌아야 한다.
+    async with mcp_server.session_manager.run():
+        yield
 
 
 auth_header = APIKeyHeader(name="Authorization", auto_error=False)
@@ -70,3 +73,6 @@ routers = [
 ]
 for router in routers:
     app.include_router(router)
+
+# AI 에이전트용 MCP 서버(/mcp). 개인 API 토큰으로 확인한다. 미들웨어 없는 라우트 하나라 그대로 옮겨 붙인다.
+app.router.routes.extend(mcp_app.routes)
