@@ -246,3 +246,43 @@ def test_admin_can_see_members_info(client, auth_headers):
 
     assert response.status_code == 200
     assert response.json()["username"] == "member"
+
+
+def _member_hash(client, auth_headers, username="member"):
+    return next(user["user_hash"] for user in client.get("/users", headers=auth_headers).json()
+                if user["username"] == username)
+
+
+def test_admin_resets_a_members_password(client, auth_headers):
+    from conftest import MEMBER_PASSWORDS
+
+    member_headers(client)
+    old = MEMBER_PASSWORDS["member"]
+    response = client.post(f"/users/{_member_hash(client, auth_headers)}/reset-password", headers=auth_headers)
+
+    assert response.status_code == 200
+    temporary = response.json()["temporary_password"]
+    assert temporary != old
+    # 예전 비밀번호로는 못 들어가고, 새 임시 비밀번호로 들어가면 바꾸라고 한다.
+    assert client.post("/auth/obtain-token", json={"username": "member", "password": old}).status_code == 404
+    login_response = client.post("/auth/obtain-token", json={"username": "member", "password": temporary})
+    assert login_response.status_code == 200
+    assert login_response.json()["must_change_password"] is True
+
+
+def test_only_admin_can_reset_passwords(client, auth_headers):
+    member = member_headers(client)
+    member_headers(client, username="other", name="다른 멤버")
+    other_hash = _member_hash(client, auth_headers, "other")
+
+    assert client.post(f"/users/{other_hash}/reset-password", headers=member).status_code == 403
+    assert client.post(f"/users/{other_hash}/reset-password").status_code == 401
+
+
+def test_admin_password_is_not_reset_this_way(client, auth_headers):
+    admin_hash = login(client).json()["user_hash"]
+
+    response = client.post(f"/users/{admin_hash}/reset-password", headers=auth_headers)
+
+    assert response.status_code == 400
+    assert client.post("/users/no-such-user/reset-password", headers=auth_headers).status_code == 404

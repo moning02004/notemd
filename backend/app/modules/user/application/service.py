@@ -95,6 +95,23 @@ class UserService(Service):
                                            must_change_password=temporary_password is not None)
         return user, temporary_password
 
+    def reset_password(self, user_hash: str) -> str:
+        """비밀번호를 잊은 멤버에게 새 임시 비밀번호를 준다(관리자만, 컨트롤러가 확인한다).
+
+        사용자를 추가할 때와 같다: 한 번만 돌려주고, 다음 로그인 때 새 비밀번호로 바꾸게 한다.
+        관리자 계정은 초기화하지 않는다. 관리자 비밀번호는 본인이 내 정보에서 바꾼다.
+        """
+        user = self.repository.get_user_by_user_hash(user_hash)
+        if not user:
+            raise self.NotFoundUser
+        if user.is_superuser:
+            raise HTTPException(status_code=400, detail="관리자 계정의 비밀번호는 초기화할 수 없습니다.")
+
+        temporary_password = _temporary_password()
+        self.repository.update_password(user=user, hashed_password=hash_password(temporary_password),
+                                        must_change_password=True)
+        return temporary_password
+
     def exists_user(self):
         return self.repository.exists_user()
 

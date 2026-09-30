@@ -49,9 +49,10 @@ class UserRepository(Repository):
     def exists_user(self) -> bool:
         return self.db.query(self.DB_MODEL).first() is not None
 
-    def update_password(self, user: User, hashed_password: str):
+    def update_password(self, user: User, hashed_password: str, must_change_password: bool = False):
+        """본인이 바꾸면 표시를 지우고, 관리자가 임시 비밀번호로 초기화하면 다시 바꾸게 표시한다."""
         user.hashed_password = hashed_password
-        user.must_change_password = False
+        user.must_change_password = must_change_password
         self.db.commit()
         self.db.refresh(user)
         return user

@@ -60,5 +60,10 @@ class UserCreatedResponse(UserInfoResponse):
     temporary_password: str | None = None
 
 
+class PasswordResetResponse(pydantic.BaseModel):
+    # 이 응답에서 한 번만 보여준다.
+    temporary_password: str
+
+
 class MessageResponse(pydantic.BaseModel):
     message: str
