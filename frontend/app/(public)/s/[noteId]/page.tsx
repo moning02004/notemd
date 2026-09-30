@@ -1,6 +1,6 @@
 "use client"
 
-import {useCallback, useEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 import {notFound, useParams, useRouter} from "next/navigation";
 import toast from "react-hot-toast";
 
@@ -12,9 +12,6 @@ import {useAuthStore} from "@/store/auth";
 import {useNoteDetail} from "@/hooks/useNoteDetail";
 import {useNoteAutosave} from "@/hooks/useNoteAutoSave";
 import {apiRequest} from "@/lib/api";
-import {NoteDetailResponse} from "@/types/note";
-import {NoteConflictModal, NoteMergeView} from "@/components/note/note_conflict_modal";
-import {applyMerge, ConflictChoice, diff3, htmlBlocks, mergeTitle} from "@/lib/note_merge";
 import {FiAlertTriangle, FiTrash2} from "react-icons/fi";
 import {useCollabDocument} from "@/hooks/useCollabDocument";
 import {COLLAB_URL} from "@/constants/api";
@@ -77,65 +74,24 @@ export default function Page() {
         setTitleState(value)
     }, [collab, setTitleState])
 
-    // 저장이 거절되면(다른 곳에서 먼저 저장) 곧바로 최신본과 견준다. 견주는 함수는 아래에서 만들어진다.
-    const compareRef = useRef<() => void>(() => {})
-    const {saveNow, conflict, overwrite, synced, acceptMerged} = useNoteAutosave({
+    /*
+     * 본문을 통째로 바꾼다(스냅샷 복원·템플릿 적용). 공동 편집에서는 에디터가 content 를 따르지 않으므로
+     * 에디터에 직접 넣도록 건넨다. 그러면 Y 문서를 거쳐 같이 보는 모두에게 바뀐다.
+     */
+    const [replacement, setReplacement] = useState<{ content: string, seq: number } | null>(null)
+    const setContentState = setters.setContent
+    const replaceContent = useCallback((value: string) => {
+        if (collab) setReplacement(previous => ({content: value, seq: (previous?.seq ?? 0) + 1}))
+        else setContentState(value)
+    }, [collab, setContentState])
+
+    const {saveNow, conflict, overwrite} = useNoteAutosave({
         noteId,
         draft,
         enabled: isSavable,
         collab: Boolean(collab),
         setStatusType,
-        onConflict: () => compareRef.current(),
     })
-
-    /*
-     * 다른 곳에서 먼저 저장했을 때. 서버의 최신본을 받아 기준본(마지막으로 맞춰 둔 내용)·내 내용과 견줘
-     * 무엇이 바뀌었는지 보여 주고 합친다. 다른 곳에서 본문·제목을 바꾸지 않았으면(설정만 바꿈 등)
-     * 물을 것이 없으니 조용히 이어서 저장한다.
-     */
-    const [merge, setMerge] = useState<(NoteMergeView & { latest: NoteDetailResponse }) | null>(null)
-    const [mergeOpen, setMergeOpen] = useState(false)
-
-    const compareWithLatest = useCallback(async () => {
-        const base = synced()
-        if (!draft || !base) return
-        let latest: NoteDetailResponse
-        try {
-            latest = await apiRequest.get<NoteDetailResponse>(`/notes/${noteId}`)
-        } catch {
-            toast.error("최신 내용을 불러오지 못했습니다.")
-            return
-        }
-        const theirs = {title: latest.title ?? "", content: latest.content ?? ""}
-        const chunks = diff3(htmlBlocks(base.content), htmlBlocks(draft.content), htmlBlocks(theirs.content))
-        const title = {...mergeTitle(base.title, draft.title, theirs.title), base: base.title, mine: draft.title, theirs: theirs.title}
-
-        const theirsTouched = title.theirsChanged || chunks.some(chunk => chunk.kind === "theirs" || chunk.kind === "conflict")
-        if (!theirsTouched) {
-            acceptMerged(latest.updated_at, theirs, {title: draft.title, content: draft.content})
-            return
-        }
-        setMerge({chunks, title, latest})
-        setMergeOpen(true)
-    }, [draft, noteId, synced, acceptMerged])
-    useEffect(() => {
-        compareRef.current = () => void compareWithLatest()
-    }, [compareWithLatest])
-
-    // 충돌이 풀리면(불러오기·덮어쓰기·합치기) 창도 거둔다.
-    const showMerge = conflict && mergeOpen
-
-    const applyMerged = (choices: Record<number, ConflictChoice>, titleChoice: ConflictChoice) => {
-        if (!merge) return
-        const theirs = {title: merge.latest.title ?? "", content: merge.latest.content ?? ""}
-        const title = merge.title.conflict ? (titleChoice === "theirs" ? theirs.title : merge.title.mine) : merge.title.title
-        const content = applyMerge(merge.chunks, choices).join("")
-        acceptMerged(merge.latest.updated_at, theirs, {title, content})
-        // 화면에 합친 내용을 넣는다. 에디터는 content 가 바뀌면 따라 그린다.
-        setters.setTitle(title)
-        setters.setContent(content)
-        toast.success("다른 곳의 변경을 합쳤습니다.")
-    }
 
     // ⌘/Ctrl + S 로 지금 저장. 브라우저의 '페이지 저장' 대화상자를 대신 가로챈다.
     // 편집할 수 있는 노트에서만 막는다 — 읽기 전용 화면에서는 브라우저 기본 동작이 맞다.
@@ -231,9 +187,12 @@ export default function Page() {
     )
 
     /*
-     * 다른 탭·기기·공유 멤버가 먼저 저장했다. 자동 저장은 멈춰 있고, 고친 내용은 화면에 남아 있다.
-     * 어느 쪽을 남길지 사람이 고른다. 불러오면 이 화면에서 고친 내용은 사라진다.
+     * 다른 탭·기기·공유 멤버가 먼저 저장했다(공동 편집을 쓰지 않을 때만 생긴다). 자동 저장은 멈춰 있고,
+     * 고친 내용은 화면에 남아 있다. 어느 쪽을 남길지 사람이 고른다.
      */
+    const keepMine = () => {
+        if (confirm("다른 곳에서 저장한 내용을 지우고 이 화면의 내용으로 저장합니다. 계속하시겠습니까?")) overwrite()
+    }
     const conflictNotice = conflict && (
         <div role="alert"
              className="flex flex-wrap items-center gap-2 border-b border-border bg-chip-open-soft px-4 py-2.5 text-[13px] text-chip-open">
@@ -241,11 +200,14 @@ export default function Page() {
             <span className="flex-1 min-w-48">
                 다른 곳에서 이 노트를 먼저 저장해 자동 저장을 멈췄습니다.
             </span>
-            {/* 창을 닫은 뒤에도 이어서 쓸 수 있으므로, 열 때마다 지금 내용으로 다시 견준다. */}
-            <button onClick={() => void compareWithLatest()}
+            <button onClick={reload}
                     className="shrink-0 rounded-md bg-surface px-3 py-1 font-medium text-foreground
                                border border-border cursor-pointer hover:bg-background">
-                바뀐 내용 보기
+                최신 내용 불러오기
+            </button>
+            <button onClick={keepMine}
+                    className="shrink-0 rounded-md px-3 py-1 font-medium cursor-pointer hover:underline">
+                내 내용으로 덮어쓰기
             </button>
         </div>
     )
@@ -263,6 +225,7 @@ export default function Page() {
                                 content={draft.content}
                                 setTitle={setTitle}
                                 setContent={setters.setContent}
+                                replacement={replacement}
                                 statusType={collab ? collabStatusType : statusType}
                                 widthClass={EDITOR_WIDTH_CLASSES[editorWidth] ?? EDITOR_WIDTH_CLASSES[DEFAULT_EDITOR_WIDTH]}
                                 notice={deletedNotice || conflictNotice}
@@ -276,16 +239,11 @@ export default function Page() {
                 />
             }
 
-            <NoteConflictModal open={showMerge}
-                               merge={merge}
-                               onClose={() => setMergeOpen(false)}
-                               onApply={applyMerged}
-                               onUseTheirs={reload}
-                               onKeepMine={overwrite}/>
-
             {token && !isDeleted &&
                 <NoteSettings noteId={noteId}
                               {...setters}
+                              setTitle={setTitle}
+                              setContent={replaceContent}
                               isPublic={draft.isPublic}
                               isProtected={draft.isProtected}
                               isEncrypted={draft.isEncrypted}

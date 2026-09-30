@@ -9,7 +9,9 @@
  */
 import {Server} from "@hocuspocus/server"
 import * as Y from "yjs"
-import {bodyHtml, fillFromHtml, titleOf} from "./convert"
+import type {IncomingMessage, ServerResponse} from "node:http"
+import {timingSafeEqual} from "node:crypto"
+import {appendHtml, bodyHtml, fillFromHtml, titleOf} from "./convert"
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://backend:8000"
 const COLLAB_SECRET = process.env.COLLAB_SECRET ?? ""
@@ -41,12 +43,86 @@ function parseToken(token: string): { jwt?: string | null, password?: string | n
     }
 }
 
+/** 문서마다 마지막 저장이 실패했는지. Hocuspocus 는 저장 실패를 삼키므로(문서를 메모리에 남긴다) 따로 적어 둔다. */
+const storeErrors = new Map<string, string | null>()
+
+function isBackend(request: IncomingMessage): boolean {
+    const given = Buffer.from(String(request.headers["x-collab-secret"] ?? ""))
+    const expected = Buffer.from(COLLAB_SECRET)
+    return given.length === expected.length && timingSafeEqual(given, expected)
+}
+
+async function readJson(request: IncomingMessage): Promise<Record<string, unknown>> {
+    const chunks: Buffer[] = []
+    for await (const chunk of request) chunks.push(chunk as Buffer)
+    try {
+        return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}")
+    } catch {
+        return {}
+    }
+}
+
+function reply(response: ServerResponse, status: number, body: unknown) {
+    response.writeHead(status, {"Content-Type": "application/json"})
+    response.end(JSON.stringify(body))
+}
+
+/*
+ * 백엔드만 부르는 HTTP 입구. 본문을 collab 밖에서 바꿔야 할 때(에이전트 덧붙이기) 쓴다.
+ * 누가 노트를 열어 두고 있어도 그 문서에 바로 섞이고, 아무도 안 열었으면 불러와서 고치고 저장한 뒤 내린다.
+ *   POST /internal/notes/:id/flush   열려 있으면 지금 내용을 곧바로 저장한다(덧붙이기 전 스냅샷을 위해).
+ *   POST /internal/notes/:id/append  {"html": "..."} 문서 끝에 붙이고 저장까지 마친 뒤 답한다.
+ */
+async function handleInternal(request: IncomingMessage, response: ServerResponse): Promise<boolean> {
+    const match = /^\/internal\/notes\/([^/]+)\/(flush|append)$/.exec(request.url ?? "")
+    if (!match) return false
+
+    if (request.method !== "POST" || !isBackend(request)) {
+        reply(response, 403, {detail: "forbidden"})
+    } else {
+        const [, rawName, action] = match
+        const [status, body] = await runInternal(decodeURIComponent(rawName), action, request)
+        reply(response, status, body)
+    }
+    return true
+}
+
+async function runInternal(name: string, action: string, request: IncomingMessage): Promise<[number, unknown]> {
+    try {
+        if (action === "flush") {
+            if (!server.hocuspocus.documents.has(name)) return [200, {flushed: false}]
+            const connection = await server.hocuspocus.openDirectConnection(name)
+            storeErrors.delete(name)
+            // 기본값(unloadImmediately: true)이어야 디바운스 없이 곧바로 저장한다. 문서는 연결된 사람이 없을 때만 내린다.
+            await connection.disconnect()
+        } else {
+            const {html} = await readJson(request)
+            if (typeof html !== "string" || !html.trim()) return [400, {detail: "html 이 필요합니다."}]
+            const connection = await server.hocuspocus.openDirectConnection(name)
+            await connection.transact(document => appendHtml(document, html))
+            storeErrors.delete(name)
+            // 끊을 때 곧바로 저장한다(디바운스 없이). 저장이 끝나야 돌아온다.
+            await connection.disconnect()
+        }
+        const error = storeErrors.get(name)
+        return error ? [502, {detail: error}] : [200, {ok: true}]
+    } catch (error) {
+        return [502, {detail: error instanceof Error ? error.message : String(error)}]
+    }
+}
+
 const server = new Server<Context>({
     name: "notemd-collab",
     port: PORT,
     // 편집이 멈추고 2초 뒤에 저장하되, 계속 쓰고 있어도 10초에 한 번은 저장한다.
     debounce: 2000,
     maxDebounce: 10000,
+
+    /** 백엔드의 내부 요청을 받는다. 그 밖의 HTTP 요청은 Hocuspocus 기본 응답으로 넘긴다. */
+    async onRequest({request, response}) {
+        // 답을 이미 보냈으면 reject 로 뒤따르는 기본 응답을 막는다(Hocuspocus 의 약속).
+        if (await handleInternal(request, response)) return Promise.reject()
+    },
 
     /** 이 연결이 노트를 편집할 수 있는지, 볼 수만 있는지 백엔드에 묻는다. 볼 수 없으면 연결을 거절한다. */
     async onAuthenticate({token, documentName, connectionConfig}) {
@@ -85,8 +161,10 @@ const server = new Server<Context>({
         })
         // 409: 그사이 휴지통으로 옮겨졌다. 저장하지 않는 것이 맞다.
         if (!response.ok && response.status !== 409) {
+            storeErrors.set(documentName, `노트를 저장하지 못했습니다(${response.status}).`)
             throw new Error(`노트를 저장하지 못했습니다(${response.status}).`)
         }
+        storeErrors.set(documentName, response.ok ? null : "휴지통에 있는 노트입니다.")
     },
 })
 

@@ -44,6 +44,8 @@ interface EditorProps {
     notice?: React.ReactNode;
     /** 공동 편집(4.0). 있으면 본문을 Y 문서에서 받고 content 로 덮어쓰지 않는다. */
     collab?: CollabSession | null;
+    /** 공동 편집에서 본문을 통째로 바꿀 때(스냅샷 복원·템플릿). seq 가 바뀔 때마다 한 번 넣는다. */
+    replacement?: { content: string, seq: number } | null;
 }
 
 export function MarkdownEditor({
@@ -59,6 +61,7 @@ export function MarkdownEditor({
                                    widthClass,
                                    notice,
                                    collab = null,
+                                   replacement = null,
                                }: EditorProps
 ) {
     const titleRef = React.useRef<HTMLInputElement>(null);
@@ -109,6 +112,15 @@ export function MarkdownEditor({
 
         editor.commands.setContent(content)
     }, [content, editor, collab])
+
+    // 공동 편집에서 본문을 통째로 바꾸기. 에디터에 넣으면 Y 문서를 거쳐 모두에게 간다.
+    // 에디터를 새로 그렸을 때 지난 요청을 다시 넣지 않도록, 처음 본 seq 는 넣은 것으로 친다.
+    const appliedSeq = React.useRef(replacement?.seq)
+    useEffect(() => {
+        if (!editor || !collab || !replacement || replacement.seq === appliedSeq.current) return
+        appliedSeq.current = replacement.seq
+        editor.commands.setContent(replacement.content)
+    }, [replacement, editor, collab])
 
     useEffect(() => {
         editor?.setEditable(!isReadonly);

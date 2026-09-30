@@ -22,6 +22,7 @@ from markdown import markdown
 from app.core.config import settings
 from app.core.markdown_renderer import html_to_markdown, markdown_to_html
 from app.core.pdf_renderer import render_note_pdf, upload_name
+from app.modules.collab.application import client as collab_client
 from app.modules.note.application.note_links import (NOTE_LINK_PATTERN, NoteLinkState, note_link_hashes,
                                                      rewrite_note_links)
 from app.modules.note.domain.entity import NoteEntity, DownloadResult, build_note_document
@@ -735,6 +736,13 @@ class NoteService(Service):
         return snapshots
 
     def create_note_snapshot(self, user_id, note_hash, description) -> NoteSnapshot:
+        self._get_owned_note(user_id, note_hash)
+        # 공동 편집 중이면 저장이 몇 초씩 늦다. 스냅샷에 지금 화면이 담기도록 먼저 저장하게 한다(안 되면 저장본으로).
+        try:
+            collab_client.flush(note_hash)
+            self.repository.db.expire_all()
+        except (collab_client.CollabUnavailable, HTTPException):
+            pass
         note = self._get_owned_note(user_id, note_hash)
         snapshot = self.repository.add_note_snapshot(description=description, note=note)
         return snapshot

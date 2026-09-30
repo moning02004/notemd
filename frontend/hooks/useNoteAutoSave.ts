@@ -51,16 +51,13 @@ type Options = {
     /** 소유자이고 노트 로딩이 끝났을 때만 true */
     enabled: boolean
     setStatusType: Dispatch<SetStateAction<string>>
-    /** 다른 곳에서 먼저 저장해 저장이 거절됐을 때 한 번 부른다(무엇이 바뀌었는지 보여 주는 곳). */
-    onConflict?: () => void
     /** 공동 편집 중: 본문·제목은 collab 서버가 저장한다. 설정만 PATCH 한다. */
     collab?: boolean
 }
 
-export function useNoteAutosave({noteId, draft, enabled, setStatusType, onConflict, collab = false}: Options) {
+export function useNoteAutosave({noteId, draft, enabled, setStatusType, collab = false}: Options) {
     const patchNote = useNotePatch(setStatusType)
     const patchNoteRef = useRef(patchNote)
-    const onConflictRef = useRef(onConflict)
     const savedRef = useRef<NoteDraft | null>(null)
     // 대기 중인 디바운스. 수동 저장이 이걸 앞당겨 실행한다.
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -68,16 +65,14 @@ export function useNoteAutosave({noteId, draft, enabled, setStatusType, onConfli
     const pendingRef = useRef<{ noteId: string, patch: NotePatchData } | null>(null)
 
     /*
-     * 다른 곳의 저장을 덮어쓰지 않기.
+     * 다른 곳의 저장을 덮어쓰지 않기(공동 편집을 쓰지 않을 때의 안전장치. 공동 편집 중에는 본문을 보내지 않는다).
      *
      * 서버에서 마지막으로 받은 버전(updated_at)을 들고 있다가 본문·제목을 저장할 때 함께 보낸다.
      * 그 사이 다른 탭·기기·공유 멤버가 저장했으면 서버가 거절(409)하고, 그때부터 자동 저장을 멈춘 채
-     * 다른 곳에서 무엇이 바뀌었는지 보여 주고 합칠지(acceptMerged), 최신 내용을 불러올지, 덮어쓸지 사람에게 묻는다.
+     * 최신 내용을 불러올지, 덮어쓸지 사람에게 묻는다.
      * 자기 저장끼리 버전이 엇갈리지 않도록 저장은 한 번에 하나씩, 앞 저장의 응답을 받은 뒤에 보낸다.
      */
     const baseRef = useRef<{ noteId: string, updatedAt: string | null } | null>(null)
-    // 마지막으로 서버와 맞춰 둔 제목·본문. 합칠 때 기준본이 된다(무엇이 어디서 바뀌었는지 가르는 기준).
-    const syncedRef = useRef<{ noteId: string, title: string, content: string } | null>(null)
     const queueRef = useRef<Promise<void>>(Promise.resolve())
     const conflictRef = useRef(false)
     const [conflict, setConflict] = useState(false)
@@ -99,22 +94,15 @@ export function useNoteAutosave({noteId, draft, enabled, setStatusType, onConfli
             const result = await patchNoteRef.current(targetNoteId, body)
             if ("updatedAt" in result) {
                 if (baseRef.current?.noteId === targetNoteId) baseRef.current.updatedAt = result.updatedAt
-                const synced = syncedRef.current
-                if (synced?.noteId === targetNoteId) {
-                    if (patch.title !== undefined) synced.title = patch.title ?? ""
-                    if (patch.content !== undefined) synced.content = patch.content
-                }
                 if (force) markConflict(false)
             } else if (result.conflict && baseRef.current?.noteId === targetNoteId && !conflictRef.current) {
                 markConflict(true)
-                onConflictRef.current?.()
             }
         })
     }, [markConflict])
 
     useEffect(() => {
         patchNoteRef.current = patchNote
-        onConflictRef.current = onConflict
     })
 
     useEffect(() => {
@@ -125,7 +113,6 @@ export function useNoteAutosave({noteId, draft, enabled, setStatusType, onConfli
         if (!savedRef.current || savedRef.current.updatedAt !== draft.updatedAt) {
             savedRef.current = draft
             baseRef.current = {noteId, updatedAt: draft.updatedAt}
-            syncedRef.current = {noteId, title: draft.title, content: draft.content}
             if (conflictRef.current) {
                 markConflict(false)
                 // 충돌 때 켜 둔 경고 표시를 거둔다. 방금 불러온 내용은 서버와 같다.
@@ -208,37 +195,5 @@ export function useNoteAutosave({noteId, draft, enabled, setStatusType, onConfli
         send(noteId, patch, true)
     }, [draft, enabled, noteId, setStatusType, send, collab])
 
-    /** 합칠 때 기준본. 마지막으로 서버와 맞춰 둔 제목·본문이다. */
-    const synced = useCallback(() => {
-        const value = syncedRef.current
-        return value?.noteId === noteId ? {title: value.title, content: value.content} : null
-    }, [noteId])
-
-    /**
-     * 다른 곳의 저장(theirs, 버전 updatedAt)과 합친 결과(merged)를 받아들이고 저장한다.
-     * 화면에 합친 내용을 넣는 것은 호출부가 한다. 합친 결과가 지금 화면과 같아도(내 것만 고른 경우)
-     * 서버에는 아직 다른 곳 내용이 있으므로 다른 곳 내용과 견주어 바뀐 것을 보낸다.
-     */
-    const acceptMerged = useCallback((updatedAt: string | null,
-                                      theirs: { title: string, content: string },
-                                      merged: { title: string, content: string }) => {
-        if (!enabled || !draft) return
-        baseRef.current = {noteId, updatedAt}
-        syncedRef.current = {noteId, ...theirs}
-        markConflict(false)
-
-        const patch: NotePatchData = {}
-        if (merged.title !== theirs.title) patch.title = merged.title
-        if (merged.content !== theirs.content) patch.content = merged.content
-        savedRef.current = {...draft, title: merged.title, content: merged.content}
-
-        if (Object.keys(patch).length === 0) {
-            setStatusType("complete")
-            return
-        }
-        setStatusType("loading")
-        send(noteId, patch)
-    }, [draft, enabled, noteId, setStatusType, send, markConflict])
-
-    return {saveNow, conflict, overwrite, synced, acceptMerged}
+    return {saveNow, conflict, overwrite}
 }

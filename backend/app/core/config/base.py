@@ -26,6 +26,8 @@ class BaseAbstractSettings(AbstractSettings):
 
     # 공동 편집 서버(collab)와 백엔드가 내부 API 로 서로를 확인하는 비밀. 비어 있으면 내부 API 를 막는다.
     COLLAB_SECRET: str = os.environ.get("COLLAB_SECRET", "")
+    # 백엔드가 collab 을 부를 주소(에이전트 덧붙이기를 열려 있는 문서에 넣을 때). COLLAB_SECRET 이 있을 때만 쓴다.
+    COLLAB_INTERNAL_URL: str = os.environ.get("COLLAB_INTERNAL_URL", "http://collab:1234").rstrip("/")
 
     # 관리자 가입에 필요한 키. 비어 있으면 관리자 가입을 받지 않는다.
     ADMIN_KEY: str = os.environ.get("ADMIN_KEY", "")
