@@ -24,6 +24,9 @@ class BaseAbstractSettings(AbstractSettings):
     # 프론트엔드 주소(scheme://host). 내보낸 파일 속 노트 링크를 이 주소로 적는다.
     FRONTEND_URL: str = os.environ.get("FRONTEND_URL", "").rstrip("/")
 
+    # 공동 편집 서버(collab)와 백엔드가 내부 API 로 서로를 확인하는 비밀. 비어 있으면 내부 API 를 막는다.
+    COLLAB_SECRET: str = os.environ.get("COLLAB_SECRET", "")
+
     # 관리자 가입에 필요한 키. 비어 있으면 관리자 가입을 받지 않는다.
     ADMIN_KEY: str = os.environ.get("ADMIN_KEY", "")
 

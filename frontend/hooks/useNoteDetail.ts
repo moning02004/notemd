@@ -97,12 +97,18 @@ export function useNoteDetail(noteId: string) {
 
     const reload = useCallback(() => setVersion(value => value + 1), [])
 
+    // 비밀번호를 맞혀 연 노트의 비밀번호. 공동 편집 서버에 붙을 때 함께 보낸다(서버가 다시 확인한다).
+    const [unlockedWith, setUnlockedWith] = useState<{ noteId: string, password: string } | null>(null)
+
     const unlock = useCallback(async (password: string) => {
         const response = await apiRequest.post<NoteDetailResponse>(`/notes/${noteId}`, {
             body: JSON.stringify({password}),
         })
+        setUnlockedWith({noteId, password})
         applyNote(response)
     }, [noteId, applyNote])
+
+    const password = unlockedWith?.noteId === noteId ? unlockedWith.password : null
 
     // 필드별 setState 팩토리. NoteSettings/MarkdownEditor가 기대하는
     // Dispatch<SetStateAction<T>> 시그니처를 그대로 유지한다.
@@ -129,5 +135,5 @@ export function useNoteDetail(noteId: string) {
         setFolder: makeSetter("folder"),
     }), [makeSetter])
 
-    return {state, draft, isOwner, isEditable, isDeleted, setters, unlock, reload}
+    return {state, draft, isOwner, isEditable, isDeleted, setters, unlock, reload, password}
 }

@@ -1,5 +1,4 @@
 import {Editor} from "@tiptap/core";
-import {TableCell, TableHeader} from "@tiptap/extension-table";
 import {CellSelection, isInTable, selectedRect} from "@tiptap/pm/tables";
 import {openLineAt} from "@/lib/open_line";
 
@@ -11,8 +10,9 @@ import {openLineAt} from "@/lib/open_line";
  * 터치 화면에서는 경계를 끌 수 없어(열 조절 플러그인이 마우스만 듣는다) 말풍선 버튼이 그 길이다.
  */
 
-/** 열이 이보다 좁아지지 않는다. 경계를 끌 때의 하한이고, CSS 의 칸 최소 폭(+ 안쪽 여백)과 맞춘다. */
-export const TABLE_CELL_MIN_WIDTH = 64
+// 칸 속성(배경색·세로 정렬)과 열 최소 폭은 스키마라 lib/editor_schema.ts 에 있다(공동 편집 서버와 함께 쓴다).
+export {CustomTableCell, CustomTableHeader, TABLE_CELL_MIN_WIDTH} from "@/lib/editor_schema"
+import {TABLE_CELL_MIN_WIDTH} from "@/lib/editor_schema"
 
 /** 말풍선의 넓게·좁게 한 번에 움직이는 폭 */
 export const TABLE_WIDTH_STEP = 32
@@ -34,56 +34,6 @@ export const TABLE_CELL_COLORS = [
 
 export type TableCellAlign = "left" | "center" | "right"
 export type TableCellVerticalAlign = "top" | "middle" | "bottom"
-
-/*
- * 칸 속성: 배경색과 세로 정렬.
- *
- * 배경색은 style 만 두면 다시 읽을 때 브라우저가 rgb(...) 로 바꿔 돌려주어 고른 색을 알아볼 수 없다.
- * 고른 값은 data- 속성으로도 적어 두고 그쪽을 먼저 읽는다.
- *
- * 값을 style 에 그대로 옮겨 적으므로 색 모양(#hex, rgb/rgba, 이름 있는 색)만 받는다. 붙여 넣은 HTML 의
- * data-background-color="red; position: fixed; …" 같은 값이 다른 CSS 를 끼워 넣지 못하게 한다.
- * 공개 노트는 다른 사람에게도 보인다. 읽을 때와 쓸 때 모두 거른다.
- */
-const SAFE_COLOR = /^(#[0-9a-f]{3,8}|rgba?\(\s*[\d.]+%?(\s*,\s*[\d.]+%?){2,3}\s*\)|[a-z]+)$/i
-
-const safeColor = (value: unknown) =>
-    typeof value === "string" && SAFE_COLOR.test(value.trim()) ? value.trim() : null
-
-const safeVerticalAlign = (value: unknown) => (value === "middle" || value === "bottom" ? value : null)
-
-const cellAttributes = {
-    backgroundColor: {
-        default: null,
-        parseHTML: (element: HTMLElement) =>
-            safeColor(element.getAttribute("data-background-color")) ?? safeColor(element.style.backgroundColor),
-        renderHTML: (attributes: { backgroundColor?: string | null }) => {
-            const color = safeColor(attributes.backgroundColor)
-            return color ? {"data-background-color": color, style: `background-color: ${color}`} : {}
-        },
-    },
-    // 세로 정렬. 정하지 않으면 위(CSS 기본)다. 가로 정렬(align)은 표 확장이 이미 갖고 있다.
-    verticalAlign: {
-        default: null,
-        parseHTML: (element: HTMLElement) => safeVerticalAlign(element.style.verticalAlign),
-        renderHTML: (attributes: { verticalAlign?: string | null }) => {
-            const value = safeVerticalAlign(attributes.verticalAlign)
-            return value ? {style: `vertical-align: ${value}`} : {}
-        },
-    },
-}
-
-export const CustomTableCell = TableCell.extend({
-    addAttributes() {
-        return {...this.parent?.(), ...cellAttributes}
-    },
-})
-
-export const CustomTableHeader = TableHeader.extend({
-    addAttributes() {
-        return {...this.parent?.(), ...cellAttributes}
-    },
-})
 
 /** 커서(또는 고른 칸들)가 놓인 열 범위의 지금 폭. 정해 둔 폭이 없으면 화면에 그려진 폭을 잰다. */
 function currentColumnWidths(editor: Editor, left: number, right: number): number[] {

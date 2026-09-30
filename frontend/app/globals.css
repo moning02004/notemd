@@ -169,6 +169,41 @@ html, body {
 }
 
 /*
+ * 공동 편집에서 다른 사람의 커서(4.0). 글자 사이에 끼는 세로줄 하나와, 그 위에 뜨는 이름표.
+ * 줄 높이를 바꾸지 않도록 둘 다 폭 없이(세로줄은 테두리로, 이름표는 absolute 로) 그린다.
+ * 색은 사람마다 정해진 값을 에디터가 style 로 넣는다.
+ */
+.collaboration-carets__caret {
+    position: relative;
+    margin-left: -1px;
+    margin-right: -1px;
+    border-left: 1px solid;
+    border-right: 1px solid;
+    word-break: normal;
+    pointer-events: none;
+}
+
+.collaboration-carets__label {
+    position: absolute;
+    top: -1.35em;
+    left: -1px;
+    padding: 1px 5px;
+    border-radius: 4px 4px 4px 0;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    font-style: normal;
+    line-height: 1.4;
+    white-space: nowrap;
+    user-select: none;
+}
+
+/* 남이 고른 영역. 에디터가 사람 색에 투명도를 붙여 배경으로 넣는다. */
+.collaboration-carets__selection {
+    border-radius: 2px;
+}
+
+/*
  * 스켈레톤. 멈춰 있는 회색 덩어리보다 빛이 한 번씩 훑고 지나가는 쪽이
  * 무언가 오고 있다는 느낌을 줘서 기다리는 시간이 짧게 느껴진다.
  */

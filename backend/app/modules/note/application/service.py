@@ -405,6 +405,16 @@ class NoteService(Service):
             # repository.update_note 가 함께 커밋한다.
             self.repository.replace_note_links(note, linked_hashes)
 
+        # 공동 편집(Y 문서)과 맞추기. 본문을 collab 밖에서 바꾸면(API·에이전트·가져오기) 저장된 Y 문서가 낡으므로
+        # 비워서 다음에 열 때 새 HTML 로 다시 만들게 한다. 암호화를 켜고 끄면 Y 문서도 함께 암호화하거나 푼다.
+        if request.content and note.ydoc:
+            note.ydoc = None
+        elif request.is_encrypted is not None and bool(request.is_encrypted) != bool(note.is_encrypted) and note.ydoc:
+            raw = bytes(note.ydoc)
+            plain = base64.b64decode(self._decrypt_content(owner, raw.decode("ascii"))) if note.is_encrypted else raw
+            note.ydoc = (self._encrypt_content(owner, base64.b64encode(plain).decode("ascii")).encode("ascii")
+                         if request.is_encrypted else plain)
+
         note = self.repository.update_note(user_id=user.pk,
                                            note=note,
                                            title=request.title,
@@ -435,6 +445,48 @@ class NoteService(Service):
         # 이미 커밋했고 이 뒤로는 커밋하지 않으므로 DB 에는 남지 않는다.
         note.content = self._resolve_note_links(note.content, user)
         return note
+
+    # ---------------------------------------------------------------- 공동 편집(collab 서버의 내부 API)
+
+    def load_collab_state(self, note_hash: str) -> dict:
+        """collab 이 문서를 열 때: 저장된 Y 문서(없으면 None)와, 그것이 없을 때 Y 문서를 만들 HTML·제목.
+
+        암호화 노트는 여기서 풀어 준다. collab 은 키를 모르고, 받은 것을 메모리에만 둔다.
+        """
+        note = self.repository.get_by_hash_id(hash_id=note_hash)
+        if note is None:
+            raise self.NotFoundNote
+        owner = note.user
+        content = self._decrypt_content(owner, note.content) if note.is_encrypted else note.content
+        ydoc = None
+        if note.ydoc:
+            raw = bytes(note.ydoc)
+            ydoc = base64.b64decode(self._decrypt_content(owner, raw.decode("ascii"))) if note.is_encrypted else raw
+        return {"ydoc": ydoc, "html": content or "<p></p>", "title": note.title or ""}
+
+    def store_collab_state(self, note_hash: str, ydoc: bytes, html: str, title: str) -> None:
+        """collab 이 편집을 저장할 때: Y 문서와, 그것으로 만든 HTML 사본·제목.
+
+        HTML 은 앱의 저장과 같은 길을 한 번 거친다(노트 링크 제목 채우기, 백링크 표, 암호화, 검색 색인).
+        검색·내보내기·API·백링크는 계속 이 HTML 을 읽는다.
+        """
+        note = self.repository.get_by_hash_id(hash_id=note_hash)
+        if note is None:
+            raise self.NotFoundNote
+        if note.deleted_at is not None:
+            raise HTTPException(status_code=409, detail="휴지통에 있는 노트는 복원한 뒤에 고칠 수 있습니다.")
+
+        owner = note.user
+        content = self._store_note_links(html or "<p></p>")
+        self.repository.replace_note_links(note, note_link_hashes(content))
+        if note.is_encrypted:
+            note.ydoc = self._encrypt_content(owner, base64.b64encode(ydoc).decode("ascii")).encode("ascii")
+            content = self._encrypt_content(owner, content)
+        else:
+            note.ydoc = ydoc
+        # repository.update_note 가 함께 커밋한다(updated_at 도 여기서 바뀐다).
+        note = self.repository.update_note(user_id=owner.pk, note=note, title=title, content=content)
+        self.indexing_note(note)
 
     def soft_delete_note(self, user_id: int, note_hashes: list):
         notes = self.repository.soft_delete_note(user_id=user_id, note_hashes=note_hashes)

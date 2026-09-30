@@ -111,6 +111,16 @@ function refreshAccessToken(): Promise<string | null> {
     return refreshPromise
 }
 
+/**
+ * 곧 만료되지 않는 로그인 토큰. 로그인하지 않았으면 null.
+ * API 요청 밖에서 토큰이 필요할 때 쓴다(공동 편집 서버에 WebSocket 으로 붙을 때). 연결이 끊겼다 다시 붙을 때마다 부른다.
+ */
+export async function freshAccessToken(): Promise<string | null> {
+    const token = useAuthStore.getState().token
+    if (!token) return null
+    return isExpiringSoon(token) ? ((await refreshAccessToken()) ?? token) : token
+}
+
 async function request<T = unknown>(endPoint: string,
                                     method: HttpMethod,
                                     options: RequestInit = {},

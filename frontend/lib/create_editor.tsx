@@ -8,7 +8,7 @@ import {Editor, InputRule, JSONContent} from '@tiptap/core'
 import {EditorView, NodeView} from '@tiptap/pm/view'
 import {Plugin, PluginKey} from '@tiptap/pm/state'
 import {useImageViewerStore} from "@/store/imageViewer";
-import {Details, DetailsContent, DetailsSummary} from '@tiptap/extension-details'
+import {DetailsContent, DetailsSummary} from '@tiptap/extension-details'
 import {detailsNestingGuard} from "@/lib/details_nesting";
 import {emptyDetailsBody, enterEmptyDetailsBody} from "@/lib/details_body";
 
@@ -41,17 +41,18 @@ import Bold from '@tiptap/extension-bold'
 import Italic from '@tiptap/extension-italic'
 import Strike from '@tiptap/extension-strike'
 import Code from '@tiptap/extension-code'
-import Link from '@tiptap/extension-link'
 
 // 기능
 import Gapcursor from '@tiptap/extension-gapcursor'
 
 import 'highlight.js/styles/atom-one-dark.css'
-import Image from '@tiptap/extension-image'
 import TextAlign from "@tiptap/extension-text-align";
 import {Dropcursor, Placeholder} from "@tiptap/extensions";
 import {Table, TableRow} from "@tiptap/extension-table";
-import {CustomTableCell, CustomTableHeader, TABLE_CELL_MIN_WIDTH} from "@/lib/table";
+import {
+    CustomTableCell, CustomTableHeader, DETAILS_OPTIONS, DetailsBase, expectedSchemaSignature, IMAGE_OPTIONS, ImageBase,
+    LINK_OPTIONS, LinkBase, schemaSignature, TABLE_OPTIONS, TASK_ITEM_OPTIONS, TEXT_ALIGN_OPTIONS,
+} from "@/lib/editor_schema";
 import {TaskItem, TaskList} from "@tiptap/extension-list";
 import FileHandler from "@tiptap/extension-file-handler";
 import Paragraph from '@tiptap/extension-paragraph'
@@ -59,7 +60,10 @@ import Heading from "@tiptap/extension-heading";
 import {SlashCommand} from "@/lib/slash_command";
 import {NoteLink} from "@/lib/note_link";
 import {OpenLineOnGapTap} from "@/lib/open_line";
-import {useState} from "react";
+import {useEffect, useState} from "react";
+import Collaboration from "@tiptap/extension-collaboration";
+import CollaborationCaret from "@tiptap/extension-collaboration-caret";
+import type {CollabSession} from "@/hooks/useCollabDocument";
 
 // 버튼 컴포넌트
 const CodeBlockComponent = ({node}) => {
@@ -94,7 +98,11 @@ function insideDetails($from: { depth: number, node: (depth: number) => { type: 
     return false
 }
 
-export const CustomDetails = Details.extend({
+/*
+ * 접기. 스키마(펼친 채 시작하는 open 속성 등)는 lib/editor_schema.ts 의 DetailsBase 에 있고,
+ * 여기서는 편집 동작(겹침 막기, 빈 본문 감추기, ">>" 입력 규칙)만 더한다.
+ */
+export const CustomDetails = DetailsBase.extend({
     /*
      * 접기 안에서는 접기를 새로 만들지 않는다.
      *
@@ -126,21 +134,6 @@ export const CustomDetails = Details.extend({
         }
     },
 
-    // open 어트리뷰트는 persist: true 일 때만 생기고 기본값이 false 라
-    // 새로 만든 details 가 접힌 채로 시작한다. 펼친 상태로 시작하도록 기본값을 뒤집는다.
-    // 저장은 getHTML() 로 하고 parseHTML 이 <details> 의 open 속성 유무를 읽으므로,
-    // 이미 저장된 노트의 접힘/펼침 상태는 영향받지 않는다.
-    addAttributes() {
-        const parent = (this.parent?.() ?? {}) as Record<string, Record<string, unknown>>
-
-        return {
-            ...parent,
-            open: {
-                ...parent.open,
-                default: true,
-            },
-        }
-    },
     addInputRules() {
         return [
             new InputRule({
@@ -292,7 +285,8 @@ export function openImageViewer(root: HTMLElement, target: HTMLImageElement | nu
     useImageViewerStore.getState().open(sources, index)
 }
 
-const CustomImage = Image.extend({
+// 스키마(inline, display 속성)는 lib/editor_schema.ts 의 ImageBase 에 있다. 여기서는 크게 보기와 노드뷰만 더한다.
+const CustomImage = ImageBase.extend({
     /*
      * 크게 보기. 편집 중에는 한 번 누르면 이미지가 골라지고(크기 조절·말풍선) 두 번 누르면 연다.
      * 읽기 전용(참조 패널·공개 보기)에서는 고를 일이 없으니 한 번 눌러 연다.
@@ -320,18 +314,6 @@ const CustomImage = Image.extend({
                 },
             }),
         ]
-    },
-
-    addAttributes() {
-        return {
-            ...this.parent?.(),
-            // block: 한 줄을 혼자 쓴다(문단 정렬을 따른다) · inline: 글자 사이에 흐른다
-            display: {
-                default: null,
-                parseHTML: element => element.getAttribute("data-display"),
-                renderHTML: attributes => (attributes.display ? {"data-display": attributes.display} : {}),
-            },
-        }
     },
 
     addNodeView() {
@@ -401,15 +383,11 @@ async function insertUploadedImages(editor: Editor, files: File[], uploadFile: (
     }
 }
 
-// 링크 마크의 inclusive 기본값은 autolink 옵션을 그대로 따라간다(= autolink 켜면 true).
-// 그러면 링크 끝에 커서를 두고 이어서 타이핑할 때 링크가 계속 늘어나므로 꺼둔다.
-// 자동 링크는 "변경 범위가 공백으로 끝날 때" 단어 전체에 마크를 붙이는 방식이라
-// inclusive 와 무관하게 그대로 동작한다.
-export const CustomLink = Link.extend({
-    inclusive: false,
-})
+// 링크 마크의 스키마(inclusive: false)와 옵션은 lib/editor_schema.ts 에 있다.
+export const CustomLink = LinkBase
 
-export function useEditorInstance({initialContent, setContent, uploadFile, onPickNote, onOpenNote, editable = true}: {
+export function useEditorInstance({initialContent, setContent, uploadFile, onPickNote, onOpenNote, editable = true,
+                                      collab = null}: {
     initialContent: string,
     setContent: (value: string) => void,
     uploadFile: (file: File) => Promise<string>,
@@ -419,6 +397,11 @@ export function useEditorInstance({initialContent, setContent, uploadFile, onPic
     onOpenNote?: (noteId: string) => void,
     /** 처음부터 읽기 전용으로 만든다(참조 패널 등). 편집 화면은 setEditable 로 바꾼다. */
     editable?: boolean
+    /**
+     * 공동 편집(4.0). 있으면 본문을 Y 문서(collab.doc)에서 받고 편집을 서버로 나눈다. initialContent 는 쓰지 않는다.
+     * 되돌리기는 Collaboration 의 것(내 편집만 되돌린다)을 쓰므로 History 를 뺀다.
+     */
+    collab?: CollabSession | null
 }) {
 
     const lowlight = createLowlight()
@@ -459,13 +442,13 @@ export function useEditorInstance({initialContent, setContent, uploadFile, onPic
 
     lowlight.register('java', java)
 
-    return useEditor({
+    const editor = useEditor({
         editable,
         immediatelyRender: false,
         shouldRerenderOnTransaction: false,
         extensions: [
             CustomImage.configure({
-                inline: true,
+                ...IMAGE_OPTIONS,
                 resize: {
                     enabled: true,
                     alwaysPreserveAspectRatio: true,
@@ -473,15 +456,13 @@ export function useEditorInstance({initialContent, setContent, uploadFile, onPic
             }),
 
             // 경계에서 이만큼 안쪽까지 잡힌다. 기본값(5px)은 너무 가늘어 잘 놓친다.
-            Table.configure({resizable: true, handleWidth: 8, cellMinWidth: TABLE_CELL_MIN_WIDTH}),
+            Table.configure(TABLE_OPTIONS),
             CustomTableHeader,
             CustomTableCell,
             TableRow,
-            TextAlign.configure({
-                types: ["heading", "paragraph"],
-            }),
+            TextAlign.configure(TEXT_ALIGN_OPTIONS),
             Dropcursor,
-            TaskItem.configure({nested: true}),
+            TaskItem.configure(TASK_ITEM_OPTIONS),
             TaskList,
             Placeholder.configure({
                 placeholder: "내용을 입력하세요...",
@@ -513,39 +494,43 @@ export function useEditorInstance({initialContent, setContent, uploadFile, onPic
             OrderedList,
             ListItem,
             HardBreak,
-            History,
+            ...(collab ? [] : [History]),
             HorizontalRule,
             Bold,
             Italic,
             Strike,
             Code,
-            // openOnClick: false 여도 읽기 전용일 때는 클릭 핸들러가 빠지므로
-            // 공유 화면에서는 링크가 그대로 열린다. 편집 중에는 열리지 않는다.
-            CustomLink.configure({
-                openOnClick: false,
-                autolink: true,
-                linkOnPaste: true,
-                defaultProtocol: "https",
-                protocols: ["http", "https", "mailto"],
-                HTMLAttributes: {
-                    target: "_blank",
-                    rel: "noopener noreferrer nofollow",
-                },
-            }),
+            CustomLink.configure(LINK_OPTIONS),
             Gapcursor,
             OpenLineOnGapTap,
             NoteLink.configure({onOpen: onOpenNote}),
             SlashCommand.configure({onPickNote}),
-            CustomDetails.configure({
-                persist: true,                      // 열림/닫힘 상태를 문서에 저장
-                HTMLAttributes: {class: 'details'},
-            }),
+            CustomDetails.configure(DETAILS_OPTIONS),
             DetailsSummary,
             DetailsContent,
+            ...(collab ? [
+                // field 는 collab 서버와 약속한 본문 자리(collab/src/convert.ts 의 BODY_FIELD).
+                Collaboration.configure({document: collab.doc, field: "default"}),
+                CollaborationCaret.configure({provider: collab.provider, user: collab.user}),
+            ] : []),
         ],
-        content: initialContent,
+        content: collab ? undefined : initialContent,
         onUpdate: ({editor}) => {
             setContent(editor.getHTML())
         },
-    });
+    }, [collab?.doc]);
+
+    /*
+     * 개발 중에만: 에디터의 스키마가 lib/editor_schema.ts 의 SCHEMA_EXTENSIONS(공동 편집 서버가 쓰는 것)와
+     * 같은지 본다. 에디터에만 노드·속성을 더하면 서버를 거친 문서에서 그것이 조용히 사라진다.
+     */
+    useEffect(() => {
+        if (process.env.NODE_ENV === "production" || !editor) return
+        if (schemaSignature(editor.schema) !== expectedSchemaSignature()) {
+            console.error("[editor_schema] 에디터 스키마가 SCHEMA_EXTENSIONS 와 다릅니다. "
+                + "스키마에 영향을 주는 것은 lib/editor_schema.ts 에만 두세요.")
+        }
+    }, [editor])
+
+    return editor
 }

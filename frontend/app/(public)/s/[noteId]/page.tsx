@@ -16,6 +16,8 @@ import {NoteDetailResponse} from "@/types/note";
 import {NoteConflictModal, NoteMergeView} from "@/components/note/note_conflict_modal";
 import {applyMerge, ConflictChoice, diff3, htmlBlocks, mergeTitle} from "@/lib/note_merge";
 import {FiAlertTriangle, FiTrash2} from "react-icons/fi";
+import {useCollabDocument} from "@/hooks/useCollabDocument";
+import {COLLAB_URL} from "@/constants/api";
 
 // Tailwind는 소스에 리터럴로 존재하는 클래스명만 인식하므로 `w-[${n}%]`처럼 동적으로
 // 조합하면 CSS가 생성되지 않는다. note_settings.tsx의 <select> 옵션과 값을 맞춰야 함.
@@ -35,10 +37,45 @@ export default function Page() {
     const [editorWidth, setEditorWidth] = useState(DEFAULT_EDITOR_WIDTH)
     const [statusType, setStatusType] = useState("")
 
-    const {state, draft, isOwner, isEditable, isDeleted, setters, unlock, reload} = useNoteDetail(noteId)
+    const {state, draft, isOwner, isEditable, isDeleted, setters, unlock, reload, password} = useNoteDetail(noteId)
     const [isRestoring, setIsRestoring] = useState(false)
 
     const isSavable = isEditable && state.status === "ready"
+
+    /*
+     * 공동 편집(4.0). 노트를 불러오면 collab 서버에 붙는다(휴지통 노트는 붙지 않고 저장본을 보여 준다).
+     * 권한은 서버가 정한다: 편집할 수 있으면 읽기·쓰기, 공개 링크의 비회원 등은 읽기 전용, 볼 수 없으면 거절.
+     * 거절되면 예전처럼 저장본을 읽기 전용으로 보여 준다.
+     */
+    const collabSession = useCollabDocument({
+        noteId,
+        enabled: Boolean(COLLAB_URL) && state.status === "ready" && !isDeleted,
+        password,
+    })
+    const collab = collabSession && collabSession.status !== "denied" ? collabSession : null
+    const collabDenied = collabSession?.status === "denied"
+
+    // 제목도 Y 문서(Text "title")로 같이 편집한다. 다른 사람이 고친 제목을 화면에 옮긴다.
+    const setTitleState = setters.setTitle
+    useEffect(() => {
+        if (!collab) return
+        const title = collab.doc.getText("title")
+        const apply = () => setTitleState(title.toString())
+        title.observe(apply)
+        if (collab.synced) apply()
+        return () => title.unobserve(apply)
+    }, [collab, setTitleState])
+
+    const setTitle = useCallback((value: string) => {
+        if (collab) {
+            const title = collab.doc.getText("title")
+            collab.doc.transact(() => {
+                title.delete(0, title.length)
+                title.insert(0, value)
+            })
+        }
+        setTitleState(value)
+    }, [collab, setTitleState])
 
     // 저장이 거절되면(다른 곳에서 먼저 저장) 곧바로 최신본과 견준다. 견주는 함수는 아래에서 만들어진다.
     const compareRef = useRef<() => void>(() => {})
@@ -46,6 +83,7 @@ export default function Page() {
         noteId,
         draft,
         enabled: isSavable,
+        collab: Boolean(collab),
         setStatusType,
         onConflict: () => compareRef.current(),
     })
@@ -157,9 +195,14 @@ export default function Page() {
     }
 
     if (!draft) return <EditorSkeleton/>
+    // 공동 편집은 서버 문서를 받은 뒤에 그린다. 빈 문서에 먼저 쓰면 받아 온 내용과 섞인다.
+    if (collab && !collab.synced) return <EditorSkeleton/>
 
-    // 휴지통 노트는 복원하기 전까지 고칠 수 없다(서버도 막는다).
-    const isReadonly = !token || draft.isProtected || isDeleted
+    // 휴지통 노트는 복원하기 전까지 고칠 수 없다(서버도 막는다). 공동 편집은 서버가 읽기 전용으로 붙였으면 따른다.
+    const isReadonly = !token || draft.isProtected || isDeleted || collabDenied || Boolean(collab?.readOnly)
+    // 공동 편집 중에는 저장 표시가 연결 상태를 따른다(편집은 연결돼 있는 동안 계속 저장된다).
+    const collabStatusType = collab?.status === "connected" ? "complete"
+        : collab?.status === "connecting" ? "loading" : "warning"
 
     const restore = async () => {
         setIsRestoring(true)
@@ -210,15 +253,17 @@ export default function Page() {
     return (
         <div className="relative h-screen w-full">
             <div className="flex h-full w-full">
-                <MarkdownEditor setOpenedSetting={setOpenedSetting}
+                <MarkdownEditor key={collab ? "collab" : "static"}
+                                collab={collab}
+                                setOpenedSetting={setOpenedSetting}
                                 isReadonly={isReadonly}
                                 isOwner={isOwner && !isDeleted}
                                 paramsNoteId={noteId}
                                 title={draft.title}
                                 content={draft.content}
-                                setTitle={setters.setTitle}
+                                setTitle={setTitle}
                                 setContent={setters.setContent}
-                                statusType={statusType}
+                                statusType={collab ? collabStatusType : statusType}
                                 widthClass={EDITOR_WIDTH_CLASSES[editorWidth] ?? EDITOR_WIDTH_CLASSES[DEFAULT_EDITOR_WIDTH]}
                                 notice={deletedNotice || conflictNotice}
                 />
