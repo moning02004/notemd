@@ -5,7 +5,7 @@ from collections.abc import Callable
 from urllib.parse import urlparse
 
 from weasyprint import CSS, HTML
-from weasyprint.urls import URLFetcherResponse
+from weasyprint.urls import URLFetcher, URLFetcherResponse
 
 from app.core.config import settings
 
@@ -250,6 +250,27 @@ def _prepare_html(content: str) -> str:
     return content
 
 
+class _NoteImageFetcher(URLFetcher):
+    """업로드한 이미지만 저장소에서 받는다. 그 밖의 주소는 어떤 것도 불러오지 않는다.
+
+    weasyprint 는 실패를 다룰 때 fetcher 의 설정(_fail_on_errors)을 읽으므로 함수가 아니라 URLFetcher 를 이어받는다.
+    받지 못한 이미지는 경고만 남기고 빼고 그린다(fail_on_errors=False).
+    """
+
+    def __init__(self, read_image: Callable[[str], bytes | None] | None):
+        super().__init__(fail_on_errors=False)
+        self._read_image = read_image
+
+    def fetch(self, url, headers=None) -> URLFetcherResponse:
+        if self._read_image and url.startswith(f"{IMAGE_SCHEME}:"):
+            name = url[len(IMAGE_SCHEME) + 1:]
+            data = self._read_image(name)
+            if data is not None:
+                mime_type = mimetypes.guess_type(name)[0] or "application/octet-stream"
+                return URLFetcherResponse(url, body=data, headers={"Content-Type": mime_type})
+        raise ValueError(f"PDF 에 넣지 않는 주소: {url}")
+
+
 def render_note_pdf(title: str, content: str,
                     read_image: Callable[[str], bytes | None] | None = None) -> bytes:
     """노트 HTML 을 PDF 바이트로 렌더링한다.
@@ -264,15 +285,5 @@ def render_note_pdf(title: str, content: str,
         "</body></html>"
     )
 
-    def fetch(url: str, *args, **kwargs) -> URLFetcherResponse:
-        # 업로드한 이미지만 저장소에서 받는다. 그 밖의 주소는 어떤 것도 불러오지 않는다.
-        if read_image and url.startswith(f"{IMAGE_SCHEME}:"):
-            name = url[len(IMAGE_SCHEME) + 1:]
-            data = read_image(name)
-            if data is not None:
-                mime_type = mimetypes.guess_type(name)[0] or "application/octet-stream"
-                return URLFetcherResponse(url, body=data, headers={"Content-Type": mime_type})
-        raise ValueError(f"PDF 에 넣지 않는 주소: {url}")
-
-    document = HTML(string=body, url_fetcher=fetch)
+    document = HTML(string=body, url_fetcher=_NoteImageFetcher(read_image))
     return document.write_pdf(stylesheets=[CSS(string=DEFAULT_CSS)])

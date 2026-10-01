@@ -21,7 +21,12 @@ export type CollabSession = {
     status: CollabStatus
     /** 처음 문서를 받아 왔다. 그 전에는 에디터를 그리지 않는다(빈 문서 위에 쓰면 받아 온 내용과 섞인다). */
     synced: boolean
+    /** 붙은 지 STALL_MS 가 지나도 문서를 받지 못했다(서버가 꺼졌거나 프록시 설정이 틀림). 그동안은 저장본을 보여 준다. */
+    stalled: boolean
 }
+
+// 이만큼 기다려도 문서를 못 받으면 저장본으로 대신한다. 뒤에서는 계속 다시 붙어 보고, 붙으면 공동 편집으로 돌아온다.
+const STALL_MS = 5000
 
 // 사람마다 커서 색을 고정한다(같은 사람은 늘 같은 색). 옅은 배경 위에서도 보이는 진한 색들.
 const CARET_COLORS = ["#1F6650", "#B3261E", "#8A5E06", "#2B5FA8", "#7B3FA0", "#A0422E", "#2E7D6B", "#9C2E6B"]
@@ -63,7 +68,7 @@ export function useCollabDocument({noteId, enabled, password}: {
             document: doc,
             token: async () => JSON.stringify({jwt: await freshAccessToken(), password: password ?? null}),
             onStatus: ({status}) => update({status: status as CollabStatus}),
-            onSynced: () => update({synced: true}),
+            onSynced: () => update({synced: true, stalled: false}),
             onAuthenticated: ({scope}) => update({readOnly: scope !== "read-write"}),
             onAuthenticationFailed: () => update({status: "denied"}),
         })
@@ -71,7 +76,10 @@ export function useCollabDocument({noteId, enabled, password}: {
         // 바깥 연결(WebSocket)을 만들고 거두는 곳이라 effect 안에서 상태를 둔다. 렌더 중에 만들면
         // StrictMode 의 두 번 그리기마다 연결이 하나씩 더 생긴다.
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        setSession({doc, provider, user, readOnly: true, status: "connecting", synced: false})
+        setSession({doc, provider, user, readOnly: true, status: "connecting", synced: false, stalled: false})
+        const stallTimer = setTimeout(() => {
+            if (!cancelled && !provider.isSynced) update({stalled: true})
+        }, STALL_MS)
 
         // 커서에 붙일 이름. 로그인한 사람만 이름이 있다.
         if (userHash) {
@@ -86,6 +94,7 @@ export function useCollabDocument({noteId, enabled, password}: {
 
         return () => {
             cancelled = true
+            clearTimeout(stallTimer)
             provider.destroy()
             doc.destroy()
             setSession(null)
