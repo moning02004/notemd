@@ -16,7 +16,7 @@ export type CollabSession = {
     doc: Y.Doc
     provider: HocuspocusProvider
     user: CollabUser
-    /** 서버가 이 연결을 읽기 전용으로 붙였다(볼 수만 있는 노트, 공개 링크의 비회원 등). */
+    /** 서버가 이 연결을 읽기 전용으로 붙였다(볼 수만 있는 노트, 보호 노트 등). 비회원은 아예 붙지 않는다. */
     readOnly: boolean
     status: CollabStatus
     /** 처음 문서를 받아 왔다. 그 전에는 에디터를 그리지 않는다(빈 문서 위에 쓰면 받아 온 내용과 섞인다). */
