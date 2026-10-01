@@ -5,13 +5,14 @@
  * 내부 API 가 한다(/internal/collab/*, 공유 비밀 X-Collab-Secret). 이 서버는 DB 도 암호화 키도 모른다.
  *
  * 문서 이름 = 노트 id. 연결할 때 브라우저는 토큰으로 JSON 문자열을 보낸다:
- *   {"jwt": "<로그인 토큰 또는 null>", "password": "<비밀번호 노트를 맞혀 열었을 때>"}
+ *   {"jwt": "<로그인 토큰 또는 null>", "password": "<비밀번호 노트를 맞혀 열었을 때>",
+ *    "epoch": "<브라우저가 들고 있는 문서의 epoch, 처음이면 없음>"}
  */
 import {Server} from "@hocuspocus/server"
 import * as Y from "yjs"
 import type {IncomingMessage, ServerResponse} from "node:http"
 import {timingSafeEqual} from "node:crypto"
-import {appendHtml, bodyHtml, fillFromHtml, titleOf} from "./convert"
+import {appendHtml, bodyHtml, ensureEpoch, epochOf, fillFromHtml, titleOf} from "./convert"
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://backend:8000"
 const COLLAB_SECRET = process.env.COLLAB_SECRET ?? ""
@@ -26,7 +27,12 @@ type Context = {
     userId: string | null
     userName: string
     access: "edit" | "read"
+    /** 브라우저가 들고 온 문서의 epoch. 다시 붙을 때 서버 문서와 내력이 다르면 합치지 않고 끊는다. */
+    clientEpoch: string | null
 }
+
+/** 브라우저 문서가 낡았다(서버가 문서를 새로 만들었다). 브라우저는 이 이유로 끊기면 사본을 버리고 새로 받는다. */
+const STALE_REASON = "stale-document"
 
 async function backend(path: string, init: RequestInit = {}): Promise<Response> {
     return fetch(`${BACKEND_URL}/internal/collab${path}`, {
@@ -35,7 +41,7 @@ async function backend(path: string, init: RequestInit = {}): Promise<Response> 
     })
 }
 
-function parseToken(token: string): { jwt?: string | null, password?: string | null } {
+function parseToken(token: string): { jwt?: string | null, password?: string | null, epoch?: string | null } {
     try {
         return JSON.parse(token || "{}")
     } catch {
@@ -111,6 +117,25 @@ async function runInternal(name: string, action: string, request: IncomingMessag
     }
 }
 
+/** Y 문서와, 그것으로 만든 HTML 사본·제목을 백엔드에 저장한다(검색·내보내기·API 는 HTML 을 읽는다). */
+async function storeState(documentName: string, document: Y.Doc, edited = true): Promise<void> {
+    const response = await backend(`/notes/${encodeURIComponent(documentName)}/state`, {
+        method: "PUT",
+        body: JSON.stringify({
+            ydoc: Buffer.from(Y.encodeStateAsUpdate(document)).toString("base64"),
+            html: bodyHtml(document),
+            title: titleOf(document),
+            edited,
+        }),
+    })
+    // 409: 그사이 휴지통으로 옮겨졌다. 저장하지 않는 것이 맞다.
+    if (!response.ok && response.status !== 409) {
+        storeErrors.set(documentName, `노트를 저장하지 못했습니다(${response.status}).`)
+        throw new Error(`노트를 저장하지 못했습니다(${response.status}).`)
+    }
+    storeErrors.set(documentName, response.ok ? null : "휴지통에 있는 노트입니다.")
+}
+
 const server = new Server<Context>({
     name: "notemd-collab",
     port: PORT,
@@ -126,7 +151,7 @@ const server = new Server<Context>({
 
     /** 이 연결이 노트를 편집할 수 있는지, 볼 수만 있는지 백엔드에 묻는다. 볼 수 없으면 연결을 거절한다. */
     async onAuthenticate({token, documentName, connectionConfig}) {
-        const {jwt, password} = parseToken(token)
+        const {jwt, password, epoch} = parseToken(token)
         const response = await backend("/authorize", {
             method: "POST",
             body: JSON.stringify({note: documentName, token: jwt ?? null, password: password ?? null}),
@@ -135,7 +160,7 @@ const server = new Server<Context>({
 
         const auth = await response.json() as { access: "edit" | "read", user_id: string | null, user_name: string }
         connectionConfig.readOnly = auth.access !== "edit"
-        return {userId: auth.user_id, userName: auth.user_name, access: auth.access}
+        return {userId: auth.user_id, userName: auth.user_name, access: auth.access, clientEpoch: epoch ?? null}
     },
 
     /** 저장된 Y 문서를 불러온다. 처음 여는 노트는 저장된 HTML·제목으로 만든다(일괄 마이그레이션 없음). */
@@ -146,25 +171,26 @@ const server = new Server<Context>({
         const state = await response.json() as { ydoc: string | null, html: string, title: string }
         if (state.ydoc) Y.applyUpdate(document, Buffer.from(state.ydoc, "base64"))
         else fillFromHtml(document, state.html, state.title)
+        // 새로 붙인 epoch 는 브라우저가 받기 전에 저장한다. 메모리에만 두면 collab 이 다시 켜질 때마다 epoch 가
+        // 바뀌어, 멀쩡한 브라우저 사본(오프라인으로 고친 것 포함)을 낡았다며 버리게 된다.
+        // 편집이 아니므로 Y 문서만 저장한다(본문·고친 시각은 그대로).
+        if (ensureEpoch(document) || !state.ydoc) await storeState(documentName, document, false)
         return document
     },
 
-    /** Y 문서와, 그것으로 만든 HTML 사본·제목을 백엔드에 저장한다(검색·내보내기·API 는 HTML 을 읽는다). */
-    async onStoreDocument({documentName, document}) {
-        const response = await backend(`/notes/${encodeURIComponent(documentName)}/state`, {
-            method: "PUT",
-            body: JSON.stringify({
-                ydoc: Buffer.from(Y.encodeStateAsUpdate(document)).toString("base64"),
-                html: bodyHtml(document),
-                title: titleOf(document),
-            }),
-        })
-        // 409: 그사이 휴지통으로 옮겨졌다. 저장하지 않는 것이 맞다.
-        if (!response.ok && response.status !== 409) {
-            storeErrors.set(documentName, `노트를 저장하지 못했습니다(${response.status}).`)
-            throw new Error(`노트를 저장하지 못했습니다(${response.status}).`)
+    /**
+     * 다시 붙은 브라우저의 문서가 지금 서버 문서와 내력이 같은지 본다. 그사이 서버가 문서를 새로 만들었으면
+     * 합치는 순간 글이 두 번 들어가므로, 아무것도 받기 전에 끊는다(브라우저가 사본을 버리고 새로 받는다).
+     */
+    async beforeSync({context, document}) {
+        const serverEpoch = epochOf(document)
+        if (context.clientEpoch && serverEpoch && context.clientEpoch !== serverEpoch) {
+            throw Object.assign(new Error(STALE_REASON), {code: 4409, reason: STALE_REASON})
         }
-        storeErrors.set(documentName, response.ok ? null : "휴지통에 있는 노트입니다.")
+    },
+
+    async onStoreDocument({documentName, document}) {
+        await storeState(documentName, document)
     },
 })
 

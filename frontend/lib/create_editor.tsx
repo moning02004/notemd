@@ -511,7 +511,8 @@ export function useEditorInstance({initialContent, setContent, uploadFile, onPic
             ...(collab ? [
                 // field 는 collab 서버와 약속한 본문 자리(collab/src/convert.ts 의 BODY_FIELD).
                 Collaboration.configure({document: collab.doc, field: "default"}),
-                CollaborationCaret.configure({provider: collab.provider, user: collab.user}),
+                // 오프라인(이 기기의 사본)에서는 provider 가 다른 문서(서버 문서)에 붙어 있어 커서를 나누지 않는다.
+                ...(collab.offline ? [] : [CollaborationCaret.configure({provider: collab.provider, user: collab.user})]),
             ] : []),
         ],
         content: collab ? undefined : initialContent,

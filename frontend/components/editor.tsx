@@ -20,7 +20,8 @@ import EditorLinkModal from "@/components/editor_link_modal";
 import {NotePickerModal} from "@/components/note/note_picker_modal";
 import {NotePeekPanel} from "@/components/note/note_peek_panel";
 import {NoteBacklinks} from "@/components/note/note_backlinks";
-import type {CollabSession} from "@/hooks/useCollabDocument";
+import type {CollabPeer, CollabSession} from "@/hooks/useCollabDocument";
+import {CollabPeers} from "@/components/note/collab_peers";
 import EditorLinkBubble from "@/components/editor_link_bubble";
 import EditorImageBubble from "@/components/editor_image_bubble";
 import EditorTableBubble from "@/components/editor_table_bubble";
@@ -46,6 +47,8 @@ interface EditorProps {
     collab?: CollabSession | null;
     /** 공동 편집에서 본문을 통째로 바꿀 때(스냅샷 복원·템플릿). seq 가 바뀔 때마다 한 번 넣는다. */
     replacement?: { content: string, seq: number } | null;
+    /** 공동 편집에서 지금 같이 연 다른 사람들. 제목줄 오른쪽에 보인다. */
+    peers?: CollabPeer[];
 }
 
 export function MarkdownEditor({
@@ -62,6 +65,7 @@ export function MarkdownEditor({
                                    notice,
                                    collab = null,
                                    replacement = null,
+                                   peers = [],
                                }: EditorProps
 ) {
     const titleRef = React.useRef<HTMLInputElement>(null);
@@ -184,6 +188,8 @@ export function MarkdownEditor({
                        className={`title-editor w-[100%] outline-none text-foreground ${isReadonly ? "cursor-text" : "cursor-text"}`}
                        placeholder="제목"
                 />
+
+                <CollabPeers peers={peers}/>
 
                 {
                     isOwner ?

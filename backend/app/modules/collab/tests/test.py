@@ -451,3 +451,20 @@ def test_download_saves_the_open_document_first(client, auth_headers, fake_colla
     assert response.status_code == 200, response.text
     assert fake_collab["calls"] == ["flush"]
     assert "편집 중" in response.content.decode()
+
+
+def test_non_edit_store_keeps_content_and_updated_at(client, auth_headers, db_session):
+    """collab 이 문서를 처음 만들거나 epoch 만 붙인 저장은 Y 문서만 둔다. 열기만 한 노트가 최근 고친 노트로 올라가면 안 된다."""
+    owner = member_headers(client)
+    note = create_note(client, owner, title="그대로", content="<p>본문</p>")
+    before = client.get(f"/notes/{note}", headers=owner).json()
+
+    response = internal(client, "PUT", f"/notes/{note}/state",
+                        json={"ydoc": base64.b64encode(b"first-build").decode(), "html": "<p>표기만 다름</p>",
+                              "title": "그대로", "edited": False})
+
+    assert response.status_code == 204
+    after = client.get(f"/notes/{note}", headers=owner).json()
+    assert after["content"] == "<p>본문</p>"
+    assert after["updated_at"] == before["updated_at"]
+    assert base64.b64decode(internal(client, "GET", f"/notes/{note}/state").json()["ydoc"]) == b"first-build"

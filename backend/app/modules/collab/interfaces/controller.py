@@ -84,8 +84,14 @@ class StoreRequest(BaseModel):
     ydoc: str
     html: str
     title: str = ""
+    # False: 편집이 아니다(문서를 처음 만들거나 epoch 만 붙였다). Y 문서만 저장하고 본문·고친 시각은 그대로 둔다.
+    edited: bool = True
 
 
 @router.put("/notes/{note_hash}/state", status_code=204)
 def store_state(note_hash: str, request: StoreRequest, service: NoteService = Depends(get_note_service)):
-    service.store_collab_state(note_hash, base64.b64decode(request.ydoc), request.html, request.title)
+    ydoc = base64.b64decode(request.ydoc)
+    if request.edited:
+        service.store_collab_state(note_hash, ydoc, request.html, request.title)
+    else:
+        service.store_collab_ydoc(note_hash, ydoc)

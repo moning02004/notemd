@@ -7,15 +7,22 @@
  * Y 문서의 구성(에디터와 약속):
  *   - XmlFragment "default": 본문(Tiptap Collaboration 의 기본 field)
  *   - Text "title": 제목(제목도 같이 편집한다)
+ *   - Map "meta": "epoch" = 이 Y 문서의 내력 id. 저장본 HTML 로 새로 만들 때마다 바뀐다.
+ *
+ * epoch: 브라우저는 이 기기에 Y 문서 사본을 둔다(오프라인 편집). 서버가 HTML 로 문서를 새로 만들면(바깥에서 본문을
+ * 바꿔 Y 문서가 비워진 뒤) 내용이 같아도 내력이 달라, 낡은 사본과 합치면 글이 두 번 들어간다. epoch 가 다르면
+ * 합치지 않는다.
  */
 import {getSchema} from "@tiptap/core"
 import {generateHTML, generateJSON} from "@tiptap/html/server"
 import {prosemirrorJSONToYXmlFragment, yXmlFragmentToProsemirrorJSON} from "@tiptap/y-tiptap"
+import {randomUUID} from "node:crypto"
 import * as Y from "yjs"
 import {SCHEMA_EXTENSIONS} from "./editor_schema"
 
 export const BODY_FIELD = "default"
 export const TITLE_FIELD = "title"
+export const META_FIELD = "meta"
 
 const schema = getSchema(SCHEMA_EXTENSIONS)
 
@@ -25,7 +32,19 @@ export function fillFromHtml(doc: Y.Doc, html: string, title: string): void {
     doc.transact(() => {
         prosemirrorJSONToYXmlFragment(schema, json, doc.getXmlFragment(BODY_FIELD))
         doc.getText(TITLE_FIELD).insert(0, title || "")
+        doc.getMap(META_FIELD).set("epoch", randomUUID())
     })
+}
+
+export function epochOf(doc: Y.Doc): string | undefined {
+    return doc.getMap(META_FIELD).get("epoch") as string | undefined
+}
+
+/** epoch 가 없는 문서(4.0.0 에서 저장한 것)에 하나 붙인다. 붙였으면 true(곧바로 저장해야 한다). */
+export function ensureEpoch(doc: Y.Doc): boolean {
+    if (epochOf(doc)) return false
+    doc.getMap(META_FIELD).set("epoch", randomUUID())
+    return true
 }
 
 /** Y 문서의 본문을 HTML 로(검색·내보내기·API 가 읽는 사본). */

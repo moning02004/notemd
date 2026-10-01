@@ -501,6 +501,23 @@ class NoteService(Service):
         note = self.repository.update_note(user_id=owner.pk, note=note, title=title, content=content)
         self.indexing_note(note)
 
+    def store_collab_ydoc(self, note_hash: str, ydoc: bytes) -> None:
+        """편집이 아닌 저장(collab 이 문서를 처음 만들었거나 epoch 를 붙였다): Y 문서만 둔다.
+
+        본문 HTML 은 그대로이고 고친 시각도 바꾸지 않는다. 노트를 열기만 했는데 '최근 고친 노트' 맨 위로 올라가면 안 된다.
+        """
+        note = self.repository.get_by_hash_id(hash_id=note_hash)
+        if note is None:
+            raise self.NotFoundNote
+        if note.deleted_at is not None:
+            raise HTTPException(status_code=409, detail="휴지통에 있는 노트는 복원한 뒤에 고칠 수 있습니다.")
+        stored = (self._encrypt_content(note.user, base64.b64encode(ydoc).decode("ascii")).encode("ascii")
+                  if note.is_encrypted else ydoc)
+        # updated_at 은 onupdate(now) 라 그냥 두면 바뀐다. 지금 값을 그대로 다시 써서 막는다.
+        self.repository.db.query(Note).filter(Note.pk == note.pk).update(
+            {Note.ydoc: stored, Note.updated_at: note.updated_at}, synchronize_session=False)
+        self.repository.db.commit()
+
     @staticmethod
     def _flush_collab_quietly(note_hash: str) -> None:
         """열려 있는 공동 편집 문서를 곧바로 저장하게 한다. collab 이 없거나 실패하면 저장본을 그대로 쓴다."""
