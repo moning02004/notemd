@@ -50,7 +50,11 @@ export default function Page() {
         enabled: Boolean(COLLAB_URL) && Boolean(token) && state.status === "ready" && !isDeleted,
         password,
     })
-    const collab = collabSession && collabSession.status !== "denied" ? collabSession : null
+    // 문서를 받기 전에 오래 걸리면(서버가 꺼졌거나 프록시 설정이 틀림) 저장본을 읽기 전용으로 보여 준다.
+    // 그동안 고치게 하면, 다른 사람이 공동 편집으로 고치던 내용과 서로 덮어쓸 수 있다.
+    const collabStalled = Boolean(collabSession && !collabSession.synced && collabSession.stalled
+        && collabSession.status !== "denied")
+    const collab = collabSession && collabSession.status !== "denied" && !collabStalled ? collabSession : null
     const collabDenied = collabSession?.status === "denied"
 
     // 제목도 Y 문서(Text "title")로 같이 편집한다. 다른 사람이 고친 제목을 화면에 옮긴다.
@@ -156,7 +160,8 @@ export default function Page() {
     if (collab && !collab.synced) return <EditorSkeleton/>
 
     // 휴지통 노트는 복원하기 전까지 고칠 수 없다(서버도 막는다). 공동 편집은 서버가 읽기 전용으로 붙였으면 따른다.
-    const isReadonly = !token || draft.isProtected || isDeleted || collabDenied || Boolean(collab?.readOnly)
+    const isReadonly = !token || draft.isProtected || isDeleted || collabDenied || collabStalled
+        || Boolean(collab?.readOnly)
     // 공동 편집 중에는 저장 표시가 연결 상태를 따른다(편집은 연결돼 있는 동안 계속 저장된다).
     const collabStatusType = collab?.status === "connected" ? "complete"
         : collab?.status === "connecting" ? "loading" : "warning"
@@ -213,6 +218,16 @@ export default function Page() {
         </div>
     )
 
+    const collabNotice = collabStalled && (
+        <div role="status"
+             className="flex items-center gap-2 border-b border-border bg-chip-open-soft px-4 py-2.5 text-[13px] text-chip-open">
+            <FiAlertTriangle size={14} className="shrink-0"/>
+            <span className="flex-1">
+                공동 편집 서버에 연결하지 못해 저장된 내용을 읽기 전용으로 보여 줍니다. 연결되면 바로 이어서 고칠 수 있습니다.
+            </span>
+        </div>
+    )
+
     return (
         <div className="relative h-screen w-full">
             <div className="flex h-full w-full">
@@ -229,7 +244,7 @@ export default function Page() {
                                 replacement={replacement}
                                 statusType={collab ? collabStatusType : statusType}
                                 widthClass={EDITOR_WIDTH_CLASSES[editorWidth] ?? EDITOR_WIDTH_CLASSES[DEFAULT_EDITOR_WIDTH]}
-                                notice={deletedNotice || conflictNotice}
+                                notice={deletedNotice || collabNotice || conflictNotice}
                 />
             </div>
 

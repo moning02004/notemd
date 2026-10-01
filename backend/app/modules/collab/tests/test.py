@@ -438,3 +438,16 @@ def test_collab_snapshot_of_encrypted_note_stays_encrypted(client, auth_headers,
     snapshots = client.get(f"/notes/{note}/snapshots", headers=owner).json()
     items = snapshots["items"] if isinstance(snapshots, dict) else snapshots
     assert items[0]["content"] == "<p>숨김</p>"
+
+
+def test_download_saves_the_open_document_first(client, auth_headers, fake_collab):
+    """편집 중인 노트를 받으면 collab 메모리에만 있던 내용까지 담긴다."""
+    owner = member_headers(client)
+    note = create_note(client, owner, title="일지", content="<p>저장본</p>")
+    fake_collab["open_docs"][note] = "<p>저장본</p><p>편집 중</p>"
+
+    response = client.post("/notes/download", headers=owner, json={"note_hashes": [note], "file_format": "md"})
+
+    assert response.status_code == 200, response.text
+    assert fake_collab["calls"] == ["flush"]
+    assert "편집 중" in response.content.decode()

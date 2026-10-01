@@ -12,6 +12,7 @@ from typing import List
 from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
+import anyio
 import fitz
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -500,6 +501,14 @@ class NoteService(Service):
         note = self.repository.update_note(user_id=owner.pk, note=note, title=title, content=content)
         self.indexing_note(note)
 
+    @staticmethod
+    def _flush_collab_quietly(note_hash: str) -> None:
+        """열려 있는 공동 편집 문서를 곧바로 저장하게 한다. collab 이 없거나 실패하면 저장본을 그대로 쓴다."""
+        try:
+            collab_client.flush(note_hash)
+        except (collab_client.CollabUnavailable, HTTPException):
+            pass
+
     def _snapshot_before_collab_store(self, note: Note, owner: User, content: str, title: str) -> None:
         """공동 편집 저장의 자동 스냅샷: 내용이 바뀌는 동안 3분에 한 번, 바뀌기 전 모습을 남긴다.
 
@@ -597,6 +606,13 @@ class NoteService(Service):
 
         if not notes:
             raise self.NotFoundNote
+
+        # 공동 편집 중인 노트는 저장이 몇 초씩 늦다. 받은 파일에 지금 화면이 담기도록 먼저 저장하게 한다.
+        # collab 이 저장하며 이 서버를 다시 부르므로, 이벤트 루프를 막지 않게 스레드에서 기다린다.
+        for note in notes:
+            await anyio.to_thread.run_sync(self._flush_collab_quietly, note.hash_id)
+        self.repository.db.expire_all()
+        notes = self.repository.get_by_hash_ids_and_user_id(note_hashes=note_hashes, user_hash=user_hash)
 
         if len(notes) == 1:
             note = notes[0]
@@ -787,12 +803,9 @@ class NoteService(Service):
 
     def create_note_snapshot(self, user_id, note_hash, description) -> NoteSnapshot:
         self._get_owned_note(user_id, note_hash)
-        # 공동 편집 중이면 저장이 몇 초씩 늦다. 스냅샷에 지금 화면이 담기도록 먼저 저장하게 한다(안 되면 저장본으로).
-        try:
-            collab_client.flush(note_hash)
-            self.repository.db.expire_all()
-        except (collab_client.CollabUnavailable, HTTPException):
-            pass
+        # 공동 편집 중이면 저장이 몇 초씩 늦다. 스냅샷에 지금 화면이 담기도록 먼저 저장하게 한다.
+        self._flush_collab_quietly(note_hash)
+        self.repository.db.expire_all()
         note = self._get_owned_note(user_id, note_hash)
         snapshot = self.repository.add_note_snapshot(description=description, note=note)
         return snapshot
