@@ -306,6 +306,10 @@ class NoteRepository(Repository):
         ).order_by(desc(NoteSnapshot.created_at)).all()
         return [SnapshotEntity.from_orm(snapshot) for snapshot in queryset]
 
+    def latest_note_snapshot(self, note: Note) -> NoteSnapshot | None:
+        return self.db.query(NoteSnapshot).filter(NoteSnapshot.note_id == note.pk).order_by(
+            desc(NoteSnapshot.created_at), desc(NoteSnapshot.pk)).first()
+
     def add_note_snapshot(self, description: str, note: Note):
         timestamp = int(datetime.now().timestamp() * 1000)
         snapshot = NoteSnapshot(note_id=note.pk,

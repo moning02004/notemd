@@ -69,13 +69,20 @@ def test_workspace_member_can_edit_a_shared_note(client, auth_headers):
     assert authorize(client, note, teammate).json()["access"] == "edit"
 
 
-def test_anonymous_can_only_read_public_notes(client, auth_headers):
+def test_anonymous_viewers_are_not_connected(client, auth_headers):
+    """공개 링크로 보는 비회원은 실시간으로 붙이지 않는다(저장본을 본다). 누구나 열 수 있어 연결이 한없이 는다."""
     owner = member_headers(client)
     public = create_note(client, owner, title="공개", is_public=True)
-    private = create_note(client, owner, title="비공개")
 
-    assert authorize(client, public).json() == {"access": "read", "user_id": None, "user_name": "손님"}
-    assert authorize(client, private).status_code == 404
+    assert authorize(client, public).status_code == 403
+
+
+def test_members_read_public_notes_live(client, auth_headers):
+    owner = member_headers(client)
+    public = create_note(client, owner, title="공개", is_public=True)
+    reader = member_headers(client, username="reader", name="읽는이")
+
+    assert authorize(client, public, reader).json()["access"] == "read"
 
 
 def test_stranger_cannot_open_a_private_note(client, auth_headers):
@@ -113,7 +120,7 @@ def test_invalid_login_token_is_treated_as_anonymous(client, auth_headers):
 
     response = internal(client, "POST", "/authorize", json={"note": public, "token": "not-a-jwt"})
 
-    assert response.json()["access"] == "read"
+    assert response.status_code == 403
 
 
 # ---------------------------------------------------------------- 불러오기·저장
@@ -329,3 +336,105 @@ def test_unreachable_collab_falls_back_to_the_db(client, auth_headers, monkeypat
 
     assert response.status_code == 200, response.text
     assert client.get(f"/notes/{note}", headers=owner).json()["content"] == "<p>월요일</p><p>화요일</p>"
+
+
+# ---------------------------------------------------------------- 공동 편집 중 자동 스냅샷(3분에 한 번, 바뀌기 전 모습)
+
+class Clock:
+    def __init__(self):
+        from datetime import datetime, timezone
+        self.now = datetime(2026, 10, 1, 9, 0, tzinfo=timezone.utc)
+
+    def advance(self, minutes):
+        from datetime import timedelta
+        self.now += timedelta(minutes=minutes)
+
+
+@pytest.fixture()
+def clock(monkeypatch, db_session):
+    """스냅샷의 created_at 은 DB 가 찍으므로, 남길 때 같은 시계로 고쳐 쓴다."""
+    from app.modules.note.application import service as note_service
+    from app.modules.note.infrastructure.repository import NoteRepository
+    clock = Clock()
+    monkeypatch.setattr(note_service, "_now", lambda: clock.now)
+    original = NoteRepository.add_note_snapshot
+
+    def add_at_clock(self, description, note):
+        snapshot = original(self, description, note)
+        snapshot.created_at = clock.now
+        self.db.commit()
+        return snapshot
+
+    monkeypatch.setattr(NoteRepository, "add_note_snapshot", add_at_clock)
+    return clock
+
+
+def snapshot_contents(db_session, note):
+    from app.modules.note.infrastructure.models import NoteSnapshot
+    db_session.expire_all()
+    rows = db_session.query(NoteSnapshot).join(Note).filter(Note.hash_id == note).order_by(NoteSnapshot.pk).all()
+    return [row.content for row in rows]
+
+
+def set_policy(client, headers, policy):
+    assert client.patch("/preferences", headers=headers, json={"snapshot_policy": policy}).status_code == 200
+
+
+def test_collab_snapshots_every_three_minutes_while_editing(client, auth_headers, db_session, clock):
+    owner = member_headers(client)
+    set_policy(client, owner, "ON_EVERY_EDIT")
+    note = create_note(client, owner, title="일지", content="<p>v0</p>")
+
+    store(client, note, html="<p>v1</p>", title="일지")      # 처음 고침: 손대기 전(v0)을 남긴다
+    clock.advance(1)
+    store(client, note, html="<p>v2</p>", title="일지")      # 1분 뒤: 아직
+    clock.advance(1)
+    store(client, note, html="<p>v3</p>", title="일지")      # 2분 뒤: 아직
+    clock.advance(1.5)
+    store(client, note, html="<p>v4</p>", title="일지")      # 3분 넘음: 바뀌기 전(v3)
+
+    assert snapshot_contents(db_session, note) == ["<p>v0</p>", "<p>v3</p>"]
+
+
+def test_collab_snapshot_after_a_long_pause_is_immediate(client, auth_headers, db_session, clock):
+    """10분 동안 손대지 않으면 저장도 스냅샷도 없다. 다시 고치는 첫 저장에서 곧바로 그 전 모습을 남긴다."""
+    owner = member_headers(client)
+    set_policy(client, owner, "ON_EVERY_EDIT")
+    note = create_note(client, owner, title="일지", content="<p>v0</p>")
+    store(client, note, html="<p>v1</p>", title="일지")
+    clock.advance(10)
+
+    store(client, note, html="<p>v2</p>", title="일지")
+    clock.advance(1)
+    store(client, note, html="<p>v3</p>", title="일지")
+
+    assert snapshot_contents(db_session, note) == ["<p>v0</p>", "<p>v1</p>"]
+
+
+def test_collab_snapshot_skips_unchanged_and_manual_policy(client, auth_headers, db_session, clock):
+    owner = member_headers(client)
+    set_policy(client, owner, "ON_EVERY_EDIT")
+    note = create_note(client, owner, title="일지", content="<p>v0</p>")
+    store(client, note, html="<p>v1</p>", title="일지")
+    clock.advance(5)
+    store(client, note, html="<p>v1</p>", title="일지")      # 바뀐 것 없음(커서만 움직인 저장 등)
+    assert snapshot_contents(db_session, note) == ["<p>v0</p>"]
+
+    set_policy(client, owner, "MANUAL")
+    clock.advance(5)
+    store(client, note, html="<p>v2</p>", title="일지")
+    assert snapshot_contents(db_session, note) == ["<p>v0</p>"]
+
+
+def test_collab_snapshot_of_encrypted_note_stays_encrypted(client, auth_headers, db_session, clock):
+    owner = member_headers(client)
+    set_policy(client, owner, "ON_EVERY_EDIT")
+    note = create_note(client, owner, title="비밀", content="<p>숨김</p>", is_encrypted=True)
+
+    store(client, note, html="<p>숨김 고침</p>", title="비밀")
+
+    [content] = snapshot_contents(db_session, note)
+    assert "숨김" not in content
+    snapshots = client.get(f"/notes/{note}/snapshots", headers=owner).json()
+    items = snapshots["items"] if isinstance(snapshots, dict) else snapshots
+    assert items[0]["content"] == "<p>숨김</p>"

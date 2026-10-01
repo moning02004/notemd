@@ -7,7 +7,7 @@ import posixpath
 import re
 import zipfile
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import List
 from urllib.parse import quote
 from zoneinfo import ZoneInfo
@@ -132,6 +132,15 @@ def _folder_dirs(folders) -> dict[int, str]:
 
     walk(None, "")
     return paths
+
+
+# 공동 편집 중 자동 스냅샷 간격(내용이 바뀌는 동안).
+COLLAB_SNAPSHOT_INTERVAL = timedelta(minutes=3)
+
+
+def _now() -> datetime:
+    """테스트가 시간을 바꿔 끼우는 자리."""
+    return datetime.now(timezone.utc)
 
 
 class NoteService(Service):
@@ -479,6 +488,8 @@ class NoteService(Service):
 
         owner = note.user
         content = self._store_note_links(html or "<p></p>")
+        # 바뀌기 전 모습을 남기는 것이므로 노트를 고치기(커밋) 전에 한다.
+        self._snapshot_before_collab_store(note, owner, content, title)
         self.repository.replace_note_links(note, note_link_hashes(content))
         if note.is_encrypted:
             note.ydoc = self._encrypt_content(owner, base64.b64encode(ydoc).decode("ascii")).encode("ascii")
@@ -488,6 +499,45 @@ class NoteService(Service):
         # repository.update_note 가 함께 커밋한다(updated_at 도 여기서 바뀐다).
         note = self.repository.update_note(user_id=owner.pk, note=note, title=title, content=content)
         self.indexing_note(note)
+
+    def _snapshot_before_collab_store(self, note: Note, owner: User, content: str, title: str) -> None:
+        """공동 편집 저장의 자동 스냅샷: 내용이 바뀌는 동안 3분에 한 번, 바뀌기 전 모습을 남긴다.
+
+        collab 은 편집이 있을 때만 저장하므로, 한참 손대지 않던 노트를 다시 고치면 첫 저장에서 곧바로
+        '손대기 전' 모습이 남고, 그 뒤로는 계속 고치는 동안 3분마다 남는다. 고치지 않으면 남지 않는다.
+        스냅샷 정책이 '직접'(MANUAL)이면 남기지 않는다. 공유 중인 노트는 정책과 상관없이 남긴다(앱의 저장과 같다).
+        """
+        preference = owner.preference
+        policy = preference.snapshot_policy if preference else "MANUAL"
+        if policy == "MANUAL" and not note.workspaces:
+            return
+
+        before = self._plain(owner, note.content) if note.is_encrypted else (note.content or "")
+        before_title = note.title or ""
+        if (before, before_title) == (content, title or ""):
+            return
+        # 막 만든 빈 노트의 모습은 남길 것이 없다.
+        if before in ("", "<p></p>") and not before_title:
+            return
+
+        last = self.repository.latest_note_snapshot(note)
+        if last is not None:
+            created = last.created_at if last.created_at.tzinfo else last.created_at.replace(tzinfo=timezone.utc)
+            if _now() - created < COLLAB_SNAPSHOT_INTERVAL:
+                return
+            last_content = self._plain(owner, last.content) if note.is_encrypted else (last.content or "")
+            # 그 모습은 이미 남아 있다(예: 직접 저장한 스냅샷 뒤로 아직 저장된 적이 없다).
+            if (last_content, last.title or "") == (before, before_title):
+                return
+
+        self.repository.add_note_snapshot(description=f"auto_{int(_now().timestamp())}_공동 편집", note=note)
+
+    def _plain(self, owner: User, content: str | None) -> str:
+        """암호화된 본문(또는 스냅샷)을 푼다. 암호화하기 전에 남은 평문이면 그대로."""
+        try:
+            return self._decrypt_content(owner, content or "")
+        except InvalidTag:
+            return content or ""
 
     def soft_delete_note(self, user_id: int, note_hashes: list):
         notes = self.repository.soft_delete_note(user_id=user_id, note_hashes=note_hashes)

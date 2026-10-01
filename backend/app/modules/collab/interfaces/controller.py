@@ -46,7 +46,8 @@ def authorize(request: AuthorizeRequest, service: NoteService = Depends(get_note
     """이 연결로 노트를 편집할 수 있는지, 볼 수만 있는지. 권한 규칙은 노트 조회(GET /notes/{id})와 같다.
 
     - 로그인한 사람: 소유자·관리자·공유 워크스페이스 멤버면 편집, 비밀번호가 걸린 남의 노트는 맞혀야 들어온다.
-    - 비회원: 공개 노트만, 읽기 전용.
+    - 비회원: 붙이지 않는다(403). 공개 링크로 보는 비회원은 실시간 없이 저장본을 본다. 누구나 열 수 있는 링크라
+      연결이 한없이 늘 수 있어서다.
     - 보호 노트(편집 제한)·휴지통 노트는 읽기 전용.
     볼 수 없으면 조회와 같은 403/404/410 을 돌려준다.
     """
@@ -57,13 +58,12 @@ def authorize(request: AuthorizeRequest, service: NoteService = Depends(get_note
             user = UserRepository(service.repository.db).get_user_by_user_hash(payload.get("user_hash"))
         except InvalidTokenError:
             user = None
+    if user is None:
+        raise HTTPException(status_code=403, detail="로그인한 사람만 공동 편집에 붙습니다.")
 
-    note = service.get_note_by_hash_id(user_id=user.pk if user else None, note_hash=request.note,
-                                       password=request.password)
-    can_edit = bool(user) and note.is_editable and not note.is_protected and not note.is_deleted
-    return AuthorizeResponse(access="edit" if can_edit else "read",
-                             user_id=user.hash_id if user else None,
-                             user_name=user.name if user else "손님")
+    note = service.get_note_by_hash_id(user_id=user.pk, note_hash=request.note, password=request.password)
+    can_edit = note.is_editable and not note.is_protected and not note.is_deleted
+    return AuthorizeResponse(access="edit" if can_edit else "read", user_id=user.hash_id, user_name=user.name)
 
 
 class CollabState(BaseModel):

@@ -41,12 +41,13 @@ export default function Page() {
 
     /*
      * 공동 편집(4.0). 노트를 불러오면 collab 서버에 붙는다(휴지통 노트는 붙지 않고 저장본을 보여 준다).
-     * 권한은 서버가 정한다: 편집할 수 있으면 읽기·쓰기, 공개 링크의 비회원 등은 읽기 전용, 볼 수 없으면 거절.
+     * 로그인한 사람만 붙는다. 공개 링크로 보는 비회원은 실시간 없이 저장본을 본다(서버도 거절한다).
+     * 권한은 서버가 정한다: 편집할 수 있으면 읽기·쓰기, 볼 수만 있으면 읽기 전용, 볼 수 없으면 거절.
      * 거절되면 예전처럼 저장본을 읽기 전용으로 보여 준다.
      */
     const collabSession = useCollabDocument({
         noteId,
-        enabled: Boolean(COLLAB_URL) && state.status === "ready" && !isDeleted,
+        enabled: Boolean(COLLAB_URL) && Boolean(token) && state.status === "ready" && !isDeleted,
         password,
     })
     const collab = collabSession && collabSession.status !== "denied" ? collabSession : null
