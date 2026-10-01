@@ -369,23 +369,23 @@ body pre * {
 }
 
 /*
- * 본문 글. 줄 높이 1.5 에 문단 사이가 거의 없어 글이 다닥다닥 붙어 보였다.
- * 맥의 메모·문서 앱처럼 줄 사이를 넉넉히 두고, 문단·목록 사이에 숨 쉴 틈을 준다.
+ * 본문 글. 맥의 메모·Pages 처럼 줄 높이 1.6 에, 문단 사이는 줄 사이보다 조금만 더 띄운다.
+ * (예전 1.75 + 문단 위아래 여백은 문단 하나가 42px 이라 듬성듬성해 보였다. 지금은 34px 남짓.)
  */
 .ProseMirror {
     font-size: 16px;
-    line-height: 1.75;
+    line-height: 1.6;
     color: var(--foreground);
 }
 
 .ProseMirror > p + p,
 .ProseMirror > p + :is(ul, ol),
 .ProseMirror > :is(ul, ol) + p {
-    margin-top: .375rem;
+    margin-top: .25rem;
 }
 
 .ProseMirror li + li {
-    margin-top: .25rem;
+    margin-top: .125rem;
 }
 
 /*
@@ -436,7 +436,7 @@ body pre * {
 }
 
 .ProseMirror p:not(table p, blockquote p, li p, .details p) {
-    padding: 0.25rem;
+    padding: 0.125rem 0.25rem;
 }
 
 .ProseMirror p:not(table p):hover {
