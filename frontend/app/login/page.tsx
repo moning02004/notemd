@@ -22,7 +22,11 @@ export default function Page() {
     const {setAuth} = useAuthStore.getState();
     const [existsAccount, setExistsAccount] = useState<boolean | null>(null);
 
-    // 처음 열 때 한 번: 자동 로그인을 켜 두었으면 토큰을 다시 받아 들어가고, 아니면 계정이 있는지(최초 설치인지) 본다.
+    // 서버에 닿지 못했다(꺼졌거나 DB 가 멈춤). 가입 화면이나 끝없는 '잠시만' 대신 다시 시도할 길을 준다.
+    const [serverDown, setServerDown] = useState(false)
+    const [attempt, setAttempt] = useState(0)
+
+    // 처음 열 때(와 다시 시도할 때): 자동 로그인을 켜 두었으면 토큰을 다시 받아 들어가고, 아니면 계정이 있는지(최초 설치인지) 본다.
     useEffect(() => {
         const isAutoLogin = Cookies.get('auto-login') === '1'
         const checkAccountExistence = async () => {
@@ -30,7 +34,8 @@ export default function Page() {
                 const res = await apiRequest.get<CheckAccountExistenceResponse>("/check");
                 setExistsAccount(res.exists);
             } catch {
-                setExistsAccount(false);
+                // 예전에는 여기서 '계정 없음' 으로 보아 관리자 가입 화면을 띄웠다. 서버가 답하지 못한 것일 뿐이다.
+                setServerDown(true)
             }
         };
 
@@ -40,15 +45,25 @@ export default function Page() {
                 return
             }
 
-            const refreshRes = await fetch(`${API_HOST}/auth/refresh-token`, {
-                method: "POST",
-                credentials: "include",
-            });
+            let refreshRes: Response
+            try {
+                refreshRes = await fetch(`${API_HOST}/auth/refresh-token`, {
+                    method: "POST",
+                    credentials: "include",
+                });
+            } catch {
+                // 네트워크 오류(서버가 꺼짐, 5xx 에 CORS 헤더가 없음 등). 자동 로그인은 그대로 두고 다시 시도하게 한다.
+                setServerDown(true)
+                return
+            }
 
             if (refreshRes.ok) {
                 const data: AuthTokenResponse = await refreshRes.json();
                 setAuth(data.access_token, data.user_hash, data.must_change_password);
                 window.location.replace("/")
+            } else if (refreshRes.status >= 500) {
+                // 서버 탓이다. 로그인 정보가 틀린 것이 아니므로 자동 로그인을 끄지 않는다.
+                setServerDown(true)
             } else {
                 Cookies.remove('auto-login')
                 await checkAccountExistence()
@@ -56,7 +71,13 @@ export default function Page() {
         }
 
         checkAutoLogin()
-    }, [setAuth]);
+    }, [setAuth, attempt]);
+
+    const retry = () => {
+        setServerDown(false)
+        setExistsAccount(null)
+        setAttempt(value => value + 1)
+    }
 
     const login = async () => {
         if (isLoggingIn) return
@@ -99,6 +120,16 @@ export default function Page() {
         }
     }
 
+    if (serverDown) return (
+        <div className="flex min-h-screen flex-col items-center justify-center gap-2 px-4 text-center">
+            <p className="text-[15px] font-semibold text-foreground">서버에 연결하지 못했습니다.</p>
+            <p className="text-[13px] text-muted">잠시 뒤 다시 시도해주세요.</p>
+            <button onClick={retry}
+                    className="mt-3 rounded-lg bg-accent px-4 py-2 text-[13px] font-semibold text-white cursor-pointer hover:bg-accent-hover">
+                다시 시도
+            </button>
+        </div>
+    )
     if (existsAccount === null) return <LoadingPage/>
     if (!existsAccount) return <SignupPage setExistsAccount={setExistsAccount}/>
 
