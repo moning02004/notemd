@@ -5,7 +5,8 @@ import {NodeViewProps, NodeViewWrapper} from "@tiptap/react"
 import {ArrowDown, ArrowUp, GripVertical, Plus, Trash2} from "lucide-react"
 import {
     CALC_LABEL, calcsFor, calcText, CellValue, clampProgress, COLLECTION_LABEL, CollectionData, Column, COLUMN_TYPES,
-    formatNumber, formulaText, formulaValue, MAX_COLUMN_WIDTH, MIN_COLUMN_WIDTH, newColumn, newRow, optionOf,
+    displayText, formatNumber, formulaText, formulaValue, MAX_COLUMN_WIDTH, MIN_COLUMN_WIDTH, newColumn, newRow, numberRows,
+    optionOf,
     parseCollection, Row, SelectOption, serializeCollection, sortedRows,
 } from "@/lib/collection_core"
 import {Popover} from "@/components/collection/popover"
@@ -56,7 +57,8 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
 
     const update: Update = useCallback(change => {
         const {data: current, raw: currentRaw, updateAttributes: write} = latest.current
-        const next = serializeCollection(change(current))
+        // 새 행·ID 열에 번호를 바로 매겨 적는다(읽을 때도 매기지만, 적어 두어야 모두에게 같은 번호가 간다).
+        const next = serializeCollection(numberRows(change(current)))
         if (next === currentRaw || editor.isDestroyed) return
         try {
             write({data: next})
@@ -238,7 +240,7 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
 const POINTER: Record<Column["type"], "text" | "pointer" | undefined> = {
     text: "text", number: "text", url: "text", date: "text",
     select: "pointer", multiSelect: "pointer", checkbox: "pointer", progress: "pointer",
-    formula: undefined,
+    formula: undefined, id: undefined,
 }
 
 /**
@@ -421,6 +423,9 @@ function Cell(props: CellProps) {
             return <SelectCell {...props} value={value}/>
         case "formula":
             return <FormulaCell {...props}/>
+        case "id":
+            // 저절로 매기는 번호라 고칠 수 없다.
+            return <span className="collection-text collection-id">{displayText(column, value)}</span>
     }
 }
 

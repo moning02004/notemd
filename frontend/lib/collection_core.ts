@@ -15,7 +15,7 @@ export const COLLECTION_LABEL = "콜렉션"
 // ---------------------------------------------------------------- 데이터 모양
 
 export type ColumnType =
-    "text" | "number" | "select" | "multiSelect" | "checkbox" | "date" | "progress" | "url" | "formula"
+    "text" | "number" | "select" | "multiSelect" | "checkbox" | "date" | "progress" | "url" | "formula" | "id"
 
 export const COLUMN_TYPES: { type: ColumnType, label: string, glyph: string }[] = [
     {type: "text", label: "텍스트", glyph: "Aa"},
@@ -27,6 +27,7 @@ export const COLUMN_TYPES: { type: ColumnType, label: string, glyph: string }[] 
     {type: "progress", label: "진행도", glyph: "▰"},
     {type: "url", label: "링크", glyph: "↗"},
     {type: "formula", label: "수식", glyph: "ƒ"},
+    {type: "id", label: "ID", glyph: "№"},
 ]
 
 export const columnTypeLabel = (type: ColumnType) => COLUMN_TYPES.find(item => item.type === type)?.label ?? type
@@ -63,10 +64,14 @@ export type Column = {
     /** number·formula 값을 진행도 막대로 보인다(0~100). */
     asProgress: boolean
     calc: ColumnCalc
+    /** id 번호 앞에 붙이는 글자(예: "TASK-" → TASK-3) */
+    prefix: string
+    /** id 다음 번호. 지운 행의 번호를 다시 쓰지 않도록 따로 센다. */
+    next: number
 }
 
 /**
- * 칸 값. 종류별로 text·url·date: 문자열(날짜는 YYYY-MM-DD), number·progress: 숫자,
+ * 칸 값. 종류별로 text·url·date: 문자열(날짜는 YYYY-MM-DD), number·progress·id: 숫자,
  * checkbox: 참거짓, select: 선택지 id, multiSelect: 선택지 id 목록. 비어 있으면 null(또는 칸이 없다).
  */
 export type CellValue = string | number | boolean | string[] | null
@@ -84,7 +89,7 @@ export type CollectionData = {
 
 export const MIN_COLUMN_WIDTH = 80
 export const MAX_COLUMN_WIDTH = 640
-const DEFAULT_WIDTH: Partial<Record<ColumnType, number>> = {checkbox: 90, number: 110, date: 140, progress: 160}
+const DEFAULT_WIDTH: Partial<Record<ColumnType, number>> = {checkbox: 90, number: 110, date: 140, progress: 160, id: 100}
 export const defaultWidth = (type: ColumnType) => DEFAULT_WIDTH[type] ?? 180
 
 /*
@@ -96,7 +101,10 @@ export function newId(): string {
 }
 
 export function newColumn(type: ColumnType, name: string): Column {
-    return {id: newId(), name, type, width: defaultWidth(type), options: [], formula: "", asProgress: false, calc: "none"}
+    return {
+        id: newId(), name, type, width: defaultWidth(type), options: [], formula: "", asProgress: false, calc: "none",
+        prefix: "", next: 1,
+    }
 }
 
 export function newRow(): Row {
@@ -163,6 +171,8 @@ function normalizeColumn(raw: unknown): Column | null {
         formula: text(raw.formula, 2000),
         asProgress: raw.asProgress === true,
         calc,
+        prefix: text(raw.prefix, 20),
+        next: typeof raw.next === "number" && Number.isInteger(raw.next) && raw.next > 0 ? raw.next : 1,
     }
 }
 
@@ -200,6 +210,8 @@ export function normalizeCell(column: Column, value: unknown): CellValue {
                 typeof id === "string" && column.options.some(option => option.id === id)))]
             return ids.length ? ids : null
         }
+        case "id":
+            return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null
         case "formula":
             return null
     }
@@ -229,7 +241,35 @@ export function normalizeCollection(raw: unknown): CollectionData {
     const sort: CollectionSort = sortRaw && columns.some(column => column.id === sortRaw.columnId)
         ? {columnId: sortRaw.columnId as string, direction: sortRaw.direction === "desc" ? "desc" : "asc"}
         : null
-    return {title: text(raw.title, 200), columns, rows, sort}
+    return numberRows({title: text(raw.title, 200), columns, rows, sort})
+}
+
+/**
+ * ID 열의 번호를 채운다. 번호가 없거나 겹치는 행(새로 더한 행, ID 열로 바꾼 직후, 손으로 고친 데이터)에
+ * 다음 번호를 차례로 준다. 한 번 받은 번호는 정렬·옮기기·지우기에도 바뀌지 않고, 지운 번호는 다시 쓰지 않는다.
+ */
+export function numberRows(data: CollectionData): CollectionData {
+    const idColumns = data.columns.filter(column => column.type === "id")
+    if (idColumns.length === 0) return data
+    let rows = data.rows
+    const columns = data.columns.map(column => {
+        if (column.type !== "id") return column
+        const taken = rows.map(row => row.cells[column.id]).filter((value): value is number => typeof value === "number")
+        let next = Math.max(column.next, ...taken.map(value => value + 1))
+        const seen = new Set<number>()
+        rows = rows.map(row => {
+            const value = row.cells[column.id]
+            if (typeof value === "number" && !seen.has(value)) {
+                seen.add(value)
+                return row
+            }
+            const number = next++
+            seen.add(number)
+            return {...row, cells: {...row.cells, [column.id]: number}}
+        })
+        return next === column.next ? column : {...column, next}
+    })
+    return {...data, columns, rows}
 }
 
 export function parseCollection(json: string | null | undefined): CollectionData {
@@ -267,7 +307,9 @@ export function changeColumnType(data: CollectionData, columnId: string, type: C
     const plain = (row: Row): string | number | boolean | null => {
         const value = row.cells[columnId] ?? null
         if (before.type === "formula") return null
-        if (before.type === "select" || before.type === "multiSelect") return displayText(before, value) || null
+        if (before.type === "select" || before.type === "multiSelect" || before.type === "id") {
+            return displayText(before, value) || null
+        }
         if (Array.isArray(value)) return null
         return value
     }
@@ -311,10 +353,14 @@ export function changeColumnType(data: CollectionData, columnId: string, type: C
                 const names = String(value).split(",").map(name => name.trim()).filter(Boolean)
                 return names.length ? [...new Set(names.map(optionFor))] : null
             }
+            case "id":
             case "formula":
                 return null
         }
     }
+
+    // ID 열로 바꾸면 적어 둔 값은 버리고 지금 행 순서대로 1 부터 매긴다(numberRows).
+    if (type === "id") after = {...after, next: 1}
 
     const rows = data.rows.map(row => {
         const cells = {...row.cells}
@@ -324,11 +370,11 @@ export function changeColumnType(data: CollectionData, columnId: string, type: C
         return {...row, cells}
     })
 
-    return {
+    return numberRows({
         ...data,
         columns: data.columns.map(column => (column.id === columnId ? after : column)),
         rows,
-    }
+    })
 }
 
 export const clampProgress = (value: number) => Math.min(100, Math.max(0, Math.round(value)))
@@ -360,6 +406,8 @@ export function displayText(column: Column, value: CellValue): string {
             return typeof value === "number" ? formatNumber(value) : ""
         case "progress":
             return typeof value === "number" ? `${clampProgress(value)}%` : ""
+        case "id":
+            return typeof value === "number" ? `${column.prefix}${value}` : ""
         default:
             return typeof value === "string" ? value : String(value)
     }
@@ -927,6 +975,8 @@ function columnValue(data: CollectionData, column: Column, row: Row, depth: numb
     const value = row.cells[column.id] ?? null
     if (value === null) return column.type === "checkbox" ? false : null
     if (column.type === "select") return typeof value === "string" ? optionOf(column, value)?.name ?? null : null
+    // 앞 글자가 있으면 보이는 그대로("TASK-3"), 없으면 숫자로 셈에 쓴다.
+    if (column.type === "id") return typeof value === "number" && column.prefix ? `${column.prefix}${value}` : value
     if (column.type === "multiSelect") {
         return Array.isArray(value) ? value.map(id => optionOf(column, id)?.name ?? "").filter(Boolean) : null
     }

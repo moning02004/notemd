@@ -1388,3 +1388,9 @@ body.collection-reordering * {
     cursor: grabbing !important;
     user-select: none !important;
 }
+
+/* ID 칸: 저절로 매기는 번호라 고칠 수 없다. 흐린 고정폭 숫자로 */
+.collection-id {
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}

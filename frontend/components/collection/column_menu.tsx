@@ -104,6 +104,8 @@ export function ColumnMenu({data, column, update, onClose}: {
 
             {column.type === "formula" && <FormulaEditor data={data} column={column} patch={patch}/>}
 
+            {column.type === "id" && <IdPrefixInput column={column} patch={patch}/>}
+
             {(column.type === "number" || column.type === "formula") && (
                 <button type="button" className={menuButton} onClick={() => patch({asProgress: !column.asProgress})}>
                     <span className="w-5 text-center text-[11px] text-muted">▰</span>
@@ -136,6 +138,32 @@ export function ColumnMenu({data, column, update, onClose}: {
                     disabled={data.columns.length <= 1} onClick={remove}>
                 <Trash2 size={14}/> 열 지우기
             </button>
+        </div>
+    )
+}
+
+/** ID 번호 앞에 붙일 글자. 바꾸면 모든 행의 보이는 번호가 함께 바뀐다(번호 자체는 그대로). */
+function IdPrefixInput({column, patch}: { column: Column, patch: (fields: Partial<Column>) => void }) {
+    const [draft, setDraft] = useState(column.prefix)
+    const latest = useRef({draft, patch})
+    useLayoutEffect(() => {
+        latest.current = {draft, patch}
+    })
+    // 바깥을 눌러 창이 닫힐 때도 남긴다.
+    useEffect(() => () => latest.current.patch({prefix: latest.current.draft.slice(0, 20)}), [])
+    return (
+        <div className="my-1 flex flex-col gap-1 rounded-lg bg-background p-1.5">
+            <label className="px-1 text-[11px] text-muted" htmlFor={`prefix-${column.id}`}>번호 앞 글자</label>
+            <input id={`prefix-${column.id}`} value={draft} maxLength={20} placeholder="예: TASK-"
+                   className="w-full rounded-md border border-border bg-surface px-2 py-1 outline-none focus:border-accent"
+                   onChange={event => setDraft(event.target.value)}
+                   onBlur={() => patch({prefix: draft.slice(0, 20)})}
+                   onKeyDown={event => {
+                       if (!event.nativeEvent.isComposing && event.key === "Enter") event.currentTarget.blur()
+                   }}/>
+            <div className="px-1 text-[11px] text-subtle">
+                보기: {draft}1, {draft}2 … 행마다 저절로 매기고, 지운 번호는 다시 쓰지 않습니다.
+            </div>
         </div>
     )
 }
