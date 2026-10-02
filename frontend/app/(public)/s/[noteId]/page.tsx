@@ -45,17 +45,25 @@ export default function Page() {
      * 권한은 서버가 정한다: 편집할 수 있으면 읽기·쓰기, 볼 수만 있으면 읽기 전용, 볼 수 없으면 거절.
      * 거절되면 예전처럼 저장본을 읽기 전용으로 보여 준다.
      */
+    /*
+     * 공동 편집 서버에 붙지 못하면(서버가 꺼졌거나 프록시 설정이 틀림) 실시간 없이 저장본을 고친다(예전처럼 자동 저장).
+     * 한 번 그렇게 되면 이 노트를 다시 열 때까지 연결을 멈춘다. 고치는 도중에 붙어 공동 편집 문서로 바꿔 그리면
+     * 아직 저장하지 못한 글이 사라진다. 그동안 저장한 본문은 서버가 다음에 문서를 열 때 새로 읽는다(저장된 Y 문서를 비운다).
+     */
+    const [fallbackNoteId, setFallbackNoteId] = useState<string | null>(null)
+    const collabFallback = fallbackNoteId === noteId
+
     const collabSession = useCollabDocument({
         noteId,
-        enabled: Boolean(COLLAB_URL) && Boolean(token) && state.status === "ready" && !isDeleted,
+        enabled: Boolean(COLLAB_URL) && Boolean(token) && state.status === "ready" && !isDeleted && !collabFallback,
         password,
         // 이 기기에 사본을 두어 끊겨도 고칠 수 있게 한다(4.1). 암호화·비밀번호 노트는 공용 컴퓨터에 남지 않게 두지 않는다.
         persist: Boolean(draft) && !draft?.isEncrypted && !draft?.password && !password,
     })
-    // 문서를 받기 전에 오래 걸리면(서버가 꺼졌거나 프록시 설정이 틀림) 저장본을 읽기 전용으로 보여 준다.
-    // 그동안 고치게 하면, 다른 사람이 공동 편집으로 고치던 내용과 서로 덮어쓸 수 있다.
+    // 서버 문서도 이 기기의 사본도 없이 오래 걸리면 실시간 없이 고치는 쪽으로 넘어간다(위).
     const collabStalled = Boolean(collabSession && !collabSession.synced && collabSession.stalled
         && collabSession.status !== "denied")
+    if (collabStalled && !collabFallback) setFallbackNoteId(noteId)
     const collab = collabSession && collabSession.status !== "denied" && !collabStalled ? collabSession : null
     const collabDenied = collabSession?.status === "denied"
 
@@ -163,7 +171,9 @@ export default function Page() {
 
     // 휴지통 노트는 복원하기 전까지 고칠 수 없다(서버도 막는다). 공동 편집은 서버가 읽기 전용으로 붙였으면 따른다.
     // 오프라인이면 서버가 권한을 알려 주지 못했으므로, 노트를 불러올 때 받은 권한을 따른다.
-    const isReadonly = !token || draft.isProtected || isDeleted || collabDenied || collabStalled
+    // 실시간 없이 고칠 때는 서버가 권한을 알려 주지 못했으므로 노트를 불러올 때 받은 권한을 따른다(오프라인과 같다).
+    const isReadonly = !token || draft.isProtected || isDeleted || collabDenied
+        || (collabFallback && !isEditable)
         || (collab?.offline ? !isEditable : Boolean(collab?.readOnly))
     // 공동 편집 중에는 저장 표시가 연결 상태를 따른다(편집은 연결돼 있는 동안 계속 저장된다).
     const collabStatusType = collab?.status === "connected" ? "complete"
@@ -235,12 +245,13 @@ export default function Page() {
         </div>
     )
 
-    const collabNotice = collabStalled && (
+    const collabNotice = collabFallback && !isDeleted && (
         <div role="status"
              className="flex items-center gap-2 border-b border-border bg-chip-open-soft px-4 py-2.5 text-[13px] text-chip-open">
             <FiAlertTriangle size={14} className="shrink-0"/>
             <span className="flex-1">
-                공동 편집 서버에 연결하지 못해 저장된 내용을 읽기 전용으로 보여 줍니다. 연결되면 바로 이어서 고칠 수 있습니다.
+                공동 편집 서버에 연결하지 못해 실시간 반영 없이 편집합니다. 고친 내용은 그대로 저장되지만,
+                그사이 다른 사람이 같은 노트를 고치면 먼저 저장된 쪽을 알려 드립니다. 노트를 다시 열면 연결을 다시 시도합니다.
             </span>
         </div>
     )
