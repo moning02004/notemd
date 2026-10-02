@@ -1401,3 +1401,79 @@ body.collection-reordering * {
     color: var(--muted);
     font-variant-numeric: tabular-nums;
 }
+
+/* -------------------------
+ * 콜렉션 칸 옮겨 다니기·여러 칸 고르기(components/collection/cell_navigation.ts)
+------------------------- */
+.collection-grid:focus,
+.collection-cell:focus {
+    outline: none;
+}
+
+.collection-cell[data-selected] {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* 끌어서 고르는 동안 글자가 골라지지 않게 */
+body.collection-selecting,
+body.collection-selecting * {
+    user-select: none !important;
+}
+
+.collection-toolbar-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: .375rem;
+    color: var(--muted);
+}
+
+.collection-toolbar-button:hover {
+    background: color-mix(in srgb, var(--accent-menu) 50%, transparent);
+    color: var(--foreground);
+}
+
+.collection-toolbar-button.is-active {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+/*
+ * 칸 정렬(data-align·data-valign). 정하지 않은 칸은 종류의 기본(숫자는 오른쪽)을 따른다.
+ * 세로 정렬은 칸을 세로 flex 로 두고 안의 것을 위·가운데·아래로 민다.
+ */
+.collection-cell {
+    display: flex;
+    flex-direction: column;
+}
+
+.collection-cell > * {
+    flex-shrink: 0;
+}
+
+.collection-cell[data-valign="middle"] {
+    justify-content: center;
+}
+
+.collection-cell[data-valign="bottom"] {
+    justify-content: flex-end;
+}
+
+.collection-cell:is([data-valign="middle"], [data-valign="bottom"]) > :is(.collection-tags, .collection-check) {
+    height: auto;
+}
+
+.collection-cell[data-align="left"] :is(.collection-input, .collection-text) { text-align: left; }
+.collection-cell[data-align="center"] :is(.collection-input, .collection-text) { text-align: center; }
+.collection-cell[data-align="right"] :is(.collection-input, .collection-text) { text-align: right; }
+.collection-cell[data-align="left"] :is(.collection-tags, .collection-check) { justify-content: flex-start; }
+.collection-cell[data-align="center"] :is(.collection-tags, .collection-check) { justify-content: center; }
+.collection-cell[data-align="right"] :is(.collection-tags, .collection-check) { justify-content: flex-end; }
+
+/* 줄 끝 자리(행 지우기)는 칸이지만 가로로 둔다 */
+.collection-cell.collection-tail {
+    flex-direction: row;
+}

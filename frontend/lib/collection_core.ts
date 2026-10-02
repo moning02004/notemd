@@ -76,7 +76,18 @@ export type Column = {
  */
 export type CellValue = string | number | boolean | string[] | null
 
-export type Row = { id: string, cells: Record<string, CellValue> }
+export type CellAlign = "left" | "center" | "right"
+export type CellVerticalAlign = "top" | "middle" | "bottom"
+
+/** 칸 정렬. 정하지 않으면 종류의 기본(숫자는 오른쪽, 나머지는 왼쪽·위)을 따른다. */
+export type CellFormat = { align?: CellAlign, valign?: CellVerticalAlign }
+
+export type Row = {
+    id: string
+    cells: Record<string, CellValue>
+    /** 열 id → 칸 정렬. 정한 칸만 있다. */
+    format?: Record<string, CellFormat>
+}
 
 export type CollectionSort = { columnId: string, direction: "asc" | "desc" } | null
 
@@ -217,15 +228,52 @@ export function normalizeCell(column: Column, value: unknown): CellValue {
     }
 }
 
+const ALIGNS: CellAlign[] = ["left", "center", "right"]
+const VERTICAL_ALIGNS: CellVerticalAlign[] = ["top", "middle", "bottom"]
+
+function normalizeFormat(raw: unknown): CellFormat | null {
+    if (!isRecord(raw)) return null
+    const format: CellFormat = {}
+    if (ALIGNS.includes(raw.align as CellAlign)) format.align = raw.align as CellAlign
+    if (VERTICAL_ALIGNS.includes(raw.valign as CellVerticalAlign)) format.valign = raw.valign as CellVerticalAlign
+    return format.align || format.valign ? format : null
+}
+
 function normalizeRow(raw: unknown, columns: Column[]): Row | null {
     if (!isRecord(raw)) return null
     const cells: Record<string, CellValue> = {}
+    const format: Record<string, CellFormat> = {}
     const source = isRecord(raw.cells) ? raw.cells : {}
+    const sourceFormat = isRecord(raw.format) ? raw.format : {}
     for (const column of columns) {
         const value = normalizeCell(column, source[column.id])
         if (value !== null) cells[column.id] = value
+        const cellFormat = normalizeFormat(sourceFormat[column.id])
+        if (cellFormat) format[column.id] = cellFormat
     }
-    return {id: safeId(raw.id), cells}
+    return Object.keys(format).length ? {id: safeId(raw.id), cells, format} : {id: safeId(raw.id), cells}
+}
+
+/** 칸 정렬을 고친다. 값이 undefined 인 쪽은 지운다(종류의 기본으로). */
+export function withFormat(row: Row, columnId: string, patch: CellFormat): Row {
+    const next: CellFormat = {...row.format?.[columnId], ...patch}
+    if (!next.align) delete next.align
+    if (!next.valign) delete next.valign
+    const format = {...row.format}
+    if (next.align || next.valign) format[columnId] = next
+    else delete format[columnId]
+    if (Object.keys(format).length) return {...row, format}
+    const rest = {...row}
+    delete rest.format
+    return rest
+}
+
+/** 저장 HTML 의 <td> 에 옮겨 적는 정렬. 정해진 값만 들어간다. */
+export function formatStyle(format: CellFormat | undefined): string {
+    const style = []
+    if (format?.align) style.push(`text-align: ${format.align}`)
+    if (format?.valign) style.push(`vertical-align: ${format.valign}`)
+    return style.join("; ")
 }
 
 const MAX_COLUMNS = 50

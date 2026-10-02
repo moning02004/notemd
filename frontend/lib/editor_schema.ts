@@ -34,7 +34,7 @@ import TextAlign from "@tiptap/extension-text-align"
 import {Table, TableCell, TableHeader, TableRow} from "@tiptap/extension-table"
 import {TaskItem, TaskList} from "@tiptap/extension-list"
 import {Details, DetailsContent, DetailsSummary} from "@tiptap/extension-details"
-import {cellText, COLLECTION_LABEL, parseCollection, serializeCollection, sortedRows} from "./collection_core"
+import {cellText, COLLECTION_LABEL, formatStyle, parseCollection, serializeCollection, sortedRows} from "./collection_core"
 
 // ---------------------------------------------------------------- 표
 
@@ -258,7 +258,10 @@ export const CollectionBase = Node.create({
         const columns = data.columns
         const head = ["thead", {}, ["tr", {}, ...columns.map(column => ["th", {}, column.name])]]
         const body = ["tbody", {}, ...sortedRows(data).map(row =>
-            ["tr", {}, ...columns.map(column => ["td", {}, cellText(data, column, row)])])]
+            ["tr", {}, ...columns.map(column => {
+                const style = formatStyle(row.format?.[column.id])
+                return ["td", style ? {style} : {}, cellText(data, column, row)]
+            })])]
         return [
             "div",
             {"data-type": "collection", "data-collection": serializeCollection(data), class: "collection"},

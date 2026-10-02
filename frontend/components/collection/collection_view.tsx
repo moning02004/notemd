@@ -1,18 +1,27 @@
 "use client"
 
-import {CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from "react"
-import {NodeViewProps, NodeViewWrapper} from "@tiptap/react"
-import {ArrowDown, ArrowUp, GripVertical, Plus, Trash2} from "lucide-react"
 import {
-    CALC_LABEL, calcsFor, calcText, CellValue, clampProgress, COLLECTION_LABEL, CollectionData, Column, COLUMN_TYPES,
+    CSSProperties, KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent,
+    ReactNode, RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
+} from "react"
+import {NodeViewProps, NodeViewWrapper} from "@tiptap/react"
+import {
+    AlignCenter, AlignLeft, AlignRight, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart,
+    ArrowDown, ArrowUp, Eraser, GripVertical, Plus, Trash2,
+} from "lucide-react"
+import {
+    CALC_LABEL, calcsFor, calcText, CellAlign, CellFormat, CellValue, CellVerticalAlign, clampProgress, COLLECTION_LABEL, CollectionData, Column, COLUMN_TYPES,
     displayText, formatNumber, formulaText, formulaValue, MAX_COLUMN_WIDTH, MIN_COLUMN_WIDTH, newColumn, newRow, numberRows,
     optionOf,
-    parseCollection, Row, SelectOption, serializeCollection, sortedRows,
+    parseCollection, Row, SelectOption, serializeCollection, sortedRows, withFormat,
 } from "@/lib/collection_core"
 import {Popover} from "@/components/collection/popover"
 import {OptionPicker, TagBubble} from "@/components/collection/option_picker"
 import {ColumnMenu} from "@/components/collection/column_menu"
 import {moveItem, startReorder} from "@/components/collection/reorder"
+import {
+    cellAt, CellRange, focusCellAt, inRange, moveFor, pointOf, rangeOf, startCellSelect, swallowNextClick,
+} from "@/components/collection/cell_navigation"
 
 type Update = (change: (data: CollectionData) => CollectionData) => void
 
@@ -23,6 +32,16 @@ type ReorderStart = (event: ReactPointerEvent<HTMLElement>, index: number) => vo
 const TAIL_WIDTH = 36
 /** 줄 앞(행 손잡이) 자리의 폭 */
 const GUTTER_WIDTH = 16
+
+/** 그리드의 열 폭들. 왼쪽 끝은 행 손잡이 자리(고칠 수 있을 때만), 오른쪽 끝은 남는 폭을 다 차지한다. */
+const gridTemplate = (widths: number[], editable: boolean) => [
+    ...(editable ? [`${GUTTER_WIDTH}px`] : []),
+    ...widths.map(width => `${width}px`),
+    `minmax(${TAIL_WIDTH}px, 1fr)`,
+].join(" ")
+
+/** 고를 수 없는(저절로 채워지는) 칸. 여러 칸을 골라 지울 때 건너뛴다. */
+const COMPUTED: Column["type"][] = ["formula", "id"]
 
 /** 에디터가 읽기 전용으로 바뀌는 것(공유 화면, 잠금)을 따라간다. setEditable 은 노드를 바꾸지 않아 다시 그려지지 않는다. */
 function useEditable(editor: NodeViewProps["editor"]) {
@@ -44,7 +63,7 @@ function useEditable(editor: NodeViewProps["editor"]) {
  * 콜렉션의 노드 뷰. 내용은 노드의 data 속성(JSON) 하나에 있고, 고칠 때마다 속성을 통째로 바꾼다
  * (되돌리기·공동 편집이 그대로 따라온다). 글을 치는 칸은 치는 동안 화면에만 두었다가 칸을 나갈 때 적는다.
  */
-export function CollectionView({node, updateAttributes, editor}: NodeViewProps) {
+export function CollectionView({node, updateAttributes, editor, getPos}: NodeViewProps) {
     const raw = node.attrs.data as string
     const data = useMemo(() => parseCollection(raw), [raw])
     const editable = useEditable(editor)
@@ -75,12 +94,7 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
     const columns = preview?.kind === "column" ? moveItem(data.columns, preview.from, preview.to) : data.columns
     const rows = preview?.kind === "row" ? moveItem(sorted, preview.from, preview.to) : sorted
 
-    // 왼쪽 끝은 행 손잡이 자리(고칠 수 있을 때만), 오른쪽 끝은 행 지우기·열 더하기 자리. 남는 폭은 오른쪽 끝이 차지한다.
-    const gridTemplateColumns = [
-        ...(editable ? [`${GUTTER_WIDTH}px`] : []),
-        ...columns.map(column => `${column.width}px`),
-        `minmax(${TAIL_WIDTH}px, 1fr)`,
-    ].join(" ")
+    const gridTemplateColumns = gridTemplate(columns.map(column => column.width), editable)
     const showCalcRow = editable || data.columns.some(column => column.calc !== "none")
 
     const setCell = useCallback((rowId: string, columnId: string, value: CellValue) => update(current => ({
@@ -135,6 +149,137 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
         focusRow.current = null
         field.focus()
     }, [rows])
+    // ---- 여러 칸 고르기
+    const [selection, setSelection] = useState<CellRange | null>(null)
+    const [selectionAnchor, setSelectionAnchor] = useState<HTMLElement | null>(null)
+    const clearSelection = useCallback(() => setSelection(null), [])
+    // 고른 칸 중 왼쪽 위 칸에 정렬 막대를 붙인다(위로 띄운다).
+    useLayoutEffect(() => {
+        setSelectionAnchor(selection && grid.current
+            ? cellAt(grid.current, {r: selection.top, c: selection.left})
+            : null)
+    }, [selection, rows, columns])
+
+    /** 고른 칸들(화면 순서의 행·열)마다 행을 고친다. */
+    const updateSelected = (change: (row: Row, column: Column) => Row) => {
+        if (!selection) return
+        const rowIds = rows.slice(selection.top, selection.bottom + 1).map(row => row.id)
+        const picked = columns.slice(selection.left, selection.right + 1)
+        update(current => ({
+            ...current,
+            rows: current.rows.map(row => (rowIds.includes(row.id)
+                ? picked.reduce((next, column) => change(next, column), row)
+                : row)),
+        }))
+    }
+    const formatSelected = (patch: CellFormat) => updateSelected((row, column) => withFormat(row, column.id, patch))
+    const clearSelected = () => updateSelected((row, column) => {
+        if (COMPUTED.includes(column.type) || !(column.id in row.cells)) return row
+        const cells = {...row.cells}
+        delete cells[column.id]
+        return {...row, cells}
+    })
+
+    const onGridPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+        if (!editable || !grid.current) return
+        const point = pointOf(event.target as Element)
+        if (!point) return
+        // Shift 를 누르고 누르면 지금 칸부터 누른 칸까지 고른다.
+        const active = pointOf(document.activeElement)
+        if (event.shiftKey && (active || selection)) {
+            event.preventDefault()
+            const from = selection ? {r: selection.top, c: selection.left} : active!
+            setSelection(rangeOf(from, point))
+            swallowNextClick()
+            ;(document.activeElement as HTMLElement | null)?.blur()
+            grid.current.focus({preventScroll: true})
+            return
+        }
+        setSelection(null)
+        startCellSelect({
+            event, grid: grid.current,
+            onRange: setSelection,
+            // 고른 다음 Delete·Esc·화살표를 받도록 그리드에 포커스를 둔다.
+            onEnd: () => grid.current?.focus({preventScroll: true}),
+        })
+    }
+
+    // ---- 키보드로 칸 옮겨 다니기
+
+    /** 콜렉션 밖으로 나가 위·아래 글에 커서를 둔다. 붙어 있는 글 줄이 없으면 빈 줄을 만든다. */
+    const leave = (side: "before" | "after") => {
+        // 쓰던 칸을 먼저 적는다. 에디터로 포커스를 옮기는 도중에 적으면 서로 다른 문서 상태로 고치게 된다.
+        ;(document.activeElement as HTMLElement | null)?.blur()
+        const pos = getPos()
+        if (typeof pos !== "number" || editor.isDestroyed) return
+        const self = editor.state.doc.nodeAt(pos)
+        if (!self) return
+        if (side === "after") {
+            const end = pos + self.nodeSize
+            if (editor.state.doc.resolve(end).nodeAfter?.isTextblock) editor.commands.setTextSelection(end + 1)
+            else editor.chain().insertContentAt(end, {type: "paragraph"}).setTextSelection(end + 1).run()
+        } else if (editor.state.doc.resolve(pos).nodeBefore?.isTextblock) {
+            editor.commands.setTextSelection(pos - 1)
+        } else {
+            editor.chain().insertContentAt(pos, {type: "paragraph"}).setTextSelection(pos + 1).run()
+        }
+        // 명령의 focus() 는 다음 프레임에 포커스를 옮겨, 그사이 브라우저가 포커스를 body 에 두고 끝난다. 바로 옮긴다.
+        editor.view.focus()
+    }
+
+    const title = useRef<HTMLInputElement>(null)
+
+    const onGridKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+        if (!editable || !grid.current || event.defaultPrevented || event.nativeEvent.isComposing) return
+        if (event.altKey || event.metaKey || event.ctrlKey) return
+
+        if (selection) {
+            if (event.key === "Delete" || event.key === "Backspace") {
+                event.preventDefault()
+                clearSelected()
+            } else if (event.key === "Escape") {
+                setSelection(null)
+            } else if (event.key.startsWith("Arrow") || event.key === "Enter") {
+                event.preventDefault()
+                setSelection(null)
+                focusCellAt(grid.current, {r: selection.top, c: selection.left})
+            }
+            return
+        }
+
+        const target = event.target as HTMLElement
+        const cell = target.closest<HTMLElement>("[data-cell]")
+        const point = pointOf(target)
+        if (!cell || !point) return
+        if (event.key === "Escape") {
+            // 입력칸에서 빠져 칸에 머문다(화살표로 계속 옮겨 다닌다).
+            if (target !== cell) {
+                event.preventDefault()
+                cell.focus()
+            }
+            return
+        }
+        const found = moveFor(event, point, rows.length, columns.length)
+        if (!found) return
+        event.preventDefault()
+        const {move, caret} = found
+        if (move === "stay") {
+            // 아래 칸이 없다. 적기만 하고 칸에 머문다.
+            if (target !== cell) cell.focus()
+        } else if (move === "after") {
+            leave("after")
+        } else if (move === "title") {
+            if (title.current) {
+                title.current.focus()
+                title.current.setSelectionRange(title.current.value.length, title.current.value.length)
+            } else {
+                leave("before")
+            }
+        } else {
+            focusCellAt(grid.current, move, caret)
+        }
+    }
+
     const removeRow = (rowId: string) => update(current => ({...current, rows: current.rows.filter(row => row.id !== rowId)}))
     const addColumn = () => update(current => ({
         ...current,
@@ -144,11 +289,17 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
     return (
         <NodeViewWrapper className="collection-view" data-type="collection">
             <div contentEditable={false} className="select-none">
-                <TitleInput value={data.title} editable={editable}
-                            onCommit={title => update(current => ({...current, title: title.slice(0, 200)}))}/>
+                <TitleInput ref={title} value={data.title} editable={editable}
+                            onCommit={value => update(current => ({...current, title: value.slice(0, 200)}))}
+                            onUp={() => leave("before")}
+                            onDown={() => {
+                                if (!grid.current || !focusCellAt(grid.current, {r: 0, c: 0})) leave("after")
+                            }}/>
                 <div className="collection-scroll"
                      style={{"--collection-gutter": editable ? `${GUTTER_WIDTH}px` : "0px"} as CSSProperties}>
-                    <div ref={grid} className="collection-grid" style={{gridTemplateColumns}} role="table">
+                    <div ref={grid} className="collection-grid" style={{gridTemplateColumns}} role="table"
+                         tabIndex={editable ? -1 : undefined}
+                         onPointerDown={onGridPointerDown} onKeyDown={onGridKeyDown}>
                         {/* 머리 */}
                         <div className="contents" role="row">
                             {editable && <div className="collection-gutter"/>}
@@ -168,7 +319,7 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
                             </div>
                         </div>
 
-                        {rows.map(row => (
+                        {rows.map((row, rowIndex) => (
                             <div key={row.id} className="contents group/row" role="row" data-row-id={row.id}
                                  data-dragging={(preview?.kind === "row" && preview.id === row.id) || undefined}>
                                 {editable && (
@@ -186,6 +337,11 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
                                 )}
                                 {columns.map((column, columnIndex) => (
                                     <div key={column.id} className="collection-cell" role="cell"
+                                         data-cell="" data-r={rowIndex} data-c={columnIndex}
+                                         tabIndex={editable ? -1 : undefined}
+                                         data-selected={inRange(selection, rowIndex, columnIndex) || undefined}
+                                         data-align={row.format?.[column.id]?.align}
+                                         data-valign={row.format?.[column.id]?.valign}
                                          data-row-first={columnIndex === 0 || undefined}
                                          data-dragging={(preview?.kind === "column" && preview.id === column.id) || undefined}
                                          data-pointer={editable ? POINTER[column.type] : undefined}
@@ -216,6 +372,15 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
                                     <Plus size={14}/> 새 행
                                 </button>
                             </div>
+                        )}
+
+                        {selection && selectionAnchor && (
+                            <Popover anchor={selectionAnchor} onClose={clearSelection} side="top" width={286}
+                                     ignore={selectionAnchor.closest<HTMLElement>(".collection-grid")}>
+                                <SelectionToolbar
+                                    format={rows[selection.top]?.format?.[columns[selection.left]?.id]}
+                                    onFormat={formatSelected} onClear={clearSelected}/>
+                            </Popover>
                         )}
 
                         {showCalcRow && (
@@ -268,17 +433,66 @@ function focusCell(event: ReactMouseEvent<HTMLDivElement>) {
     }
 }
 
-function TitleInput({value, editable, onCommit}: { value: string, editable: boolean, onCommit: (value: string) => void }) {
+/** 제목. ↑ 는 콜렉션 위 글로, ↓·Enter 는 첫 칸으로 간다. */
+function TitleInput({ref, value, editable, onCommit, onUp, onDown}: {
+    ref: RefObject<HTMLInputElement | null>
+    value: string
+    editable: boolean
+    onCommit: (value: string) => void
+    onUp: () => void
+    onDown: () => void
+}) {
     const {draft, setDraft, onBlur} = useDraft(value, onCommit)
     if (!editable) return value ? <div className="collection-title">{value}</div> : null
     return (
-        <input value={draft} placeholder={`${COLLECTION_LABEL} 제목`} className="collection-title"
+        <input ref={ref} value={draft} placeholder={`${COLLECTION_LABEL} 제목`} className="collection-title"
                onChange={event => setDraft(event.target.value)}
                onBlur={onBlur}
                onKeyDown={event => {
                    if (event.nativeEvent.isComposing) return
-                   if (event.key === "Enter") (event.target as HTMLInputElement).blur()
+                   if (event.key === "ArrowUp") {
+                       event.preventDefault()
+                       onUp()
+                   } else if (event.key === "ArrowDown" || event.key === "Enter") {
+                       event.preventDefault()
+                       onDown()
+                   }
                }}/>
+    )
+}
+
+/** 여러 칸을 골랐을 때 위에 뜨는 막대: 가로·세로 정렬, 내용 지우기. */
+function SelectionToolbar({format, onFormat, onClear}: {
+    /** 왼쪽 위 칸의 정렬(지금 무엇이 켜져 있는지 보인다) */
+    format: CellFormat | undefined
+    onFormat: (patch: CellFormat) => void
+    onClear: () => void
+}) {
+    const button = (active: boolean, label: string, icon: ReactNode, onClick: () => void) => (
+        <button key={label} type="button" aria-label={label} title={label} aria-pressed={active} onClick={onClick}
+                className={`collection-toolbar-button ${active ? "is-active" : ""}`}>
+            {icon}
+        </button>
+    )
+    const aligns: [CellAlign, string, ReactNode][] = [
+        ["left", "왼쪽 정렬", <AlignLeft key="l" size={15}/>],
+        ["center", "가운데 정렬", <AlignCenter key="c" size={15}/>],
+        ["right", "오른쪽 정렬", <AlignRight key="r" size={15}/>],
+    ]
+    const valigns: [CellVerticalAlign, string, ReactNode][] = [
+        ["top", "위로 정렬", <AlignVerticalJustifyStart key="t" size={15}/>],
+        ["middle", "세로 가운데 정렬", <AlignVerticalJustifyCenter key="m" size={15}/>],
+        ["bottom", "아래로 정렬", <AlignVerticalJustifyEnd key="b" size={15}/>],
+    ]
+    return (
+        <div className="flex items-center gap-0.5">
+            {aligns.map(([align, label, icon]) => button(format?.align === align, label, icon, () => onFormat({align})))}
+            <span className="mx-1 h-4 w-px bg-border"/>
+            {valigns.map(([valign, label, icon]) =>
+                button(format?.valign === valign, label, icon, () => onFormat({valign})))}
+            <span className="mx-1 h-4 w-px bg-border"/>
+            {button(false, "내용 지우기 (Delete)", <Eraser size={15}/>, onClear)}
+        </div>
     )
 }
 
@@ -306,8 +520,8 @@ function HeaderCell({data, column, editable, update, dragging, onReorderStart}: 
         let width = column.width
         const onMove = (move: PointerEvent) => {
             width = Math.min(MAX_COLUMN_WIDTH, Math.max(MIN_COLUMN_WIDTH, Math.round(column.width + move.clientX - startX)))
-            const widths = data.columns.map((item, i) => (i === index ? width : item.width))
-            grid.style.gridTemplateColumns = `${widths.map(value => `${value}px`).join(" ")} minmax(${TAIL_WIDTH}px, 1fr)`
+            grid.style.gridTemplateColumns = gridTemplate(
+                data.columns.map((item, i) => (i === index ? width : item.width)), editable)
         }
         const onUp = () => {
             window.removeEventListener("pointermove", onMove)
@@ -460,16 +674,9 @@ function TextCell({column, row, editable, setCell, value}: CellProps & { value: 
 
     if (!editable) return <span className="collection-text">{value}</span>
     return (
+        // Enter(아래 칸으로)·화살표는 그리드가 받는다(cell_navigation). 줄바꿈은 Shift+Enter.
         <textarea ref={ref} rows={1} value={draft} className="collection-input collection-textarea"
-                  onChange={event => setDraft(event.target.value)} onBlur={onBlur}
-                  onKeyDown={event => {
-                      if (event.nativeEvent.isComposing) return
-                      // 줄바꿈은 Shift+Enter, Enter 는 적고 나간다.
-                      if (event.key === "Enter" && !event.shiftKey) {
-                          event.preventDefault()
-                          event.currentTarget.blur()
-                      }
-                  }}/>
+                  onChange={event => setDraft(event.target.value)} onBlur={onBlur}/>
     )
 }
 
@@ -486,10 +693,7 @@ function UrlCell({column, row, editable, setCell, value}: CellProps & { value: s
     return (
         <div className="flex items-center">
             <input value={draft} className="collection-input min-w-0 flex-1" placeholder=""
-                   onChange={event => setDraft(event.target.value)} onBlur={onBlur}
-                   onKeyDown={event => {
-                       if (!event.nativeEvent.isComposing && event.key === "Enter") event.currentTarget.blur()
-                   }}/>
+                   onChange={event => setDraft(event.target.value)} onBlur={onBlur}/>
             {href && (
                 <a href={href} target="_blank" rel="noopener noreferrer nofollow" title="열기"
                    className="collection-icon-button shrink-0">↗</a>
@@ -507,10 +711,7 @@ function NumberCell({column, row, editable, setCell, value}: CellProps & { value
     if (!editable) return <span className="collection-text text-right block">{value === null ? "" : formatNumber(value)}</span>
     return (
         <input inputMode="decimal" value={draft} className="collection-input text-right"
-               onChange={event => setDraft(event.target.value)} onBlur={onBlur}
-               onKeyDown={event => {
-                   if (!event.nativeEvent.isComposing && event.key === "Enter") event.currentTarget.blur()
-               }}/>
+               onChange={event => setDraft(event.target.value)} onBlur={onBlur}/>
     )
 }
 

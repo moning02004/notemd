@@ -10,11 +10,15 @@ import {createPortal} from "react-dom"
  * 화면 좌표를 따라간다. 아래가 좁으면 위로 뒤집는다. 바깥을 누르거나 Esc 를 누르면 닫힌다.
  * 에디터 밖(body)에 있으므로 안에서 치는 글자는 에디터에 가지 않는다.
  */
-export function Popover({anchor, onClose, children, width = 260}: {
+export function Popover({anchor, onClose, children, width = 260, side = "bottom", ignore}: {
     anchor: HTMLElement
     onClose: () => void
     children: ReactNode
     width?: number
+    /** 먼저 띄울 쪽. 그쪽에 자리가 없으면 반대쪽으로 뒤집는다. */
+    side?: "bottom" | "top"
+    /** 여기를 눌러도 바깥으로 치지 않는다(누른 곳의 주인이 따로 처리한다). */
+    ignore?: HTMLElement | null
 }) {
     const ref = useRef<HTMLDivElement>(null)
     const [position, setPosition] = useState<{ top: number, left: number } | null>(null)
@@ -25,9 +29,12 @@ export function Popover({anchor, onClose, children, width = 260}: {
             const height = ref.current?.offsetHeight ?? 0
             const gap = 4
             const below = rect.bottom + gap
-            const top = below + height > window.innerHeight - 8 && rect.top - gap - height > 8
-                ? rect.top - gap - height
-                : below
+            const above = rect.top - gap - height
+            const fitsBelow = below + height <= window.innerHeight - 8
+            const fitsAbove = above >= 8
+            const top = side === "top"
+                ? (fitsAbove || !fitsBelow ? above : below)
+                : (fitsBelow || !fitsAbove ? below : above)
             const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8))
             setPosition({top, left})
         }
@@ -42,12 +49,12 @@ export function Popover({anchor, onClose, children, width = 260}: {
             window.removeEventListener("scroll", place, true)
             window.removeEventListener("resize", place)
         }
-    }, [anchor, width])
+    }, [anchor, width, side])
 
     useEffect(() => {
         const onDown = (event: MouseEvent | TouchEvent) => {
             const target = event.target as Node
-            if (ref.current?.contains(target) || anchor.contains(target)) return
+            if (ref.current?.contains(target) || anchor.contains(target) || ignore?.contains(target)) return
             onClose()
         }
         const onKey = (event: KeyboardEvent) => {
@@ -64,7 +71,7 @@ export function Popover({anchor, onClose, children, width = 260}: {
             document.removeEventListener("touchstart", onDown)
             document.removeEventListener("keydown", onKey, true)
         }
-    }, [anchor, onClose])
+    }, [anchor, onClose, ignore])
 
     return createPortal(
         <div ref={ref}
