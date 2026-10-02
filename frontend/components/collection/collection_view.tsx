@@ -11,15 +11,17 @@ import {
 import {Popover} from "@/components/collection/popover"
 import {OptionPicker, TagBubble} from "@/components/collection/option_picker"
 import {ColumnMenu} from "@/components/collection/column_menu"
-import {DropLine, moveItem, startReorder} from "@/components/collection/reorder"
+import {moveItem, startReorder} from "@/components/collection/reorder"
 
 type Update = (change: (data: CollectionData) => CollectionData) => void
 
 /** 열 머리를 누르기 시작했을 때(끌어 옮기기) */
 type ReorderStart = (event: ReactPointerEvent<HTMLElement>, index: number) => void
 
-/** 줄 끝(행 옮기기·지우기, 열 더하기) 자리의 폭 */
-const TAIL_WIDTH = 60
+/** 줄 끝(행 지우기·열 더하기) 자리의 폭 */
+const TAIL_WIDTH = 36
+/** 줄 앞(행 손잡이) 자리의 폭 */
+const GUTTER_WIDTH = 24
 
 /** 에디터가 읽기 전용으로 바뀌는 것(공유 화면, 잠금)을 따라간다. setEditable 은 노드를 바꾸지 않아 다시 그려지지 않는다. */
 function useEditable(editor: NodeViewProps["editor"]) {
@@ -63,8 +65,20 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
         }
     }, [editor])
 
-    const rows = useMemo(() => sortedRows(data), [data])
-    const gridTemplateColumns = `${data.columns.map(column => `${column.width}px`).join(" ")} minmax(${TAIL_WIDTH}px, 1fr)`
+    // 열·행 끌어 옮기기. 끄는 동안은 화면에서만 그 자리로 옮겨 보이고, 놓을 때 한 번 적는다.
+    const grid = useRef<HTMLDivElement>(null)
+    const [preview, setPreview] = useState<{ kind: "column" | "row", id: string, from: number, to: number } | null>(null)
+
+    const sorted = useMemo(() => sortedRows(data), [data])
+    const columns = preview?.kind === "column" ? moveItem(data.columns, preview.from, preview.to) : data.columns
+    const rows = preview?.kind === "row" ? moveItem(sorted, preview.from, preview.to) : sorted
+
+    // 왼쪽 끝은 행 손잡이 자리(고칠 수 있을 때만), 오른쪽 끝은 행 지우기·열 더하기 자리. 남는 폭은 오른쪽 끝이 차지한다.
+    const gridTemplateColumns = [
+        ...(editable ? [`${GUTTER_WIDTH}px`] : []),
+        ...columns.map(column => `${column.width}px`),
+        `minmax(${TAIL_WIDTH}px, 1fr)`,
+    ].join(" ")
     const showCalcRow = editable || data.columns.some(column => column.calc !== "none")
 
     const setCell = useCallback((rowId: string, columnId: string, value: CellValue) => update(current => ({
@@ -78,21 +92,14 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
         }),
     })), [update])
 
-    // 열·행 끌어 옮기기. 표시선과 끄는 것은 화면에만, 놓을 때 한 번 적는다.
-    const grid = useRef<HTMLDivElement>(null)
-    const [dropLine, setDropLine] = useState<DropLine | null>(null)
-    const [draggingColumn, setDraggingColumn] = useState<string | null>(null)
-    const [draggingRow, setDraggingRow] = useState<string | null>(null)
-
     const startColumnDrag: ReorderStart = (event, index) => {
         // 손가락으로는 표를 가로로 밀어 보는 일이 더 잦다. 열 옮기기는 마우스로만(메뉴의 왼쪽·오른쪽으로도 된다).
         if (event.pointerType !== "mouse" || !grid.current) return
         const id = data.columns[index].id
         startReorder({
             event, axis: "x", from: index, grid: grid.current,
-            targets: () => [...grid.current?.querySelectorAll<HTMLElement>("[role=columnheader]") ?? []],
-            onDragging: dragging => setDraggingColumn(dragging ? id : null),
-            onLine: setDropLine,
+            targets: [...grid.current.querySelectorAll<HTMLElement>("[role=columnheader]")],
+            onPreview: to => setPreview(to === null ? null : {kind: "column", id, from: index, to}),
             onDrop: (from, to) => update(current => ({...current, columns: moveItem(current.columns, from, to)})),
         })
     }
@@ -100,13 +107,12 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
     const startRowDrag = (event: ReactPointerEvent<HTMLElement>, index: number) => {
         if (!grid.current) return
         event.preventDefault()
-        const id = rows[index].id
+        const id = sorted[index].id
         startReorder({
             event, axis: "y", from: index, grid: grid.current,
-            targets: () => [...grid.current?.querySelectorAll<HTMLElement>("[data-row-first]") ?? []],
-            onDragging: dragging => setDraggingRow(dragging ? id : null),
-            onLine: setDropLine,
-            // 정렬 중에는 손잡이가 없으므로 화면 순서가 곧 저장 순서다.
+            targets: [...grid.current.querySelectorAll<HTMLElement>("[data-row-first]")],
+            onPreview: to => setPreview(to === null ? null : {kind: "row", id, from: index, to}),
+            // 정렬 중에는 손잡이를 감추므로 화면 순서가 곧 저장 순서다.
             onDrop: (from, to) => update(current => ({...current, rows: moveItem(current.rows, from, to)})),
         })
     }
@@ -125,13 +131,14 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
                             onCommit={title => update(current => ({...current, title: title.slice(0, 200)}))}/>
                 <div className="collection-scroll">
                     <div ref={grid} className="collection-grid" style={{gridTemplateColumns}} role="table">
-                        {dropLine && <div className="collection-drop-line" style={dropLine}/>}
                         {/* 머리 */}
                         <div className="contents" role="row">
-                            {data.columns.map((column, index) => (
+                            {editable && <div className="collection-gutter"/>}
+                            {columns.map(column => (
                                 <HeaderCell key={column.id} data={data} column={column} editable={editable} update={update}
-                                            dragging={draggingColumn === column.id}
-                                            onReorderStart={event => startColumnDrag(event, index)}/>
+                                            dragging={preview?.kind === "column" && preview.id === column.id}
+                                            onReorderStart={event =>
+                                                startColumnDrag(event, data.columns.findIndex(item => item.id === column.id))}/>
                             ))}
                             <div className="collection-head collection-tail">
                                 {editable && (
@@ -143,12 +150,26 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
                             </div>
                         </div>
 
-                        {rows.map((row, rowIndex) => (
+                        {rows.map(row => (
                             <div key={row.id} className="contents group/row" role="row"
-                                 data-dragging={draggingRow === row.id || undefined}>
-                                {data.columns.map((column, columnIndex) => (
+                                 data-dragging={(preview?.kind === "row" && preview.id === row.id) || undefined}>
+                                {editable && (
+                                    <div className="collection-gutter">
+                                        <button type="button" aria-label="행 옮기기"
+                                                title={data.sort ? "정렬 중에는 옮길 수 없습니다" : "끌어서 옮기기"}
+                                                disabled={Boolean(data.sort)}
+                                                className="collection-icon-button collection-row-grip opacity-0
+                                                           group-hover/row:opacity-100 max-md:opacity-60 disabled:!opacity-0"
+                                                onPointerDown={event =>
+                                                    startRowDrag(event, sorted.findIndex(item => item.id === row.id))}>
+                                            <GripVertical size={14}/>
+                                        </button>
+                                    </div>
+                                )}
+                                {columns.map((column, columnIndex) => (
                                     <div key={column.id} className="collection-cell" role="cell"
                                          data-row-first={columnIndex === 0 || undefined}
+                                         data-dragging={(preview?.kind === "column" && preview.id === column.id) || undefined}
                                          data-pointer={editable ? POINTER[column.type] : undefined}
                                          onMouseDown={editable ? focusCell : undefined}>
                                         <Cell data={data} column={column} row={row} editable={editable}
@@ -156,16 +177,6 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
                                     </div>
                                 ))}
                                 <div className="collection-cell collection-tail">
-                                    {editable && (
-                                        <button type="button" aria-label="행 옮기기"
-                                                title={data.sort ? "정렬 중에는 옮길 수 없습니다" : "끌어서 옮기기"}
-                                                disabled={Boolean(data.sort)}
-                                                className="collection-icon-button collection-row-grip opacity-0
-                                                           group-hover/row:opacity-100 max-md:opacity-60 disabled:!opacity-0"
-                                                onPointerDown={event => startRowDrag(event, rowIndex)}>
-                                            <GripVertical size={13}/>
-                                        </button>
-                                    )}
                                     {editable && (
                                         <button type="button" aria-label="행 지우기" title="행 지우기"
                                                 className="collection-icon-button opacity-0 group-hover/row:opacity-100
@@ -180,7 +191,8 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
 
                         {showCalcRow && (
                             <div className="contents" role="row">
-                                {data.columns.map(column => (
+                                {editable && <div className="collection-gutter"/>}
+                                {columns.map(column => (
                                     <CalcCell key={column.id} data={data} column={column} editable={editable} update={update}/>
                                 ))}
                                 <div className="collection-calc collection-tail"/>

@@ -1041,6 +1041,9 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
     min-width: 100%;
     font-size: 14px;
     line-height: 1.5;
+}
+
+.collection-head {
     border-top: 1px solid var(--border-strong);
 }
 
@@ -1338,22 +1341,23 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
     color: var(--foreground);
 }
 
-/* 열·행 끌어 옮기기(components/collection/reorder.ts) */
-.collection-grid {
-    position: relative;
-}
-
-.collection-drop-line {
-    position: absolute;
-    z-index: 2;
-    border-radius: 1px;
-    background: var(--accent);
-    pointer-events: none;
-}
-
+/* 열·행 끌어 옮기기(components/collection/reorder.ts). 끄는 것은 이미 놓일 자리에 그려지므로 색으로 짚어 준다. */
 .collection-head[data-dragging],
-.collection-grid > [data-dragging] > * {
-    opacity: .4;
+.collection-cell[data-dragging],
+.collection-grid > [data-dragging] > :not(.collection-gutter) {
+    background: var(--accent-soft);
+}
+
+/* 행 손잡이 자리. 표 바깥 여백처럼 보이게 선을 긋지 않는다. */
+.collection-gutter {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: .3rem;
+}
+
+.collection-grid > [data-dragging] .collection-row-grip {
+    opacity: 1;
 }
 
 .collection-row-grip {
