@@ -139,7 +139,12 @@ export function CollectionView({node, updateAttributes, editor, getPos}: NodeVie
     const addRow = () => {
         const row = newRow()
         focusRow.current = row.id
-        update(current => ({...current, rows: [...current.rows, row]}))
+        update(current => {
+            // 바로 위(마지막) 행의 칸 정렬을 이어받는다. 내용은 비운다.
+            const above = current.rows[current.rows.length - 1]
+            const format = above?.format && structuredClone(above.format)
+            return {...current, rows: [...current.rows, format ? {...row, format} : row]}
+        })
     }
     useEffect(() => {
         const id = focusRow.current
