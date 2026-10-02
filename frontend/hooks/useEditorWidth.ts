@@ -15,10 +15,10 @@ export type EditorWidth = "WIDE" | "NORMAL" | "NARROW"
  * 휴대폰(md 미만)에서는 늘 꽉 채운다. 좁게(50%)는 글이 한 줄에 몇 자 들어가지 않는다.
  * Tailwind 는 소스에 그대로 적힌 클래스만 만드므로 클래스 이름을 조합하지 않고 통째로 적는다.
  */
-export const EDITOR_WIDTHS: Record<EditorWidth, { label: string, className: string }> = {
-    WIDE: {label: "넓게", className: "w-full"},
-    NORMAL: {label: "보통", className: "w-full md:w-[70%]"},
-    NARROW: {label: "좁게", className: "w-full md:w-[50%]"},
+export const EDITOR_WIDTHS: Record<EditorWidth, { label: string, className: string, percent: number }> = {
+    WIDE: {label: "넓게", className: "w-full", percent: 100},
+    NORMAL: {label: "보통", className: "w-full md:w-[70%]", percent: 70},
+    NARROW: {label: "좁게", className: "w-full md:w-[50%]", percent: 50},
 }
 
 const DEFAULT_WIDTH: EditorWidth = "WIDE"

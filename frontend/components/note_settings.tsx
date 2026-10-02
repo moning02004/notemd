@@ -181,24 +181,12 @@ export const NoteSettings = ({
                             </div>
                             <div className="h-px bg-border my-1"/>
 
-                            <div className="flex flex-row justify-between items-center py-2">
-                                <div className="pr-3">
-                                    <p className="text-[15px] font-medium text-foreground">노트 폭</p>
-                                    <p className="text-[13px] text-muted mt-0.5">
-                                        본문을 얼마나 넓게 펼칠지 고릅니다. 모든 노트에 적용되고 다른 기기에서도 같습니다.
-                                    </p>
-                                </div>
-                                <div className="cursor-pointer shrink-0">
-                                    <select
-                                        value={editorWidth}
-                                        onChange={(e) => setEditorWidth(e.target.value as EditorWidth)}
-                                        className="border border-border-strong rounded-lg px-3 py-1.5 text-[13px] font-medium text-accent bg-background cursor-pointer outline-none hover:border-accent focus:border-accent transition-colors duration-150 shrink-0"
-                                    >
-                                        {(Object.keys(EDITOR_WIDTHS) as EditorWidth[]).map(width => (
-                                            <option key={width} value={width}>{EDITOR_WIDTHS[width].label}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                            <div className="py-2">
+                                <p className="text-[15px] font-medium text-foreground">본문 너비</p>
+                                <p className="text-[13px] text-muted mt-0.5">
+                                    글이 놓이는 폭을 고릅니다. 모든 노트에 적용되고 다른 기기에서도 같습니다.
+                                </p>
+                                <EditorWidthPicker value={editorWidth} onChange={setEditorWidth}/>
                             </div>
                         </SettingsCard>
 
@@ -334,5 +322,36 @@ export const NoteSettings = ({
                 setContent={setContent}
             />
         </>
+    )
+}
+/**
+ * 본문 너비 고르기. 상자마다 작은 페이지 그림에 글 줄을 그 폭으로 그려, 고르기 전에 어떻게 보일지 알 수 있다.
+ * 휴대폰에서는 본문이 늘 꽉 차므로(useEditorWidth) 그림이 넓은 화면 기준이라고 따로 적지는 않는다.
+ */
+function EditorWidthPicker({value, onChange}: { value: EditorWidth, onChange: (width: EditorWidth) => void }) {
+    return (
+        <div role="radiogroup" aria-label="본문 너비" className="mt-3 grid grid-cols-3 gap-2">
+            {(Object.keys(EDITOR_WIDTHS) as EditorWidth[]).map(width => {
+                const {label, percent} = EDITOR_WIDTHS[width]
+                const selected = width === value
+                return (
+                    <button key={width} type="button" role="radio" aria-checked={selected}
+                            onClick={() => onChange(width)}
+                            className={`flex flex-col items-center gap-2 rounded-xl border px-2 pt-3 pb-2 cursor-pointer
+                                        transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-accent/40
+                                        ${selected
+                                ? "border-accent bg-accent-soft text-accent"
+                                : "border-border-strong bg-background text-muted hover:border-accent hover:text-foreground"}`}>
+                        <span className="flex h-9 w-full flex-col items-center justify-center gap-1 rounded-md border border-current/25 bg-surface px-1.5">
+                            {[100, 80, 90].map((line, index) => (
+                                <span key={index} className="block h-[3px] rounded-full bg-current opacity-60"
+                                      style={{width: `${percent * line / 100}%`}}/>
+                            ))}
+                        </span>
+                        <span className="text-[13px] font-medium">{label}</span>
+                    </button>
+                )
+            })}
+        </div>
     )
 }
