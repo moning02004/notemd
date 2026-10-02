@@ -107,6 +107,7 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
                             <div key={row.id} className="contents group/row" role="row">
                                 {data.columns.map(column => (
                                     <div key={column.id} className="collection-cell" role="cell"
+                                         data-pointer={editable ? POINTER[column.type] : undefined}
                                          onMouseDown={editable ? focusCell : undefined}>
                                         <Cell data={data} column={column} row={row} editable={editable}
                                               setCell={setCell} update={update}/>
@@ -143,6 +144,16 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
             </div>
         </NodeViewWrapper>
     )
+}
+
+/**
+ * 칸 위에서의 마우스 모양. 글을 치는 칸은 글자 커서(I), 고르는 칸은 손가락, 계산만 하는 수식 칸은 그대로.
+ * 칸 전체에 걸어 입력칸 밖의 빈 곳에서도 같은 모양이다(누르면 focusCell 이 입력칸으로 옮겨 준다).
+ */
+const POINTER: Record<Column["type"], "text" | "pointer" | undefined> = {
+    text: "text", number: "text", url: "text", date: "text",
+    select: "pointer", multiSelect: "pointer", checkbox: "pointer", progress: "pointer",
+    formula: undefined,
 }
 
 /**
@@ -487,6 +498,7 @@ function SelectCell({column, row, editable, update, value}: CellProps & { value:
     return (
         <>
             <div className={`collection-tags ${editable ? "cursor-pointer hover:bg-accent-menu/20" : ""}`}
+                 data-open={anchor ? "" : undefined}
                  tabIndex={editable ? 0 : -1}
                  onClick={event => editable && setAnchor(anchor ? null : event.currentTarget)}
                  onKeyDown={event => {
