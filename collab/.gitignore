@@ -1,3 +1,4 @@
 node_modules
 # 프론트의 lib/editor_schema.ts 를 시작할 때 복사해 쓴다(원본은 한 곳). compose 에서는 파일을 마운트한다.
 src/editor_schema.ts
+src/collection_core.ts

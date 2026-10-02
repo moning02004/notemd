@@ -59,6 +59,7 @@ import Paragraph from '@tiptap/extension-paragraph'
 import Heading from "@tiptap/extension-heading";
 import {SlashCommand} from "@/lib/slash_command";
 import {NoteLink} from "@/lib/note_link";
+import {Collection} from "@/lib/collection";
 import {OpenLineOnGapTap} from "@/lib/open_line";
 import {useEffect, useState} from "react";
 import Collaboration from "@tiptap/extension-collaboration";
@@ -508,6 +509,7 @@ export function useEditorInstance({initialContent, setContent, uploadFile, onPic
             CustomDetails.configure(DETAILS_OPTIONS),
             DetailsSummary,
             DetailsContent,
+            Collection,
             ...(collab ? [
                 // field 는 collab 서버와 약속한 본문 자리(collab/src/convert.ts 의 BODY_FIELD).
                 Collaboration.configure({document: collab.doc, field: "default"}),

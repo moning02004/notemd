@@ -78,6 +78,7 @@ services:
       - ./collab/src:/app/src
       # 에디터와 같은 스키마를 쓴다(원본은 프론트 한 곳).
       - ./frontend/lib/editor_schema.ts:/app/src/editor_schema.ts:ro
+      - ./frontend/lib/collection_core.ts:/app/src/collection_core.ts:ro
     environment:
       BACKEND_URL: "http://backend:8000"
       COLLAB_SECRET: "${COLLAB_SECRET:-local-collab-secret}"

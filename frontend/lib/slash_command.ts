@@ -1,6 +1,7 @@
 import {Extension, Range} from "@tiptap/core"
 import {Editor} from "@tiptap/react"
 import Suggestion from "@tiptap/suggestion"
+import {COLLECTION_LABEL} from "@/lib/collection_core"
 
 /**
  * "/" 를 쳐서 블록을 바꾸는 메뉴.
@@ -94,6 +95,14 @@ const ITEMS: SlashItem[] = [
         keywords: ["표", "테이블", "table", "grid"],
         run: (editor, range) => editor.chain().focus().deleteRange(range)
             .insertTable({rows: 3, cols: 3, withHeaderRow: true}).run(),
+    },
+    {
+        label: COLLECTION_LABEL, hint: "선택·태그·진행도·수식 열을 가진 표", glyph: "▤",
+        keywords: ["모음", "데이터", "데이터베이스", "database", "db", "보드", "목록", "속성", "태그", "진행", "수식",
+            "collection", "board", "tracker"],
+        // 접기 안에도 넣을 수 있다. 표 칸 안에는 넣지 않는다(칸이 표를 품으면 가로로 끝없이 밀린다).
+        enabled: editor => !editor.isActive("table"),
+        run: (editor, range) => editor.chain().focus().deleteRange(range).insertCollection().run(),
     },
     {
         label: "구분선", hint: "가로줄로 나누기", glyph: "—",

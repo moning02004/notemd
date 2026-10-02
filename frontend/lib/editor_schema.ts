@@ -12,7 +12,7 @@
  * Node 에서도 읽혀야 하므로 React, 브라우저 전용 모듈, 앱 경로(@/…)를 import 하지 않는다.
  */
 import {AnyExtension, getSchema, mergeAttributes, Node} from "@tiptap/core"
-import type {Schema} from "@tiptap/pm/model"
+import type {DOMOutputSpec, Schema} from "@tiptap/pm/model"
 import Document from "@tiptap/extension-document"
 import Text from "@tiptap/extension-text"
 import Paragraph from "@tiptap/extension-paragraph"
@@ -34,6 +34,7 @@ import TextAlign from "@tiptap/extension-text-align"
 import {Table, TableCell, TableHeader, TableRow} from "@tiptap/extension-table"
 import {TaskItem, TaskList} from "@tiptap/extension-list"
 import {Details, DetailsContent, DetailsSummary} from "@tiptap/extension-details"
+import {cellText, COLLECTION_LABEL, parseCollection, serializeCollection, sortedRows} from "./collection_core"
 
 // ---------------------------------------------------------------- 표
 
@@ -219,6 +220,54 @@ export const DETAILS_OPTIONS = {
     HTMLAttributes: {class: "details"},
 }
 
+// ---------------------------------------------------------------- 모음표
+
+/**
+ * 열마다 속성(선택·태그·진행도·수식 등)을 정해 쓰는 표. 데이터 모양과 계산은 lib/collection_core.ts 에 있다.
+ *
+ * 내용 전체를 data 속성(JSON 문자열) 하나로 들고 다니는 atom 이다. 칸마다 노드를 두면 공동 편집에서 칸 단위로
+ * 합쳐지는 대신 열 속성·수식·정렬을 노드 트리로 옮겨 적어야 해 스키마가 크게 불어난다. 대신 두 사람이 같은 표를
+ * 동시에 고치면 나중에 고친 쪽 표가 남는다.
+ *
+ * 저장 HTML 에는 data 와 함께 보이는 그대로의 <table> 을 적는다. 검색·미리보기·마크다운/PDF 내보내기·에이전트가
+ * 읽는 본문은 이 표를 본다. 다시 읽을 때는 data 만 읽는다(atom 이라 안쪽 표는 건너뛴다).
+ */
+export const CollectionBase = Node.create({
+    name: "collection",
+    group: "block",
+    atom: true,
+    selectable: true,
+    draggable: false,
+
+    addAttributes() {
+        return {
+            data: {
+                default: "",
+                parseHTML: element => element.getAttribute("data-collection") ?? "",
+                renderHTML: () => ({}),
+            },
+        }
+    },
+
+    parseHTML() {
+        return [{tag: 'div[data-type="collection"]'}]
+    },
+
+    renderHTML({node}) {
+        const data = parseCollection(node.attrs.data)
+        const columns = data.columns
+        const head = ["thead", {}, ["tr", {}, ...columns.map(column => ["th", {}, column.name])]]
+        const body = ["tbody", {}, ...sortedRows(data).map(row =>
+            ["tr", {}, ...columns.map(column => ["td", {}, cellText(data, column, row)])])]
+        return [
+            "div",
+            {"data-type": "collection", "data-collection": serializeCollection(data), class: "collection"},
+            ["p", {class: "collection-title"}, data.title || COLLECTION_LABEL],
+            ["table", {}, head, body],
+        ] as unknown as DOMOutputSpec
+    },
+})
+
 // ---------------------------------------------------------------- 그 밖의 스키마 옵션
 
 export const TEXT_ALIGN_OPTIONS = {types: ["heading", "paragraph"]}
@@ -258,6 +307,7 @@ export const SCHEMA_EXTENSIONS: AnyExtension[] = [
     DetailsBase.configure(DETAILS_OPTIONS),
     DetailsSummary,
     DetailsContent,
+    CollectionBase,
 ]
 
 /**

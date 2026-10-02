@@ -4,4 +4,6 @@
 !collab/package-lock.json
 !collab/src
 collab/src/editor_schema.ts
+collab/src/collection_core.ts
 !frontend/lib/editor_schema.ts
+!frontend/lib/collection_core.ts

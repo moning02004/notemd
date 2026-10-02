@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "sync-schema": "cp ../frontend/lib/editor_schema.ts src/editor_schema.ts",
+    "sync-schema": "cp ../frontend/lib/editor_schema.ts ../frontend/lib/collection_core.ts src/",
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "check": "npm run sync-schema && tsx src/check.ts"

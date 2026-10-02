@@ -12,6 +12,8 @@ RUN --mount=type=cache,id=npm-cache,target=/root/.npm \
 
 COPY collab/src ./src
 COPY frontend/lib/editor_schema.ts ./src/editor_schema.ts
+# 스키마가 읽는 모음표 계산(저장 HTML 의 표를 적을 때 쓴다)
+COPY frontend/lib/collection_core.ts ./src/collection_core.ts
 
 USER node
 EXPOSE 1234
