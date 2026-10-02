@@ -1337,3 +1337,33 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
     background: color-mix(in srgb, var(--accent-menu) 40%, transparent);
     color: var(--foreground);
 }
+
+/* 열·행 끌어 옮기기(components/collection/reorder.ts) */
+.collection-grid {
+    position: relative;
+}
+
+.collection-drop-line {
+    position: absolute;
+    z-index: 2;
+    border-radius: 1px;
+    background: var(--accent);
+    pointer-events: none;
+}
+
+.collection-head[data-dragging],
+.collection-grid > [data-dragging] > * {
+    opacity: .4;
+}
+
+.collection-row-grip {
+    cursor: grab;
+    touch-action: none;
+}
+
+/* 끄는 동안은 어디에 있든 잡은 손 모양, 글자가 골라지지 않게 */
+body.collection-reordering,
+body.collection-reordering * {
+    cursor: grabbing !important;
+    user-select: none !important;
+}

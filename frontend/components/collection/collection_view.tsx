@@ -2,7 +2,7 @@
 
 import {MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from "react"
 import {NodeViewProps, NodeViewWrapper} from "@tiptap/react"
-import {ArrowDown, ArrowUp, Plus, Trash2} from "lucide-react"
+import {ArrowDown, ArrowUp, GripVertical, Plus, Trash2} from "lucide-react"
 import {
     CALC_LABEL, calcsFor, calcText, CellValue, clampProgress, COLLECTION_LABEL, CollectionData, Column, COLUMN_TYPES,
     formatNumber, formulaText, formulaValue, MAX_COLUMN_WIDTH, MIN_COLUMN_WIDTH, newColumn, newRow, optionOf,
@@ -11,11 +11,15 @@ import {
 import {Popover} from "@/components/collection/popover"
 import {OptionPicker, TagBubble} from "@/components/collection/option_picker"
 import {ColumnMenu} from "@/components/collection/column_menu"
+import {DropLine, moveItem, startReorder} from "@/components/collection/reorder"
 
 type Update = (change: (data: CollectionData) => CollectionData) => void
 
-/** 줄 끝(행 지우기·열 더하기) 자리의 폭 */
-const TAIL_WIDTH = 36
+/** 열 머리를 누르기 시작했을 때(끌어 옮기기) */
+type ReorderStart = (event: ReactPointerEvent<HTMLElement>, index: number) => void
+
+/** 줄 끝(행 옮기기·지우기, 열 더하기) 자리의 폭 */
+const TAIL_WIDTH = 60
 
 /** 에디터가 읽기 전용으로 바뀌는 것(공유 화면, 잠금)을 따라간다. setEditable 은 노드를 바꾸지 않아 다시 그려지지 않는다. */
 function useEditable(editor: NodeViewProps["editor"]) {
@@ -74,6 +78,39 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
         }),
     })), [update])
 
+    // 열·행 끌어 옮기기. 표시선과 끄는 것은 화면에만, 놓을 때 한 번 적는다.
+    const grid = useRef<HTMLDivElement>(null)
+    const [dropLine, setDropLine] = useState<DropLine | null>(null)
+    const [draggingColumn, setDraggingColumn] = useState<string | null>(null)
+    const [draggingRow, setDraggingRow] = useState<string | null>(null)
+
+    const startColumnDrag: ReorderStart = (event, index) => {
+        // 손가락으로는 표를 가로로 밀어 보는 일이 더 잦다. 열 옮기기는 마우스로만(메뉴의 왼쪽·오른쪽으로도 된다).
+        if (event.pointerType !== "mouse" || !grid.current) return
+        const id = data.columns[index].id
+        startReorder({
+            event, axis: "x", from: index, grid: grid.current,
+            targets: () => [...grid.current?.querySelectorAll<HTMLElement>("[role=columnheader]") ?? []],
+            onDragging: dragging => setDraggingColumn(dragging ? id : null),
+            onLine: setDropLine,
+            onDrop: (from, to) => update(current => ({...current, columns: moveItem(current.columns, from, to)})),
+        })
+    }
+
+    const startRowDrag = (event: ReactPointerEvent<HTMLElement>, index: number) => {
+        if (!grid.current) return
+        event.preventDefault()
+        const id = rows[index].id
+        startReorder({
+            event, axis: "y", from: index, grid: grid.current,
+            targets: () => [...grid.current?.querySelectorAll<HTMLElement>("[data-row-first]") ?? []],
+            onDragging: dragging => setDraggingRow(dragging ? id : null),
+            onLine: setDropLine,
+            // 정렬 중에는 손잡이가 없으므로 화면 순서가 곧 저장 순서다.
+            onDrop: (from, to) => update(current => ({...current, rows: moveItem(current.rows, from, to)})),
+        })
+    }
+
     const addRow = () => update(current => ({...current, rows: [...current.rows, newRow()]}))
     const removeRow = (rowId: string) => update(current => ({...current, rows: current.rows.filter(row => row.id !== rowId)}))
     const addColumn = () => update(current => ({
@@ -87,11 +124,14 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
                 <TitleInput value={data.title} editable={editable}
                             onCommit={title => update(current => ({...current, title: title.slice(0, 200)}))}/>
                 <div className="collection-scroll">
-                    <div className="collection-grid" style={{gridTemplateColumns}} role="table">
+                    <div ref={grid} className="collection-grid" style={{gridTemplateColumns}} role="table">
+                        {dropLine && <div className="collection-drop-line" style={dropLine}/>}
                         {/* 머리 */}
                         <div className="contents" role="row">
-                            {data.columns.map(column => (
-                                <HeaderCell key={column.id} data={data} column={column} editable={editable} update={update}/>
+                            {data.columns.map((column, index) => (
+                                <HeaderCell key={column.id} data={data} column={column} editable={editable} update={update}
+                                            dragging={draggingColumn === column.id}
+                                            onReorderStart={event => startColumnDrag(event, index)}/>
                             ))}
                             <div className="collection-head collection-tail">
                                 {editable && (
@@ -103,10 +143,12 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
                             </div>
                         </div>
 
-                        {rows.map(row => (
-                            <div key={row.id} className="contents group/row" role="row">
-                                {data.columns.map(column => (
+                        {rows.map((row, rowIndex) => (
+                            <div key={row.id} className="contents group/row" role="row"
+                                 data-dragging={draggingRow === row.id || undefined}>
+                                {data.columns.map((column, columnIndex) => (
                                     <div key={column.id} className="collection-cell" role="cell"
+                                         data-row-first={columnIndex === 0 || undefined}
                                          data-pointer={editable ? POINTER[column.type] : undefined}
                                          onMouseDown={editable ? focusCell : undefined}>
                                         <Cell data={data} column={column} row={row} editable={editable}
@@ -114,6 +156,16 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
                                     </div>
                                 ))}
                                 <div className="collection-cell collection-tail">
+                                    {editable && (
+                                        <button type="button" aria-label="행 옮기기"
+                                                title={data.sort ? "정렬 중에는 옮길 수 없습니다" : "끌어서 옮기기"}
+                                                disabled={Boolean(data.sort)}
+                                                className="collection-icon-button collection-row-grip opacity-0
+                                                           group-hover/row:opacity-100 max-md:opacity-60 disabled:!opacity-0"
+                                                onPointerDown={event => startRowDrag(event, rowIndex)}>
+                                            <GripVertical size={13}/>
+                                        </button>
+                                    )}
                                     {editable && (
                                         <button type="button" aria-label="행 지우기" title="행 지우기"
                                                 className="collection-icon-button opacity-0 group-hover/row:opacity-100
@@ -196,8 +248,10 @@ function TitleInput({value, editable, onCommit}: { value: string, editable: bool
 
 // ---------------------------------------------------------------- 머리
 
-function HeaderCell({data, column, editable, update}: {
+function HeaderCell({data, column, editable, update, dragging, onReorderStart}: {
     data: CollectionData, column: Column, editable: boolean, update: Update
+    dragging: boolean
+    onReorderStart: (event: ReactPointerEvent<HTMLElement>) => void
 }) {
     const [anchor, setAnchor] = useState<HTMLElement | null>(null)
     const close = useCallback(() => setAnchor(null), [])
@@ -232,9 +286,11 @@ function HeaderCell({data, column, editable, update}: {
     }
 
     return (
-        <div ref={cell} className="collection-head" role="columnheader">
+        <div ref={cell} className="collection-head" role="columnheader" data-dragging={dragging || undefined}>
             <button type="button" disabled={!editable}
                     className="collection-head-button"
+                    title={editable ? "눌러서 설정, 끌어서 옮기기" : undefined}
+                    onPointerDown={editable ? onReorderStart : undefined}
                     onClick={event => setAnchor(anchor ? null : event.currentTarget)}>
                 <span className="collection-head-glyph">{glyph}</span>
                 <span className="truncate">{column.name || "이름 없음"}</span>
