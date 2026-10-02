@@ -1,6 +1,6 @@
 "use client"
 
-import {PointerEvent as ReactPointerEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from "react"
+import {MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from "react"
 import {NodeViewProps, NodeViewWrapper} from "@tiptap/react"
 import {ArrowDown, ArrowUp, Plus, Trash2} from "lucide-react"
 import {
@@ -106,7 +106,8 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
                         {rows.map(row => (
                             <div key={row.id} className="contents group/row" role="row">
                                 {data.columns.map(column => (
-                                    <div key={column.id} className="collection-cell" role="cell">
+                                    <div key={column.id} className="collection-cell" role="cell"
+                                         onMouseDown={editable ? focusCell : undefined}>
                                         <Cell data={data} column={column} row={row} editable={editable}
                                               setCell={setCell} update={update}/>
                                     </div>
@@ -142,6 +143,30 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
             </div>
         </NodeViewWrapper>
     )
+}
+
+/**
+ * 칸의 빈 곳을 눌러도 그 칸을 고치게 한다. 한 행에서 긴 글이 든 칸이 높아지면 나머지 칸은 입력칸 아래로
+ * 빈 곳이 생기는데, 거기를 누르면 아무 일도 없어 위쪽만 골라 눌러야 했다.
+ * 글 칸은 끝에 커서를 두고, 선택·태그 칸은 고르는 창을 연다.
+ */
+function focusCell(event: ReactMouseEvent<HTMLDivElement>) {
+    if (event.target !== event.currentTarget) return
+    const field = event.currentTarget.querySelector<HTMLElement>(
+        "textarea, input:not([type=checkbox]), input[type=checkbox], .collection-tags")
+    if (!field) return
+    event.preventDefault()
+    if (field instanceof HTMLInputElement && field.type === "checkbox") {
+        field.click()
+        return
+    }
+    field.focus()
+    if (field instanceof HTMLTextAreaElement || (field instanceof HTMLInputElement && field.type !== "date")) {
+        const end = field.value.length
+        field.setSelectionRange(end, end)
+    } else if (field.classList.contains("collection-tags")) {
+        field.click()
+    }
 }
 
 function TitleInput({value, editable, onCommit}: { value: string, editable: boolean, onCommit: (value: string) => void }) {
