@@ -40,7 +40,7 @@ function useEditable(editor: NodeViewProps["editor"]) {
 }
 
 /**
- * 모음표의 노드 뷰. 내용은 노드의 data 속성(JSON) 하나에 있고, 고칠 때마다 속성을 통째로 바꾼다
+ * 콜렉션의 노드 뷰. 내용은 노드의 data 속성(JSON) 하나에 있고, 고칠 때마다 속성을 통째로 바꾼다
  * (되돌리기·공동 편집이 그대로 따라온다). 글을 치는 칸은 치는 동안 화면에만 두었다가 칸을 나갈 때 적는다.
  */
 export function CollectionView({node, updateAttributes, editor}: NodeViewProps) {
@@ -117,7 +117,22 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
         })
     }
 
-    const addRow = () => update(current => ({...current, rows: [...current.rows, newRow()]}))
+    // 새 행을 넣으면 그 행 첫 칸에서 바로 쓰기 시작한다.
+    const focusRow = useRef<string | null>(null)
+    const addRow = () => {
+        const row = newRow()
+        focusRow.current = row.id
+        update(current => ({...current, rows: [...current.rows, row]}))
+    }
+    useEffect(() => {
+        const id = focusRow.current
+        if (!id || !grid.current) return
+        const field = grid.current.querySelector<HTMLElement>(
+            `[data-row-id="${id}"] [data-row-first] :is(textarea, input:not([type=checkbox]))`)
+        if (!field) return
+        focusRow.current = null
+        field.focus()
+    }, [rows])
     const removeRow = (rowId: string) => update(current => ({...current, rows: current.rows.filter(row => row.id !== rowId)}))
     const addColumn = () => update(current => ({
         ...current,
@@ -151,7 +166,7 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
                         </div>
 
                         {rows.map(row => (
-                            <div key={row.id} className="contents group/row" role="row"
+                            <div key={row.id} className="contents group/row" role="row" data-row-id={row.id}
                                  data-dragging={(preview?.kind === "row" && preview.id === row.id) || undefined}>
                                 {editable && (
                                     <div className="collection-gutter">
@@ -189,6 +204,17 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
                             </div>
                         ))}
 
+                        {/* 마지막 행 바로 아래 줄을 누르면 행이 늘어난다(노션처럼). */}
+                        {editable && (
+                            <div className="contents" role="row">
+                                <div className="collection-gutter"/>
+                                <button type="button" className="collection-add-row" style={{gridColumn: "2 / -1"}}
+                                        onClick={addRow}>
+                                    <Plus size={14}/> 새 행
+                                </button>
+                            </div>
+                        )}
+
                         {showCalcRow && (
                             <div className="contents" role="row">
                                 {editable && <div className="collection-gutter"/>}
@@ -200,11 +226,6 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
                         )}
                     </div>
                 </div>
-                {editable && (
-                    <button type="button" className="collection-add-row" onClick={addRow}>
-                        <Plus size={14}/> 새 행
-                    </button>
-                )}
             </div>
         </NodeViewWrapper>
     )
@@ -329,10 +350,10 @@ function CalcCell({data, column, editable, update}: {
         <div className="collection-calc">
             {(editable || column.calc !== "none") && (
                 <button type="button" disabled={!editable}
-                        className={`collection-calc-button ${column.calc === "none" ? "opacity-0 hover:opacity-100" : ""}`}
+                        className="collection-calc-button" data-empty={column.calc === "none" || undefined}
                         onClick={event => setAnchor(anchor ? null : event.currentTarget)}>
                     {column.calc === "none"
-                        ? "계산"
+                        ? "Σ 계산"
                         : <><span className="text-subtle">{CALC_LABEL[column.calc]}</span> <b>{result || "–"}</b></>}
                 </button>
             )}

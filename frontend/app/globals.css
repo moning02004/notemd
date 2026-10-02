@@ -1003,7 +1003,7 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
 }
 
 /* -------------------------
- * 모음표(components/collection). 칸은 CSS grid 로 그린다 — 본문 표(.ProseMirror table) 규칙이 끼어들지 않게.
+ * 콜렉션(components/collection). 칸은 CSS grid 로 그린다 — 본문 표(.ProseMirror table) 규칙이 끼어들지 않게.
 ------------------------- */
 /* 골랐을 때의 테두리는 .ProseMirror-selectednode > div 규칙이 그린다. */
 .collection-view {
@@ -1287,16 +1287,31 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
     font-variant-numeric: tabular-nums;
 }
 
+/*
+ * 열 아래 계산 줄. 행과 헷갈리지 않게 옅은 바탕을 깔고, 고르지 않은 칸에도 "Σ 계산" 을 흐리게 두어
+ * 여기서 무언가 할 수 있다는 것을 보인다.
+ */
 .collection-calc {
-    border-bottom: 0;
+    min-height: 1.875rem;
     border-right-color: transparent;
-    min-height: 1.75rem;
+    background: color-mix(in srgb, var(--sidebar) 55%, transparent);
+}
+
+.collection-calc-button[data-empty] {
+    color: var(--subtle);
+    opacity: .7;
+}
+
+.collection-calc-button[data-empty]:not(:disabled):hover {
+    opacity: 1;
+    color: var(--foreground);
 }
 
 .collection-calc-button {
     display: block;
     width: 100%;
-    padding: .25rem .5rem;
+    height: 100%;
+    padding: .375rem .5rem;
     font-size: 12px;
     text-align: right;
     color: var(--muted);
@@ -1325,15 +1340,17 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
     color: var(--foreground);
 }
 
+/* 마지막 행 아래의 "새 행" 줄. 행처럼 칸 폭 전체를 차지하고 아래에 선을 긋는다. */
 .collection-add-row {
     display: flex;
     align-items: center;
-    gap: .25rem;
-    margin-top: .125rem;
-    padding: .25rem .375rem;
-    border-radius: .375rem;
+    gap: .375rem;
+    min-height: 2.125rem;
+    padding: 0 .5rem;
+    border-bottom: 1px solid var(--border);
     font-size: 13px;
     color: var(--subtle);
+    text-align: left;
 }
 
 .collection-add-row:hover {

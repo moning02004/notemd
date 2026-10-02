@@ -6,14 +6,14 @@ import {CollectionView} from "@/components/collection/collection_view"
 declare module "@tiptap/core" {
     interface Commands<ReturnType> {
         collection: {
-            /** 지금 자리에 새 모음표를 넣는다. */
+            /** 지금 자리에 새 콜렉션을 넣는다. */
             insertCollection: () => ReturnType
         }
     }
 }
 
 /**
- * 모음표. 스키마(data 속성, 저장 HTML)는 lib/editor_schema.ts 의 CollectionBase 에 있고
+ * 콜렉션. 스키마(data 속성, 저장 HTML)는 lib/editor_schema.ts 의 CollectionBase 에 있고
  * (공동 편집 서버와 함께 쓴다), 여기서는 화면(노드 뷰)과 넣는 명령만 더한다.
  */
 export const Collection = CollectionBase.extend({
