@@ -1,6 +1,6 @@
 "use client"
 
-import {MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from "react"
+import {CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from "react"
 import {NodeViewProps, NodeViewWrapper} from "@tiptap/react"
 import {ArrowDown, ArrowUp, GripVertical, Plus, Trash2} from "lucide-react"
 import {
@@ -22,7 +22,7 @@ type ReorderStart = (event: ReactPointerEvent<HTMLElement>, index: number) => vo
 /** 줄 끝(행 지우기·열 더하기) 자리의 폭 */
 const TAIL_WIDTH = 36
 /** 줄 앞(행 손잡이) 자리의 폭 */
-const GUTTER_WIDTH = 24
+const GUTTER_WIDTH = 16
 
 /** 에디터가 읽기 전용으로 바뀌는 것(공유 화면, 잠금)을 따라간다. setEditable 은 노드를 바꾸지 않아 다시 그려지지 않는다. */
 function useEditable(editor: NodeViewProps["editor"]) {
@@ -146,7 +146,8 @@ export function CollectionView({node, updateAttributes, editor}: NodeViewProps) 
             <div contentEditable={false} className="select-none">
                 <TitleInput value={data.title} editable={editable}
                             onCommit={title => update(current => ({...current, title: title.slice(0, 200)}))}/>
-                <div className="collection-scroll">
+                <div className="collection-scroll"
+                     style={{"--collection-gutter": editable ? `${GUTTER_WIDTH}px` : "0px"} as CSSProperties}>
                     <div ref={grid} className="collection-grid" style={{gridTemplateColumns}} role="table">
                         {/* 머리 */}
                         <div className="contents" role="row">

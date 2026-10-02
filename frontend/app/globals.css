@@ -1011,11 +1011,12 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
     border-radius: .5rem;
 }
 
+/* 본문 문단(.ProseMirror p 의 padding 2px 4px)과 같은 안쪽 여백이라 글자가 위아래 문단과 같은 줄에서 시작한다. */
 .collection-title {
     display: block;
     width: 100%;
     margin-bottom: .375rem;
-    padding: 0 2px;
+    padding: 2px 4px;
     border: 0;
     background: transparent;
     outline: none;
@@ -1029,7 +1030,12 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
     font-weight: 600;
 }
 
+/*
+ * 표의 왼쪽 선은 본문 글자가 시작하는 줄(문단 안쪽 여백 4px)에 맞춘다. 행 손잡이 자리(--collection-gutter,
+ * 고칠 수 있을 때만 있다)는 표를 밀지 않고 그 왼쪽, 본문 바깥 여백(.ProseMirror padding 16px)에 걸친다.
+ */
 .collection-scroll {
+    margin-left: calc(.25rem - var(--collection-gutter, 0px));
     overflow-x: auto;
     scrollbar-width: thin;
     -webkit-overflow-scrolling: touch;
@@ -1378,6 +1384,7 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
 }
 
 .collection-row-grip {
+    width: 1rem;
     cursor: grab;
     touch-action: none;
 }
