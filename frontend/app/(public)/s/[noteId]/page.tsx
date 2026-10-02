@@ -15,15 +15,7 @@ import {apiRequest} from "@/lib/api";
 import {FiAlertTriangle, FiTrash2, FiWifiOff} from "react-icons/fi";
 import {useCollabDocument} from "@/hooks/useCollabDocument";
 import {COLLAB_URL} from "@/constants/api";
-
-// Tailwind는 소스에 리터럴로 존재하는 클래스명만 인식하므로 `w-[${n}%]`처럼 동적으로
-// 조합하면 CSS가 생성되지 않는다. note_settings.tsx의 <select> 옵션과 값을 맞춰야 함.
-const EDITOR_WIDTH_CLASSES: Record<number, string> = {
-    100: "w-[100%]",
-    70: "w-[70%]",
-    50: "w-[50%]",
-}
-const DEFAULT_EDITOR_WIDTH = 100
+import {EDITOR_WIDTHS, useEditorWidth} from "@/hooks/useEditorWidth";
 
 export default function Page() {
     const router = useRouter()
@@ -31,7 +23,7 @@ export default function Page() {
     const {noteId} = useParams() as { noteId: string }
 
     const [isOpenedSetting, setOpenedSetting] = useState(false)
-    const [editorWidth, setEditorWidth] = useState(DEFAULT_EDITOR_WIDTH)
+    const [editorWidth, setEditorWidth] = useEditorWidth()
     const [statusType, setStatusType] = useState("")
 
     const {state, draft, isOwner, isEditable, isDeleted, setters, unlock, reload, password} = useNoteDetail(noteId)
@@ -271,7 +263,7 @@ export default function Page() {
                                 setContent={setters.setContent}
                                 replacement={replacement}
                                 statusType={collab ? collabStatusType : statusType}
-                                widthClass={EDITOR_WIDTH_CLASSES[editorWidth] ?? EDITOR_WIDTH_CLASSES[DEFAULT_EDITOR_WIDTH]}
+                                widthClass={EDITOR_WIDTHS[editorWidth].className}
                                 notice={deletedNotice || collabNotice || offlineNotice || conflictNotice}
                                 peers={collab?.peers}
                 />

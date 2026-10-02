@@ -12,6 +12,7 @@ import SettingsWorkspaceInput from "@/components/settings_workspace_input";
 import {NoteWorkspace} from "@/types/workspace";
 import {downloadNoteRequest} from "@/lib/note";
 import {Spinner} from "@/components/icons";
+import {EDITOR_WIDTHS, EditorWidth} from "@/hooks/useEditorWidth";
 
 interface SettingsProps {
     noteId: string,
@@ -22,7 +23,7 @@ interface SettingsProps {
     setSelectedTags: (tag: string[]) => void;
     setIsEncrypted: (flag: boolean) => void;
     setNotePassword: (notePassword: string | null) => void;
-    setEditorWidth: (editorWidth: number) => void;
+    setEditorWidth: (editorWidth: EditorWidth) => void;
     selectedWorkspaces: NoteWorkspace[];
     setSelectedWorkspaces: (workspace: NoteWorkspace[]) => void;
 
@@ -32,7 +33,7 @@ interface SettingsProps {
     isEncrypted: boolean;
     notePassword: string;
     isOpenedSetting: boolean;
-    editorWidth: number;
+    editorWidth: EditorWidth;
 
     setTitle: (value: string) => void;
     setContent: (value: string) => void;
@@ -182,20 +183,20 @@ export const NoteSettings = ({
 
                             <div className="flex flex-row justify-between items-center py-2">
                                 <div className="pr-3">
-                                    <p className="text-[15px] font-medium text-foreground">레이아웃</p>
+                                    <p className="text-[15px] font-medium text-foreground">노트 폭</p>
                                     <p className="text-[13px] text-muted mt-0.5">
-                                        편집기 영역의 너비를 조절할 수 있어요.
+                                        본문을 얼마나 넓게 펼칠지 고릅니다. 모든 노트에 적용되고 다른 기기에서도 같습니다.
                                     </p>
                                 </div>
                                 <div className="cursor-pointer shrink-0">
                                     <select
                                         value={editorWidth}
-                                        onChange={(e) => setEditorWidth(parseInt(e.target.value))}
+                                        onChange={(e) => setEditorWidth(e.target.value as EditorWidth)}
                                         className="border border-border-strong rounded-lg px-3 py-1.5 text-[13px] font-medium text-accent bg-background cursor-pointer outline-none hover:border-accent focus:border-accent transition-colors duration-150 shrink-0"
                                     >
-                                        <option value="100">100%</option>
-                                        <option value="70">70%</option>
-                                        <option value="50">50%</option>
+                                        {(Object.keys(EDITOR_WIDTHS) as EditorWidth[]).map(width => (
+                                            <option key={width} value={width}>{EDITOR_WIDTHS[width].label}</option>
+                                        ))}
                                     </select>
                                 </div>
                             </div>

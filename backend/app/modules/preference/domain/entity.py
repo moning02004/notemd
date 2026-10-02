@@ -6,3 +6,4 @@ class PreferenceEntity:
     user_id: int
     trash_policy: str
     snapshot_policy: str
+    editor_width: str

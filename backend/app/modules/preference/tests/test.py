@@ -2,7 +2,8 @@ def test_get_preference_creates_default_when_missing(client, auth_headers):
     response = client.get("/preferences", headers=auth_headers)
 
     assert response.status_code == 200
-    assert response.json() == {"is_superuser": True, "trash_policy": "30_DAYS", "snapshot_policy": "MANUAL"}
+    assert response.json() == {"is_superuser": True, "trash_policy": "30_DAYS", "snapshot_policy": "MANUAL",
+                               "editor_width": "WIDE"}
 
 
 def test_get_preference_without_auth_fails(client):
@@ -15,7 +16,8 @@ def test_update_preference_changes_only_given_fields(client, auth_headers):
     response = client.patch("/preferences", json={"trash_policy": "15_DAYS"}, headers=auth_headers)
 
     assert response.status_code == 200
-    assert response.json() == {"is_superuser": True, "trash_policy": "15_DAYS", "snapshot_policy": "MANUAL"}
+    assert response.json() == {"is_superuser": True, "trash_policy": "15_DAYS", "snapshot_policy": "MANUAL",
+                               "editor_width": "WIDE"}
 
 
 def test_update_preference_changes_snapshot_policy(client, auth_headers):
@@ -48,5 +50,19 @@ def test_unknown_trash_policy_is_rejected(client, auth_headers):
 
 def test_unknown_snapshot_policy_is_rejected(client, auth_headers):
     response = client.patch("/preferences", json={"snapshot_policy": "ALWAYS"}, headers=auth_headers)
+
+    assert response.status_code == 422
+
+
+def test_update_preference_changes_editor_width(client, auth_headers):
+    response = client.patch("/preferences", json={"editor_width": "NARROW"}, headers=auth_headers)
+
+    assert response.status_code == 200
+    assert response.json()["editor_width"] == "NARROW"
+    assert client.get("/preferences", headers=auth_headers).json()["editor_width"] == "NARROW"
+
+
+def test_unknown_editor_width_is_rejected(client, auth_headers):
+    response = client.patch("/preferences", json={"editor_width": "100"}, headers=auth_headers)
 
     assert response.status_code == 422
