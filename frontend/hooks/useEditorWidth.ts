@@ -16,7 +16,7 @@ export type EditorWidth = "WIDE" | "NORMAL" | "NARROW"
  * Tailwind 는 소스에 그대로 적힌 클래스만 만드므로 클래스 이름을 조합하지 않고 통째로 적는다.
  */
 export const EDITOR_WIDTHS: Record<EditorWidth, { label: string, className: string }> = {
-    WIDE: {label: "넓게", className: "w-full md:w-[95%]"},
+    WIDE: {label: "넓게", className: "w-full"},
     NORMAL: {label: "보통", className: "w-full md:w-[70%]"},
     NARROW: {label: "좁게", className: "w-full md:w-[50%]"},
 }
