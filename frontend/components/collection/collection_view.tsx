@@ -1,7 +1,7 @@
 "use client"
 
 import {
-    CSSProperties, KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent,
+    CSSProperties, FocusEvent as ReactFocusEvent, FormEvent, KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent,
     ReactNode, RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
 } from "react"
 import {NodeViewProps, NodeViewWrapper} from "@tiptap/react"
@@ -20,7 +20,8 @@ import {OptionPicker, TagBubble} from "@/components/collection/option_picker"
 import {ColumnMenu} from "@/components/collection/column_menu"
 import {moveItem, startReorder} from "@/components/collection/reorder"
 import {
-    cellAt, CellRange, focusCellAt, inRange, moveFor, pointOf, rangeOf, startCellSelect, swallowNextClick,
+    actionFor, cellAt, CellRange, editCell, focusCellAt, inputOf, inRange, isSelecting, markSelecting, pointOf, rangeOf,
+    selectCell, startCellSelect, swallowNextClick,
 } from "@/components/collection/cell_navigation"
 
 type Update = (change: (data: CollectionData) => CollectionData) => void
@@ -184,6 +185,9 @@ export function CollectionView({node, updateAttributes, editor, getPos}: NodeVie
         if (!editable || !grid.current) return
         const point = pointOf(event.target as Element)
         if (!point) return
+        // 고른 글 칸의 입력칸을 누르면 입력 상태로
+        const pressed = (event.target as HTMLElement).closest<HTMLElement>("[data-cell]")
+        if (pressed && event.target !== pressed && !event.shiftKey) markSelecting(pressed, false)
         // Shift 를 누르고 누르면 지금 칸부터 누른 칸까지 고른다.
         const active = pointOf(document.activeElement)
         if (event.shiftKey && (active || selection)) {
@@ -242,7 +246,7 @@ export function CollectionView({node, updateAttributes, editor, getPos}: NodeVie
             } else if (event.key.startsWith("Arrow") || event.key === "Enter") {
                 event.preventDefault()
                 setSelection(null)
-                focusCellAt(grid.current, {r: selection.top, c: selection.left})
+                focusCellAt(grid.current, {r: selection.top, c: selection.left}, "select")
             }
             return
         }
@@ -251,33 +255,51 @@ export function CollectionView({node, updateAttributes, editor, getPos}: NodeVie
         const cell = target.closest<HTMLElement>("[data-cell]")
         const point = pointOf(target)
         if (!cell || !point) return
-        if (event.key === "Escape") {
-            // 입력칸에서 빠져 칸에 머문다(화살표로 계속 옮겨 다닌다).
-            if (target !== cell) {
-                event.preventDefault()
-                cell.focus()
-            }
+        const selected = target === cell || isSelecting(cell)
+
+        // 고른 칸에서 Delete·Backspace 는 칸을 비운다(수식·ID 는 그대로).
+        if (selected && (event.key === "Delete" || event.key === "Backspace")) {
+            event.preventDefault()
+            const row = rows[point.r], column = columns[point.c]
+            if (row && column && !COMPUTED.includes(column.type)) setCell(row.id, column.id, null)
             return
         }
-        const found = moveFor(event, point, rows.length, columns.length)
-        if (!found) return
+        // 고른 글 칸에서 글자를 치면 입력칸에 그대로 들어가고 입력 상태가 된다(onGridInput).
+
+        const action = actionFor(event, cell, point, rows.length, columns.length)
+        if (!action) return
         event.preventDefault()
-        const {move, caret} = found
-        if (move === "stay") {
-            // 아래 칸이 없다. 적기만 하고 칸에 머문다.
-            if (target !== cell) cell.focus()
-        } else if (move === "after") {
+
+        if (action.kind === "stay") {
+            // 입력을 마치고(한 번 빠져 적고) 그 칸을 고른 상태로
+            if (target !== cell) target.blur()
+            selectCell(cell)
+        } else if (action.kind === "edit") {
+            // 고른 칸에서 Enter: 글·날짜 칸은 입력, 선택·태그는 고르는 창, 체크박스는 체크
+            if (inputOf(cell)) editCell(cell)
+            else cell.querySelector<HTMLElement>(".collection-tags, input[type=checkbox]")?.click()
+        } else if (action.to === "after") {
             leave("after")
-        } else if (move === "title") {
+        } else if (action.to === "title") {
             if (title.current) {
                 title.current.focus()
                 title.current.setSelectionRange(title.current.value.length, title.current.value.length)
             } else {
                 leave("before")
             }
-        } else {
-            focusCellAt(grid.current, move, caret)
+        } else if (!focusCellAt(grid.current, action.to, action.mode, action.caret)) {
+            cell.focus()
         }
+    }
+
+    // 고른 글 칸에 글자가 들어오면(한글 조합 포함) 입력 상태로, 입력칸에서 빠지면 고른 표시를 걷는다.
+    const onGridInput = (event: FormEvent<HTMLDivElement>) => {
+        const cell = (event.target as HTMLElement).closest<HTMLElement>("[data-cell]")
+        if (cell) markSelecting(cell, false)
+    }
+    const onGridBlur = (event: ReactFocusEvent<HTMLDivElement>) => {
+        const cell = (event.target as HTMLElement).closest<HTMLElement>("[data-cell]")
+        if (cell && event.target !== cell) markSelecting(cell, false)
     }
 
     const removeRow = (rowId: string) => update(current => ({...current, rows: current.rows.filter(row => row.id !== rowId)}))
@@ -293,13 +315,14 @@ export function CollectionView({node, updateAttributes, editor, getPos}: NodeVie
                             onCommit={value => update(current => ({...current, title: value.slice(0, 200)}))}
                             onUp={() => leave("before")}
                             onDown={() => {
-                                if (!grid.current || !focusCellAt(grid.current, {r: 0, c: 0})) leave("after")
+                                if (!grid.current || !focusCellAt(grid.current, {r: 0, c: 0}, "select")) leave("after")
                             }}/>
                 <div className="collection-scroll"
                      style={{"--collection-gutter": editable ? `${GUTTER_WIDTH}px` : "0px"} as CSSProperties}>
                     <div ref={grid} className="collection-grid" style={{gridTemplateColumns}} role="table"
                          tabIndex={editable ? -1 : undefined}
-                         onPointerDown={onGridPointerDown} onKeyDown={onGridKeyDown}>
+                         onPointerDown={onGridPointerDown} onKeyDown={onGridKeyDown}
+                         onInput={onGridInput} onCompositionStart={onGridInput} onBlur={onGridBlur}>
                         {/* 머리 */}
                         <div className="contents" role="row">
                             {editable && <div className="collection-gutter"/>}
@@ -774,7 +797,15 @@ function ProgressCell({column, row, editable, setCell, value}: CellProps & { val
 
 function SelectCell({column, row, editable, update, value}: CellProps & { value: CellValue }) {
     const [anchor, setAnchor] = useState<HTMLElement | null>(null)
-    const close = useCallback(() => setAnchor(null), [])
+    const tags = useRef<HTMLDivElement>(null)
+    const close = useCallback(() => {
+        setAnchor(null)
+        // 창을 닫으면(Esc, 하나 고르기) 이 칸을 고른 상태로 돌아와 화살표로 이어 간다.
+        // 바깥을 눌러 닫았으면 그쪽으로 간 포커스를 빼앗지 않는다.
+        requestAnimationFrame(() => {
+            if (document.activeElement === document.body) tags.current?.closest<HTMLElement>("[data-cell]")?.focus()
+        })
+    }, [])
     const ids: string[] = Array.isArray(value) ? value : typeof value === "string" ? [value] : []
     const options = ids.map(id => optionOf(column, id)).filter((option): option is SelectOption => Boolean(option))
 
@@ -793,7 +824,7 @@ function SelectCell({column, row, editable, update, value}: CellProps & { value:
 
     return (
         <>
-            <div className={`collection-tags ${editable ? "cursor-pointer hover:bg-accent-menu/20" : ""}`}
+            <div ref={tags} className={`collection-tags ${editable ? "cursor-pointer hover:bg-accent-menu/20" : ""}`}
                  data-open={anchor ? "" : undefined}
                  tabIndex={editable ? 0 : -1}
                  onClick={event => editable && setAnchor(anchor ? null : event.currentTarget)}

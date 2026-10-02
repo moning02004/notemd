@@ -1477,3 +1477,17 @@ body.collection-selecting * {
 .collection-cell.collection-tail {
     flex-direction: row;
 }
+
+/* 칸을 고른 상태(칸 자체에 포커스, 화살표로 옮겨 다닌다)는 바탕도 옅게 칠해 입력 중과 구별한다. */
+.collection-cell:focus {
+    background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+/* 글 칸을 고른 상태(입력칸에 포커스가 있지만 아직 입력 중이 아니다): 커서를 감추고 고른 칸처럼 칠한다 */
+.collection-cell[data-selecting] {
+    background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.collection-cell[data-selecting] :is(textarea, input) {
+    caret-color: transparent;
+}

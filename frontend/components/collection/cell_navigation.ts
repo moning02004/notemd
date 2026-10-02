@@ -7,9 +7,6 @@ import type {KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEv
  * 그것에, 없으면(수식·ID·진행도) 칸 자체(tabIndex -1)에 포커스를 둔다.
  */
 
-/** 칸 안에서 포커스를 받는 것 */
-const FIELD = "textarea, input, .collection-tags"
-
 export type CellPoint = { r: number, c: number }
 export type CellRange = { top: number, left: number, bottom: number, right: number }
 
@@ -36,57 +33,114 @@ function textField(element: Element | null): HTMLInputElement | HTMLTextAreaElem
     return null
 }
 
-/** 칸으로 옮겨 간다. 글 칸은 들어온 쪽에 커서를 둔다(왼쪽에서 오면 처음, 그 밖에는 끝). */
-export function focusCellAt(grid: HTMLElement, point: CellPoint, caret: "start" | "end" = "end"): boolean {
-    const cell = cellAt(grid, point)
-    if (!cell) return false
-    const field = cell.querySelector<HTMLElement>(FIELD) ?? cell
-    field.focus()
-    const text = textField(field)
+/** 칸에서 글을 치는 입력칸(체크박스·꼬리표 자리는 아니다) */
+const INPUT = "textarea, input:not([type=checkbox])"
+
+export const inputOf = (cell: HTMLElement) => cell.querySelector<HTMLInputElement | HTMLTextAreaElement>(INPUT)
+
+/*
+ * 칸을 고른 상태는 두 가지로 둔다.
+ * - 글 칸(텍스트·숫자·링크): 입력칸에 포커스를 두되 칸에 data-selecting 을 단다(커서를 감춘다). 한글 조합을 포함해
+ *   치는 글자가 바로 입력칸에 들어가야 해서다. 칸(div)에 포커스가 있으면 입력기가 조합을 시작하지 않는다.
+ *   글자가 들어오면(input) 입력 상태로 바뀐다.
+ * - 그 밖의 칸(선택·체크·진행도·날짜·수식·ID): 칸 자체(tabIndex -1)에 포커스.
+ */
+export const isSelecting = (cell: HTMLElement) => cell.hasAttribute("data-selecting")
+
+export function markSelecting(cell: HTMLElement, selecting: boolean) {
+    if (selecting) cell.setAttribute("data-selecting", "")
+    else cell.removeAttribute("data-selecting")
+}
+
+/** 칸을 고른 상태로. 글 칸은 입력칸에 커서를 끝에 두고 고른 표시를 단다. */
+export function selectCell(cell: HTMLElement) {
+    const input = inputOf(cell)
+    const text = input ? textField(input) : null
+    if (!text) {
+        cell.focus()
+        return
+    }
+    markSelecting(cell, true)
+    if (document.activeElement !== text) text.focus()
+    text.setSelectionRange(text.value.length, text.value.length)
+}
+
+/** 칸에 입력을 시작한다. 입력칸이 없는 칸은 고르기만 한다. */
+export function editCell(cell: HTMLElement, caret: "start" | "end" = "end") {
+    const input = inputOf(cell)
+    if (!input) {
+        cell.focus()
+        return
+    }
+    markSelecting(cell, false)
+    if (document.activeElement !== input) input.focus()
+    const text = textField(input)
     if (text) {
         const at = caret === "start" ? 0 : text.value.length
         text.setSelectionRange(at, at)
     }
+}
+
+export function focusCellAt(grid: HTMLElement, point: CellPoint, mode: "select" | "edit",
+                            caret: "start" | "end" = "end"): boolean {
+    const cell = cellAt(grid, point)
+    if (!cell) return false
+    if (mode === "select") selectCell(cell)
+    else editCell(cell, caret)
     return true
 }
 
-/** 키를 눌렀을 때 갈 곳. null 이면 칸 안에서 원래 하던 대로(커서 옮기기 등). */
-export type Move = CellPoint | "title" | "after" | "stay"
+/**
+ * 키를 눌렀을 때 할 일. null 이면 칸 안에서 원래 하던 대로(커서 옮기기 등).
+ * - go: 다른 칸(또는 제목·콜렉션 밖)으로. mode 는 도착한 칸의 상태.
+ * - edit: 고른 칸에 입력을 시작한다. stay: 입력을 마치고 그 칸을 고른 상태로.
+ */
+export type Action =
+    | { kind: "go", to: CellPoint | "title" | "after", mode: "select" | "edit", caret: "start" | "end" }
+    | { kind: "edit" }
+    | { kind: "stay" }
 
 /**
- * 화살표·Enter 로 갈 곳을 정한다.
- * - 글 칸에서는 커서가 끝에 닿았을 때만 옆 칸으로(←는 맨 앞, →는 맨 뒤, ↑는 첫 줄, ↓는 마지막 줄).
- * - 맨 윗행에서 ↑ 는 제목으로, 맨 아랫행에서 ↓ 는 콜렉션 밖(아래 글)으로.
- * - Enter 는 한 칸 아래로. 아래 칸이 없으면 그 자리에 머문다(적기만 한다). 글 칸의 Shift+Enter 는 줄바꿈.
+ * 칸을 고른 상태(칸 자체에 포커스)와 입력하는 상태(입력칸에 포커스)를 나눈다(스프레드시트처럼).
+ *
+ * 고른 상태: 화살표는 늘 칸을 옮긴다. Enter 는 입력을 시작한다.
+ * 입력 상태: 화살표는 커서가 끝에 닿았을 때만 옆 칸을 고른다(← 맨 앞, → 맨 뒤, ↑ 첫 줄, ↓ 마지막 줄).
+ *           Enter 는 적고 아래 칸에 바로 입력한다. 아래 칸이 없으면 적고 고른 상태로 돌아온다. 글 칸의 Shift+Enter 는 줄바꿈.
+ * 어느 쪽이든 맨 윗행의 ↑ 는 제목으로, 맨 아랫행의 ↓ 는 콜렉션 밖(아래 글)으로.
  */
-export function moveFor(event: ReactKeyboardEvent, point: CellPoint, rowCount: number, columnCount: number): {
-    move: Move, caret: "start" | "end"
-} | null {
+export function actionFor(event: ReactKeyboardEvent, cell: HTMLElement, point: CellPoint,
+                          rowCount: number, columnCount: number): Action | null {
     const target = event.target as HTMLElement
-    const text = textField(target)
-    const date = target instanceof HTMLInputElement && target.type === "date"
+    const editing = target !== cell && !isSelecting(cell)
+    const text = editing ? textField(target) : null
+    const date = editing && target instanceof HTMLInputElement && target.type === "date"
     const value = text?.value ?? ""
     const start = text?.selectionStart ?? 0
     const end = text?.selectionEnd ?? 0
     const collapsed = start === end
     const {r, c} = point
+    const go = (to: CellPoint | "title" | "after", caret: "start" | "end" = "end"): Action =>
+        ({kind: "go", to, mode: "select", caret})
 
     switch (event.key) {
         case "ArrowLeft":
             if (date || (text && !(collapsed && start === 0))) return null
-            return c > 0 ? {move: {r, c: c - 1}, caret: "end"} : null
+            return c > 0 ? go({r, c: c - 1}) : null
         case "ArrowRight":
             if (date || (text && !(collapsed && end === value.length))) return null
-            return c < columnCount - 1 ? {move: {r, c: c + 1}, caret: "start"} : null
+            return c < columnCount - 1 ? go({r, c: c + 1}, "start") : null
         case "ArrowUp":
             if (date || (text && !(collapsed && !value.slice(0, start).includes("\n")))) return null
-            return {move: r === 0 ? "title" : {r: r - 1, c}, caret: "end"}
+            return go(r === 0 ? "title" : {r: r - 1, c})
         case "ArrowDown":
             if (date || (text && !(collapsed && !value.slice(end).includes("\n")))) return null
-            return {move: r === rowCount - 1 ? "after" : {r: r + 1, c}, caret: "end"}
+            return go(r === rowCount - 1 ? "after" : {r: r + 1, c})
         case "Enter":
+            if (!editing) return {kind: "edit"}
             if (event.shiftKey && target instanceof HTMLTextAreaElement) return null
-            return {move: r < rowCount - 1 ? {r: r + 1, c} : "stay", caret: "end"}
+            return r < rowCount - 1 ? {kind: "go", to: {r: r + 1, c}, mode: "edit", caret: "end"} : {kind: "stay"}
+        case "Escape":
+            return editing ? {kind: "stay"} : null
         default:
             return null
     }
