@@ -29,6 +29,7 @@ import {CellSelection} from "@tiptap/pm/tables";
 import {openLineAt, startsWithGap} from "@/lib/open_line";
 import {Link as LinkIcon} from "lucide-react";
 import {MdWorkspacesFilled} from "react-icons/md";
+import {flipBelowToolbar} from "@/lib/bubble";
 
 interface EditorProps {
     setOpenedSetting: Dispatch<SetStateAction<boolean>>;
@@ -132,6 +133,10 @@ export function MarkdownEditor({
 
     const closePeek = useCallback(() => setPeekNoteId(null), [])
 
+    // 위에 띄우는 말풍선이 붙박인 툴바와 겹치면 아래로 뒤집도록 툴바를 알려 준다(lib/bubble.ts).
+    const [toolbarElement, setToolbarElement] = useState<HTMLDivElement | null>(null)
+    const toolbar = useCallback(() => toolbarElement, [toolbarElement])
+
     // 기본 조건(포커스가 있고 글자가 골라져 있을 때)에 더해, 이미지·노트 링크처럼 조각 하나가 통째로
     // 골라진 경우는 뺀다. 거기에는 굵게·기울임이 소용없고, 버블이 이미지나 옆에 펼친 패널을 가린다.
     // 표 칸을 여러 개 고른 경우도 뺀다. 그때는 표 말풍선(합치기·색칠)이 같은 자리에 뜬다.
@@ -205,7 +210,7 @@ export function MarkdownEditor({
 
             {
                 !isReadonly &&
-                <div className="pr-3 bg-editor sticky top-0 z-10 flex shadow-sm">
+                <div ref={setToolbarElement} className="pr-3 bg-editor sticky top-0 z-10 flex shadow-sm">
                     {/* min-w-0: 툴바가 제 폭보다 좁아져야 모바일에서 옆으로 밀 수 있다 */}
                     <div className="flex-1 min-w-0">
                         <MenuBar editor={editor} noteId={paramsNoteId}
@@ -220,11 +225,13 @@ export function MarkdownEditor({
             {
                 /* 버블 메뉴의 z-index 가 모달보다 높아서, 링크 모달이 떠 있는 동안에는 감춘다 */
                 !isReadonly && !linkModalOpen && scroller &&
-                <BubbleMenu editor={editor} options={{placement: "top", offset: 8, scrollTarget: scroller}}
+                <BubbleMenu editor={editor}
+                            appendTo={() => document.body}
+                            options={{placement: "top", offset: 8, scrollTarget: scroller, flip: flipBelowToolbar(toolbar)}}
                             shouldShow={shouldShowFormatBubble}
                             style={{
-                    zIndex: 9999,
-                }}>
+                                zIndex: 9999,
+                            }}>
                     <div className="flex items-center gap-1 bg-foreground rounded-lg px-1.5 py-1 shadow-lg z-20">
                         <button
                             onClick={() => editor.chain().focus().toggleBold().run()}
@@ -261,7 +268,7 @@ export function MarkdownEditor({
                 </BubbleMenu>
             }
 
-            {!isReadonly && scroller && <EditorImageBubble editor={editor} scrollTarget={scroller}/>}
+            {!isReadonly && scroller && <EditorImageBubble editor={editor} scrollTarget={scroller} toolbar={toolbar}/>}
 
             {!isReadonly && !linkModalOpen && scroller && <EditorTableBubble editor={editor} scrollTarget={scroller}/>}
 

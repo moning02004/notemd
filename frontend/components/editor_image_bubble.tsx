@@ -7,11 +7,14 @@ import {NodeSelection} from "@tiptap/pm/state";
 import {AlignCenter, AlignLeft, AlignRight, Expand, RectangleHorizontal, WrapText} from "lucide-react";
 
 import {ImageDisplay, imageDisplayOf, openImageViewer} from "@/lib/create_editor";
+import {flipBelowToolbar} from "@/lib/bubble";
 
 interface Props {
     editor: Editor;
     /** 에디터가 스크롤되는 요소. 말풍선이 이 스크롤을 따라 자리를 다시 잡는다. */
     scrollTarget?: HTMLElement | null;
+    /** 편집 화면 위쪽에 붙박인 툴바. 겹치면 말풍선을 아래로 뒤집는다. */
+    toolbar?: () => HTMLElement | null;
 }
 
 const isImageSelected = (editor: Editor) => {
@@ -26,7 +29,7 @@ const isImageSelected = (editor: Editor) => {
  * - 글자와 함께: 글자 사이에 흐른다. 아이콘·작은 그림처럼 문장 안에 넣을 때 쓴다.
  * 글자와 함께 둔 이미지를 크게 키우면 줄이 바뀌면서 이미지가 뛰어다니므로, 큰 이미지는 블록이 맞다.
  */
-export default function EditorImageBubble({editor, scrollTarget}: Props) {
+export default function EditorImageBubble({editor, scrollTarget, toolbar}: Props) {
     // shouldRerenderOnTransaction 이 꺼져 있어 필요한 값만 구독한다.
     const {display, align} = useEditorState({
         editor,
@@ -98,7 +101,10 @@ export default function EditorImageBubble({editor, scrollTarget}: Props) {
             pluginKey="imageBubbleMenu"
             shouldShow={({editor}) => editor.isEditable && isImageSelected(editor)}
             getReferencedVirtualElement={getReferencedVirtualElement}
-            options={{placement: "top", offset: 8, scrollTarget: scrollTarget ?? undefined}}
+            options={{
+                placement: "top", offset: 8, scrollTarget: scrollTarget ?? undefined,
+                flip: toolbar ? flipBelowToolbar(toolbar) : true,
+            }}
             style={{zIndex: 9999}}
         >
             <div className="flex items-center gap-1 bg-foreground rounded-lg px-1.5 py-1 shadow-lg">
