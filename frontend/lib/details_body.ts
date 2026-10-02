@@ -1,6 +1,7 @@
 import {Editor} from "@tiptap/core"
 import {Node as PMNode} from "@tiptap/pm/model"
-import {EditorState, Plugin, PluginKey, TextSelection} from "@tiptap/pm/state"
+import {EditorState, Plugin, PluginKey, Selection, TextSelection} from "@tiptap/pm/state"
+import {openLineAt} from "@/lib/open_line"
 import {Decoration, DecorationSet} from "@tiptap/pm/view"
 
 /*
@@ -70,5 +71,26 @@ export function enterEmptyDetailsBody(editor: Editor): boolean {
     // 제목 끝(= 본문 시작) → 본문 안(+1) → 문단 안(+1)
     const inside = $head.after() + 2
     view.dispatch(state.tr.setSelection(TextSelection.create(state.doc, inside)).scrollIntoView())
+    return true
+}
+
+/**
+ * 접기 제목의 첫 줄에서 ↑. 접기 바로 위 글의 끝으로 간다(문서 맨 앞의 접기면 위에 쓸 줄을 연다).
+ *
+ * 브라우저에 맡기면 제목이 쉐브론 버튼(편집할 수 없는 칸)과 나란히 놓인 flex 안이라, 크롬이 '위 줄' 을 잘못 찾아
+ * 접기 아래 글로 내려보냈다. 위로 갈 자리를 문서 구조로 정한다.
+ */
+export function arrowUpFromSummary(editor: Editor): boolean {
+    const {state, view} = editor
+    const {selection} = state
+    const {$head, empty} = selection
+    if (!empty || $head.parent.type.name !== "detailsSummary") return false
+    // 여러 줄로 넘어간 제목의 아래 줄이면 제목 안에서 올라간다.
+    if (!view.endOfTextblock("up")) return false
+
+    const detailsStart = $head.before($head.depth - 1)
+    const above = Selection.findFrom(state.doc.resolve(detailsStart), -1, true)
+    if (!above) return openLineAt(view, detailsStart)
+    view.dispatch(state.tr.setSelection(above).scrollIntoView())
     return true
 }

@@ -10,7 +10,7 @@ import {Plugin, PluginKey} from '@tiptap/pm/state'
 import {useImageViewerStore} from "@/store/imageViewer";
 import {DetailsContent, DetailsSummary} from '@tiptap/extension-details'
 import {detailsNestingGuard} from "@/lib/details_nesting";
-import {emptyDetailsBody, enterEmptyDetailsBody} from "@/lib/details_body";
+import {arrowUpFromSummary, emptyDetailsBody, enterEmptyDetailsBody} from "@/lib/details_body";
 
 import Document from '@tiptap/extension-document'
 import javascript from 'highlight.js/lib/languages/javascript'
@@ -132,6 +132,7 @@ export const CustomDetails = DetailsBase.extend({
         return {
             ...parent,
             Enter: props => enterEmptyDetailsBody(props.editor) || (parent.Enter?.(props) ?? false),
+            ArrowUp: props => arrowUpFromSummary(props.editor) || (parent.ArrowUp?.(props) ?? false),
         }
     },
 
