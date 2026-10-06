@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List, Literal
 
 from fastapi import Query
-from pydantic import BaseModel, ConfigDict, field_serializer
+from pydantic import BaseModel, ConfigDict, field_serializer, model_validator
 
 
 @dataclass
@@ -38,6 +38,13 @@ class NoteListSchema(BaseModel):
     folder: object | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode="after")
+    def hide_encrypted_content(self):
+        """암호화한 노트는 어느 목록에서든 본문을 싣지 않는다(DB 의 암호문이 그대로 나가는 것도 막는다)."""
+        if self.is_encrypted:
+            self.content = ""
+        return self
 
     @field_serializer("folder")
     def serialize_folder(self, value, _info):

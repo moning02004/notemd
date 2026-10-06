@@ -166,6 +166,20 @@ def test_append_keeps_encrypted_notes_encrypted(client, auth_headers, db_session
     assert "덧붙임" in client.get(f"/notes/{note}", headers=owner).json()["content"]
 
 
+def test_encrypted_note_body_cannot_be_read_with_a_token(client, auth_headers):
+    """토큰이 새도 암호화한 노트의 본문은 나가지 않는다. 제목으로 찾을 수는 있지만 발췌도 싣지 않는다."""
+    owner = member_headers(client)
+    token = issue(client, owner, scope="read_write")
+    note = create_note(client, owner, title="비밀", content="<p>hunter2</p>", is_encrypted=True)
+
+    response = client.get(f"/api/v1/notes/{note}", headers=bearer(token))
+    assert response.status_code == 403
+    assert "hunter2" not in response.text
+
+    listed = client.get("/api/v1/notes", headers=bearer(token)).json()
+    assert [(item["title"], item["snippet"]) for item in listed] == [("비밀", "")]
+
+
 def test_cannot_touch_other_peoples_or_trashed_notes(client, auth_headers):
     owner = member_headers(client)
     token = issue(client, owner, scope="read_write")

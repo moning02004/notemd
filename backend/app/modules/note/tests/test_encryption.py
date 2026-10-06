@@ -1,7 +1,8 @@
-"""본문 암호화: 저장은 암호문으로, 응답은 평문으로.
+"""본문 암호화: 저장은 암호문으로, 노트를 연 사람에게만 평문으로.
 
 DB 에 무엇이 들어갔는지까지 확인한다. 암호화의 목적이 'DB 가 새어도 본문은 못 읽는다'
-이므로, 응답만 보는 테스트로는 아무것도 보장하지 못한다.
+이므로, 응답만 보는 테스트로는 아무것도 보장하지 못한다. 같은 이유로 본문은 노트를 여는 길 말고는
+어디에도 평문으로 남거나 실려 나가지 않는다(검색 색인, 목록 미리보기, 에이전트 API).
 """
 
 import base64
@@ -43,22 +44,71 @@ def test_encrypted_note_is_returned_as_plaintext_to_the_owner(client, auth_heade
     assert response.json()["is_encrypted"] is True
 
 
-def test_encrypted_note_is_readable_in_the_list(client, auth_headers):
-    """목록에서도 복호화돼야 한다. 카드 미리보기가 암호문이면 곤란하다."""
+def test_encrypted_note_has_no_preview_in_the_list(client, auth_headers):
+    """목록에는 본문도 암호문도 싣지 않는다. 제목과 '암호화' 표시만으로 알아본다."""
     create_note(client, auth_headers, title="비밀 노트", content=PLAINTEXT, is_encrypted=True)
 
     response = client.get("/notes", headers=auth_headers)
 
     assert response.status_code == 200
-    assert "hunter2" in response.json()[0]["content"]
+    assert response.json()[0]["title"] == "비밀 노트"
+    assert response.json()[0]["is_encrypted"] is True
+    assert response.json()[0]["content"] == ""
 
 
-def test_encrypted_note_is_searchable_by_body_text(client, auth_headers, search_index):
-    """색인에는 평문이 들어가야 검색이 된다 (DB 는 암호문, 색인은 평문이라는 설계)."""
+def test_encrypted_note_has_no_preview_in_a_workspace_list(client, auth_headers):
+    workspace_hash = create_workspace(client, auth_headers)
+    create_note(client, auth_headers, title="비밀 노트", content=PLAINTEXT, is_encrypted=True,
+                workspaces=[workspace_hash])
+
+    response = client.get(f"/workspaces/{workspace_hash}/notes", headers=auth_headers)
+
+    assert response.status_code == 200
+    assert [note["content"] for note in response.json()] == [""]
+
+
+def test_encrypted_body_is_not_put_in_the_search_index(client, auth_headers, search_index):
+    """색인은 평문으로 보관된다. 본문을 넣으면 DB 만 암호문이고 검색 서버에는 그대로 남는다."""
     note_hash = create_note(client, auth_headers, title="비밀 노트", content=PLAINTEXT, is_encrypted=True)
 
+    assert search_index.documents[note_hash]["content"] == ""
+
+    response = client.get("/notes", headers=auth_headers, params={"keyword": "hunter2"})
+    assert response.json() == []
+
+
+def test_encrypted_note_is_still_found_by_its_title(client, auth_headers):
+    note_hash = create_note(client, auth_headers, title="비밀 노트", content=PLAINTEXT, is_encrypted=True)
+
+    response = client.get("/notes", headers=auth_headers, params={"keyword": "비밀"})
+
+    assert [note["hash_id"] for note in response.json()] == [note_hash]
+    assert response.json()[0]["content"] == ""
+
+
+def test_turning_encryption_on_removes_the_body_from_the_search_index(client, auth_headers, search_index):
+    note_hash = create_note(client, auth_headers, title="비밀 노트", content=PLAINTEXT)
     assert "hunter2" in search_index.documents[note_hash]["content"]
 
+    client.patch(f"/notes/{note_hash}", headers=auth_headers, json={"is_encrypted": True})
+
+    assert search_index.documents[note_hash]["content"] == ""
+
+
+def test_editing_an_encrypted_note_keeps_the_body_out_of_the_search_index(client, auth_headers, search_index):
+    note_hash = create_note(client, auth_headers, title="비밀 노트", content=PLAINTEXT, is_encrypted=True)
+
+    client.patch(f"/notes/{note_hash}", headers=auth_headers, json={"content": "<p>새 비밀 swordfish</p>"})
+
+    assert search_index.documents[note_hash]["content"] == ""
+
+
+def test_turning_encryption_off_makes_the_body_searchable_again(client, auth_headers, search_index):
+    note_hash = create_note(client, auth_headers, title="비밀 노트", content=PLAINTEXT, is_encrypted=True)
+
+    client.patch(f"/notes/{note_hash}", headers=auth_headers, json={"is_encrypted": False})
+
+    assert "hunter2" in search_index.documents[note_hash]["content"]
     response = client.get("/notes", headers=auth_headers, params={"keyword": "hunter2"})
     assert [note["hash_id"] for note in response.json()] == [note_hash]
 

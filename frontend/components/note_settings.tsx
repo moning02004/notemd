@@ -197,7 +197,8 @@ export const NoteSettings = ({
                                 <div className="pr-3">
                                     <p className="text-[15px] font-medium text-foreground">암호화 저장</p>
                                     <p className="text-[13px] text-muted mt-0.5">
-                                        노트가 암호화되어 저장됩니다.
+                                        본문을 암호화해 저장합니다. 목록 미리보기와 본문 검색, AI 에이전트(API)에는
+                                        내용이 드러나지 않고 노트를 열어야 보입니다. 제목과 태그로는 계속 찾을 수 있어요.
                                     </p>
                                 </div>
                                 <ToggleSwitch checked={isEncrypted} activeColor="bg-accent" onClick={() => {

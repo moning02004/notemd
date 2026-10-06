@@ -114,6 +114,10 @@ class AgentNoteService:
 
     def get_note_markdown(self, user, note_hash: str) -> tuple:
         note = self._get_own_note(user, note_hash)
+        # 암호화한 노트의 본문은 앱에서 주인이 열 때만 풀린다. 토큰이 새도 본문은 나가지 않는다.
+        # 덧붙이기는 본문을 돌려주지 않으므로 그대로 된다.
+        if note.is_encrypted:
+            raise HTTPException(status_code=403, detail="암호화된 노트는 API 로 읽을 수 없습니다. 앱에서 열어 주세요.")
         content = self.notes._resolve_note_links(self._plain_content(note), user)
         return note, html_to_markdown(_absolute_note_links(content or ""))
 
