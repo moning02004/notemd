@@ -36,7 +36,9 @@ note.md 는 사용자의 개인 마크다운 노트 앱이다. 이 도구들로 
   어떤 노트인지 모르면 search_notes 로 찾는다.
 - 사용자에게 결과를 알릴 때는 돌려받은 url 을 함께 준다.
 - 암호화된 노트는 제목만 찾을 수 있고 본문은 읽을 수 없다(덧붙이기는 된다). 읽어야 하면 사용자에게 앱에서 열어 달라고 한다.
-- 쓴 노트는 스냅샷 설명에 토큰 이름이 남고, 덧붙이기 전 모습은 스냅샷으로 되돌릴 수 있다.
+- 있는 노트를 다시 쓰거나 고칠 때는 새 노트를 만들지 말고 replace_note 로 본문을 통째로 바꾼다.
+  바꾸는 것은 본문 전체이므로, 남길 부분까지 모두 담아 보낸다.
+- 쓴 노트는 스냅샷 설명에 토큰 이름이 남고, 덧붙이거나 바꾸기 전 모습은 스냅샷으로 되돌릴 수 있다.
 """
 
 mcp_server = MCPServer(name="note.md", title="note.md", instructions=INSTRUCTIONS)
@@ -59,7 +61,7 @@ def _agent(ctx: Context, scope: str) -> Iterator[tuple[ApiCaller, AgentNoteServi
 
 # 도구가 돌려주는 모양. 형식을 밝혀 두면 에이전트가 결과를 글이 아니라 구조로 받는다(output schema).
 class NoteSummary(BaseModel):
-    id: str = Field(description="노트 id. append_to_note·read_note 에 쓴다.")
+    id: str = Field(description="노트 id. append_to_note·replace_note·read_note 에 쓴다.")
     title: str
     folder: str | None = Field(description="'업무/회의' 같은 폴더 경로. 미분류면 null.")
     url: str = Field(description="앱에서 이 노트를 여는 주소. 사용자에게 알려줄 때 쓴다.")
@@ -108,6 +110,20 @@ def append_to_note(ctx: Context, note_id: str, content: str) -> NoteSummary:
     """
     with _agent(ctx, "write") as (caller, service):
         note = service.append_to_note(caller.user, caller.token, note_id, content)
+        return NoteSummary(**_note_summary(service, note))
+
+
+@mcp_server.tool()
+def replace_note(ctx: Context, note_id: str, content: str, title: str | None = None) -> NoteSummary:
+    """기존 노트의 본문을 통째로 바꾼다. 다시 쓰기·정리처럼 노트를 고칠 때 쓴다. 바꾸기 전 모습은 스냅샷에 남는다.
+
+    Args:
+        note_id: 노트 id(search_notes·create_note 가 돌려준 id)
+        content: 새 본문 전체(마크다운). 남길 부분까지 모두 담아야 한다.
+        title: 새 제목. 생략하면 제목은 그대로 둔다.
+    """
+    with _agent(ctx, "write") as (caller, service):
+        note = service.replace_note(caller.user, caller.token, note_id, content, title)
         return NoteSummary(**_note_summary(service, note))
 
 

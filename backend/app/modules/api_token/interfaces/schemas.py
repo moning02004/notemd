@@ -39,6 +39,11 @@ class AgentNoteAppendRequest(BaseModel):
     content: str = Field(..., description="노트 끝에 덧붙일 마크다운.")
 
 
+class AgentNoteReplaceRequest(BaseModel):
+    content: str = Field(..., description="노트 본문을 통째로 바꿀 마크다운.")
+    title: str | None = Field(None, description="새 제목. 생략하면 제목은 그대로 둔다.")
+
+
 class AgentNote(BaseModel):
     id: str
     title: str

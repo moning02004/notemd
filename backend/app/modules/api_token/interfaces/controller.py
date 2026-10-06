@@ -6,7 +6,7 @@ from app.core.dependancies import get_current_user
 from app.modules.api_token.application.service import AgentNoteService, ApiTokenService
 from app.modules.api_token.interfaces.dependencies import (ApiCaller, api_token_caller, get_agent_note_service,
                                                            get_api_token_service)
-from app.modules.api_token.interfaces.schemas import (AgentNote, AgentNoteAppendRequest, AgentNoteCreateRequest,
+from app.modules.api_token.interfaces.schemas import (AgentNote, AgentNoteAppendRequest, AgentNoteReplaceRequest, AgentNoteCreateRequest,
                                                       AgentNoteDetail, AgentNoteListItem, ApiTokenCreatedResponse,
                                                       ApiTokenCreateRequest, ApiTokenSchema)
 
@@ -57,6 +57,15 @@ def append_to_note(note_id: str, request: AgentNoteAppendRequest,
                    caller: ApiCaller = Depends(api_token_caller("write")),
                    service: AgentNoteService = Depends(get_agent_note_service)):
     note = service.append_to_note(caller.user, caller.token, note_id, request.content)
+    return _agent_note(service, note)
+
+
+@v1_router.put("/notes/{note_id}", response_model=AgentNote)
+def replace_note(note_id: str, request: AgentNoteReplaceRequest,
+                 caller: ApiCaller = Depends(api_token_caller("write")),
+                 service: AgentNoteService = Depends(get_agent_note_service)):
+    """본문을 통째로 바꾼다(제목은 줄 때만). 바꾸기 전 모습은 스냅샷에 남는다."""
+    note = service.replace_note(caller.user, caller.token, note_id, request.content, request.title)
     return _agent_note(service, note)
 
 

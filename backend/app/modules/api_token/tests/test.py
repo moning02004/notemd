@@ -153,6 +153,78 @@ def test_append_to_note(client, auth_headers):
     assert "<li>회의</li>" in content
 
 
+# ---------------------------------------------------------------- 본문 바꾸기
+
+def test_replace_swaps_the_whole_body_and_keeps_the_title(client, auth_headers):
+    owner = member_headers(client)
+    token = issue(client, owner)
+    note = create_note(client, owner, title="업무 일지", content="<p>월요일</p><p>화요일</p>")
+
+    response = client.put(f"/api/v1/notes/{note}", headers=bearer(token), json={"content": "## 정리\n\n- 회의"})
+
+    assert response.status_code == 200, response.text
+    assert response.json()["id"] == note
+    detail = client.get(f"/notes/{note}", headers=owner).json()
+    assert detail["title"] == "업무 일지"
+    assert "월요일" not in detail["content"]
+    assert "<h2>정리</h2>" in detail["content"] and "<li>회의</li>" in detail["content"]
+
+
+def test_replace_can_change_the_title_too(client, auth_headers):
+    owner = member_headers(client)
+    token = issue(client, owner)
+    note = create_note(client, owner, title="초안", content="<p>처음</p>")
+
+    client.put(f"/api/v1/notes/{note}", headers=bearer(token), json={"content": "다시", "title": "완성본"})
+
+    assert client.get(f"/notes/{note}", headers=owner).json()["title"] == "완성본"
+
+
+def test_replace_leaves_the_old_body_in_a_snapshot(client, auth_headers, db_session):
+    owner = member_headers(client)
+    token = issue(client, owner)
+    note = create_note(client, owner, title="일지", content="<p>지워질 본문</p>")
+
+    client.put(f"/api/v1/notes/{note}", headers=bearer(token), json={"content": "새 본문"})
+
+    stored = db_session.query(Note).filter(Note.hash_id == note).one()
+    snapshots = db_session.query(NoteSnapshot).filter(NoteSnapshot.note_id == stored.pk).all()
+    assert [(s.description, s.content) for s in snapshots] == [("API 토큰 'Claude' 바꾸기 전", "<p>지워질 본문</p>")]
+
+
+def test_replace_needs_content(client, auth_headers):
+    """빈 본문으로 바꾸는 것은 지우는 것과 같다. 에이전트의 실수로 노트가 비지 않게 막는다."""
+    owner = member_headers(client)
+    token = issue(client, owner)
+    note = create_note(client, owner, title="일지", content="<p>본문</p>")
+
+    assert client.put(f"/api/v1/notes/{note}", headers=bearer(token), json={"content": "  "}).status_code == 400
+    assert "본문" in client.get(f"/notes/{note}", headers=owner).json()["content"]
+
+
+def test_replace_keeps_encrypted_notes_encrypted(client, auth_headers, db_session):
+    owner = member_headers(client)
+    token = issue(client, owner)
+    note = create_note(client, owner, title="비밀", content="<p>처음</p>", is_encrypted=True)
+
+    client.put(f"/api/v1/notes/{note}", headers=bearer(token), json={"content": "바꾼 비밀"})
+
+    stored = db_session.query(Note).filter(Note.hash_id == note).one()
+    db_session.refresh(stored)
+    assert "바꾼 비밀" not in stored.content
+    assert "바꾼 비밀" in client.get(f"/notes/{note}", headers=owner).json()["content"]
+
+
+def test_replace_cannot_touch_other_peoples_notes(client, auth_headers):
+    owner = member_headers(client)
+    token = issue(client, owner)
+    stranger = member_headers(client, username="stranger", name="남")
+    theirs = create_note(client, stranger, title="남의 노트", content="<p>그대로</p>")
+
+    assert client.put(f"/api/v1/notes/{theirs}", headers=bearer(token), json={"content": "x"}).status_code == 404
+    assert client.get(f"/notes/{theirs}", headers=stranger).json()["content"] == "<p>그대로</p>"
+
+
 def test_append_keeps_encrypted_notes_encrypted(client, auth_headers, db_session):
     owner = member_headers(client)
     token = issue(client, owner)

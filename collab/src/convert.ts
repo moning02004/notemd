@@ -72,3 +72,24 @@ export function appendHtml(doc: Y.Doc, html: string): void {
         fragment.insert(fragment.length, nodes)
     })
 }
+
+/**
+ * 본문을 통째로 바꾼다(에이전트의 다시 쓰기). 제목은 줄 때만 바꾼다.
+ * 열려 있는 문서 안에서 바꾸므로, 같이 보고 있는 사람의 화면도 그 자리에서 바뀌고 그 뒤의 편집이 옛 본문을 되살리지 않는다.
+ */
+export function replaceHtml(doc: Y.Doc, html: string, title?: string): void {
+    const replacement = generateJSON(html || "<p></p>", SCHEMA_EXTENSIONS)
+    const fragment = doc.getXmlFragment(BODY_FIELD)
+    const scratch = new Y.Doc()
+    prosemirrorJSONToYXmlFragment(schema, replacement, scratch.getXmlFragment(BODY_FIELD))
+    const nodes = scratch.getXmlFragment(BODY_FIELD).toArray().map(node => (node as Y.XmlElement).clone())
+    doc.transact(() => {
+        fragment.delete(0, fragment.length)
+        fragment.insert(0, nodes)
+        if (title !== undefined) {
+            const text = doc.getText(TITLE_FIELD)
+            text.delete(0, text.length)
+            text.insert(0, title)
+        }
+    })
+}
