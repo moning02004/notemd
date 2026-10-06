@@ -17,6 +17,8 @@ class NoteDocument:
     title: str
     content: str
     tags: list[str]
+    # 노트가 든 폴더의 hash(없으면 None). 검색을 한 폴더 안으로 좁힐 때 거른다.
+    folder: str | None
     user_hash: str | None
     is_deleted: bool
     created_at: str | None
@@ -34,6 +36,7 @@ def build_note_document(note) -> NoteDocument:
         title=note.title,
         content="" if note.is_encrypted else re.sub(r"<[^>]+>", "", note.content or ""),
         tags=[tag.keyword for tag in note.tags],
+        folder=note.folder.hash_id if note.folder else None,
         user_hash=note.user.hash_id,
         is_deleted=note.deleted_at is not None,
         created_at=note.created_at.strftime("%Y-%m-%d %H:%M:%S"),

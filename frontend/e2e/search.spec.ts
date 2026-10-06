@@ -28,3 +28,31 @@ test("검색하면 이름이 맞는 폴더가 노트보다 위에 나온다", as
     await folderRow.click()
     await expect(page).toHaveURL(/folder=/)
 })
+
+test("검색 범위를 폴더로 좁히면 그 폴더 안의 노트만 나온다", async ({page}) => {
+    const word = unique("결산").replace(" ", "")
+    await login(page)
+    const token = await apiToken(page)
+    const headers = {Authorization: `Bearer ${token}`}
+    const folderName = `${word} 자료`
+    const created = await page.request.post(`${API_URL}/folders`, {headers, data: {name: folderName}})
+    const folder: string = (await created.json()).hash_id
+    await createNote(page, token, {title: `${word} 폴더 안`, folder})
+    await createNote(page, token, {title: `${word} 폴더 밖`})
+    await page.reload()
+
+    await page.getByRole("button", {name: "검색"}).click()
+    await page.getByPlaceholder("검색", {exact: true}).pressSequentially(word)
+    const inside = page.locator(".font-bold", {hasText: `${word} 폴더 안`})
+    const outside = page.locator(".font-bold", {hasText: `${word} 폴더 밖`})
+    await expect(inside).toBeVisible()
+    await expect(outside).toBeVisible()
+
+    await page.getByRole("combobox", {name: "찾을 범위"}).click()
+    await page.getByRole("option", {name: `/${folderName}`}).click()
+    await expect(inside).toBeVisible()
+    await expect(outside).toBeHidden()
+
+    await page.getByRole("button", {name: "범위 풀기"}).click()
+    await expect(outside).toBeVisible()
+})

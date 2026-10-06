@@ -192,6 +192,10 @@ class FolderService(Service):
 
         if moved:
             self.repository.db.commit()
+            for note in moved:
+                self.repository.db.refresh(note)
+            # 색인 문서에 폴더가 적혀 있다(폴더 안 검색). 옮기면 다시 적는다.
+            self._reindex(moved)
 
         return {"created_folder_count": created, "moved_note_count": len(moved)}
 
@@ -200,6 +204,8 @@ class FolderService(Service):
         notes = self.repository.move_notes(user_id=user_id,
                                            note_hashes=note_hashes,
                                            folder_id=folder.pk if folder else None)
+        # 색인 문서에 폴더가 적혀 있다(폴더 안 검색). 옮기면 다시 적는다.
+        self._reindex(notes)
         return [note.hash_id for note in notes]
 
     def _reindex(self, notes):

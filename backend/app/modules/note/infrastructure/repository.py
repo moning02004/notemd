@@ -94,6 +94,11 @@ class NoteRepository(Repository):
                 stack.append(child)
         return ids
 
+    def folder_hashes_for(self, user_hash: str, folder_hash: str) -> List[str]:
+        """폴더와 그 하위 폴더 전부의 hash. 검색을 한 폴더 안으로 좁힐 때 쓴다. 없는(남의) 폴더면 빈 목록."""
+        folder_ids = self.folder_ids_for(user_hash=user_hash, folder_hash=folder_hash, include_sub=True)
+        return [hash_id for (hash_id,) in self.db.query(Folder.hash_id).filter(Folder.pk.in_(folder_ids))]
+
     def create_note(self, note_entity) -> Note:
         new_note = self.DB_MODEL(user_id=note_entity.user_id,
                                  title=note_entity.title,

@@ -5,8 +5,8 @@ from fastapi_clean_archi.core.commons.service import Service
 
 class SearchService(Service):
 
-    def find_documents(self, keyword, user_hash, sort, page, is_deleted=False):
-        return self.repository.search_index(keyword, user_hash, sort, page, is_deleted=is_deleted)
+    def find_documents(self, keyword, user_hash, sort, page, is_deleted=False, folders=None):
+        return self.repository.search_index(keyword, user_hash, sort, page, is_deleted=is_deleted, folders=folders)
 
     def add_to_index(self, data: dict):
         return self.repository.upsert(data)

@@ -6,6 +6,7 @@ import {gotoNote} from "@/lib/note";
 import {useProgressRouter} from "@/hooks/useProgressRouter";
 import {Spinner} from "@/components/icons";
 import {Modal} from "@/components/ui/modal";
+import {SelectBox} from "@/components/ui/select_box";
 import {NoteSearchResult} from "@/types/note";
 import {useFolders} from "@/hooks/useFolders";
 import {flattenFolders, folderPathLabel} from "@/types/folder";
@@ -45,6 +46,8 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
     const [searched, setSearched] = useState(false)
     // 고른 결과가 열리는 동안 그 줄에 표시를 남긴다.
     const [openingId, setOpeningId] = useState<string | null>(null)
+    // 찾을 범위. 비어 있으면 전체, 폴더를 고르면 그 폴더와 하위 폴더 안에서만 찾는다.
+    const [scope, setScope] = useState("")
 
     // 닫히면 검색을 비운다(렌더 중에 앞 상태와 견줘 맞춘다).
     const [wasOpen, setWasOpen] = useState(isOpen)
@@ -55,19 +58,24 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
             setResults([])
             setSearched(false)
             setOpeningId(null)
+            setScope("")
         }
     }
     // 검색어를 지우면 지난 결과는 보이지 않는다.
     const shownResults = keyword ? results : []
     const didSearch = keyword !== "" && searched
 
-    // 검색어가 바뀌면 첫 쪽부터 다시 받는다. 늦게 온 지난 검색어의 응답은 버린다.
+    const allFolders = flattenFolders(folderData?.folders ?? [])
+    const scopeFolder = allFolders.find(folder => folder.hash_id === scope) ?? null
+
+    // 검색어나 범위가 바뀌면 첫 쪽부터 다시 받는다. 늦게 온 지난 검색의 응답은 버린다.
     const [page, setPage] = useState(1)
     const [hasMore, setHasMore] = useState(false)
     const [isLoadingMore, setIsLoadingMore] = useState(false)
-    const [searchedFor, setSearchedFor] = useState(keyword)
-    if (searchedFor !== keyword) {
-        setSearchedFor(keyword)
+    const searchKey = `${scope}\n${keyword}`
+    const [searchedFor, setSearchedFor] = useState(searchKey)
+    if (searchedFor !== searchKey) {
+        setSearchedFor(searchKey)
         setPage(1)
         setHasMore(false)
     }
@@ -86,7 +94,8 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
             }
             try {
                 let data = await apiRequest.get<NoteSearchResult[]>(
-                    `/notes?keyword=${encodeURIComponent(keyword)}&page=${page}`)
+                    `/notes?keyword=${encodeURIComponent(keyword)}&page=${page}`
+                    + (scope ? `&folder=${encodeURIComponent(scope)}` : ""))
                 if (aborted) return
                 data = data.map(note => ({
                     ...note,
@@ -111,7 +120,7 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
             aborted = true
             clearTimeout(timer)
         };
-    }, [keyword, page])
+    }, [keyword, page, scope])
 
     // 목록 끝이 보이면 다음 쪽을 받는다.
     const sentinelRef = useRef<HTMLDivElement>(null)
@@ -126,9 +135,11 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
     }, [hasMore, isLoading, isLoadingMore, results.length])
 
     // 이름이 검색어에 맞는 폴더. 이미 받아 둔 폴더 트리에서 고르므로 요청이 더 나가지 않는다.
+    // 범위를 골랐으면 그 폴더의 하위 폴더 중에서만 고른다.
     const matchedFolders = keyword
-        ? flattenFolders(folderData?.folders ?? [])
+        ? allFolders
             .filter(folder => folder.name.toLowerCase().includes(keyword.toLowerCase()))
+            .filter(folder => !scopeFolder || folder.path.startsWith(`${scopeFolder.path} / `))
         : []
     const openFolder = (hashId: string) => {
         onClose()
@@ -167,6 +178,36 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
                         </button>
                     </div>
                 </div>
+
+                {/* 찾을 범위. 폴더가 하나도 없으면 고를 것이 없어 감춘다. */}
+                {allFolders.length > 0 && (
+                    <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
+                        <FiFolder size={14} className={`shrink-0 ${scope ? "text-accent" : "text-subtle"}`}/>
+                        <div className="min-w-0 flex-1">
+                            <SelectBox
+                                id="search-scope"
+                                ariaLabel="찾을 범위"
+                                value={scope}
+                                onChange={setScope}
+                                className={`py-0.5 text-[13px] ${scope ? "text-accent font-medium" : "text-muted"}`}
+                                options={[
+                                    {value: "", label: "전체에서 찾기"},
+                                    // 목록의 경로 줄과 같은 표기("/업무/회의").
+                                    ...allFolders.map(folder => ({
+                                        value: folder.hash_id,
+                                        label: folderPathLabel(folderData?.folders ?? [], folder.hash_id),
+                                    })),
+                                ]}
+                            />
+                        </div>
+                        {scope && (
+                            <button onClick={() => setScope("")} aria-label="범위 풀기"
+                                    className="shrink-0 p-1 rounded text-subtle cursor-pointer hover:bg-accent-menu hover:text-foreground">
+                                <FiX size={14}/>
+                            </button>
+                        )}
+                    </div>
+                )}
 
                 <div className="flex flex-col flex-1 overflow-y-auto">
                     {/*
