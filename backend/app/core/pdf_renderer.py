@@ -287,3 +287,57 @@ def render_note_pdf(title: str, content: str,
 
     document = HTML(string=body, url_fetcher=_NoteImageFetcher(read_image))
     return document.write_pdf(stylesheets=[CSS(string=DEFAULT_CSS)])
+
+
+# 시리즈를 PDF 한 권으로 묶을 때 덧붙이는 스타일. 노트마다 새 쪽에서 시작해 어디서 바뀌는지 보이게 하고,
+# 첫 쪽의 차례에는 쪽 번호를 붙인다. PDF 책갈피(뷰어의 목차)는 노트 제목을 맨 위 단계로, 본문 제목을 그 아래로 둔다.
+SERIES_CSS = """
+.series-cover { margin-bottom: 8mm; }
+.series-label { font-size: 9pt; color: #888; letter-spacing: 0.08em; }
+.series-title { font-size: 24pt; font-weight: 700; line-height: 1.3; margin: 1mm 0 3mm; bookmark-level: none; }
+.series-description { color: #555; white-space: pre-line; margin-bottom: 6mm; }
+.series-toc { list-style: none; padding: 0; margin: 0; border-top: 1px solid #ddd; }
+.series-toc li { border-bottom: 1px solid #eee; padding: 2mm 0; }
+.series-toc a { color: #222; text-decoration: none; display: block; }
+.series-toc a::after { content: target-counter(attr(href), page); float: right; color: #888; }
+
+.series-note { page-break-before: always; }
+.series-note .note-number { font-size: 9pt; color: #888; }
+.series-note .note-title { bookmark-level: 1; bookmark-label: content(); }
+.series-note h1 { bookmark-level: 2; }
+.series-note h2 { bookmark-level: 3; }
+.series-note h3 { bookmark-level: 4; }
+"""
+
+
+def render_series_pdf(title: str, description: str | None, notes: list[tuple[str, str]],
+                      read_image: Callable[[str], bytes | None] | None = None) -> bytes:
+    """시리즈의 노트들을 순서대로 이어 붙인 PDF 한 권.
+
+    notes: (노트 제목, 본문 HTML) 을 시리즈 순서대로.
+    첫 쪽은 시리즈 제목·설명과 차례이고, 노트는 저마다 새 쪽에서 '순서. 제목' 으로 시작한다.
+    """
+    heading = html_lib.escape(title or "시리즈")
+    total = len(notes)
+    toc, sections = [], []
+    for number, (note_title, content) in enumerate(notes, start=1):
+        note_heading = html_lib.escape(f"{number}. {(note_title or '').strip() or '제목없음'}")
+        toc.append(f'<li><a href="#note-{number}">{note_heading}</a></li>')
+        sections.append(
+            f'<section class="series-note" id="note-{number}">'
+            f'<div class="note-number">{heading} · {number} / {total}</div>'
+            f'<div class="note-title">{note_heading}</div>{_prepare_html(content)}</section>'
+        )
+
+    summary = f'<div class="series-description">{html_lib.escape(description)}</div>' if description else ""
+    body = (
+        '<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">'
+        f"<title>{heading}</title></head><body>"
+        f'<div class="series-cover"><div class="series-label">시리즈</div>'
+        f'<div class="series-title">{heading}</div>{summary}'
+        f'<ol class="series-toc">{"".join(toc)}</ol></div>'
+        f'{"".join(sections)}</body></html>'
+    )
+
+    document = HTML(string=body, url_fetcher=_NoteImageFetcher(read_image))
+    return document.write_pdf(stylesheets=[CSS(string=DEFAULT_CSS + SERIES_CSS)])

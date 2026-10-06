@@ -12,6 +12,7 @@ from app.modules.note.domain.entity import SnapshotEntity
 from app.modules.folder.infrastructure.models import Folder
 from app.modules.note.infrastructure.models import Note, note_link
 from app.modules.note.infrastructure.models import NoteSnapshot
+from app.modules.series.infrastructure.models import series_note
 from app.modules.tag.infrastructure.models import Tag
 from app.modules.user.infrastructure.models import User
 from app.modules.workspace.infrastructure.models import Workspace, workspace_member
@@ -278,6 +279,7 @@ class NoteRepository(Repository):
         if note_ids:
             self.db.execute(delete(note_link).where(or_(note_link.c.source_note_id.in_(note_ids),
                                                         note_link.c.target_note_id.in_(note_ids))))
+            self.db.execute(delete(series_note).where(series_note.c.note_id.in_(note_ids)))
         for note in notes:
             self.db.delete(note)
         self.db.commit()

@@ -22,7 +22,7 @@ from markdown import markdown
 
 from app.core.config import settings
 from app.core.markdown_renderer import html_to_markdown, markdown_to_html
-from app.core.pdf_renderer import render_note_pdf, upload_name
+from app.core.pdf_renderer import render_note_pdf, render_series_pdf, upload_name
 from app.modules.collab.application import client as collab_client
 from app.modules.note.application.note_links import (NOTE_LINK_PATTERN, NoteLinkState, note_link_hashes,
                                                      rewrite_note_links)
@@ -656,6 +656,55 @@ class NoteService(Service):
             filename="notes.zip",
         )
 
+    async def _ordered_notes_for_download(self, user_hash: str, note_hashes: list) -> list:
+        """내려받을 내 노트를 받은 순서대로. 공동 편집 중인 노트는 지금 화면이 담기도록 먼저 저장하게 한다."""
+        for note_hash in note_hashes:
+            await anyio.to_thread.run_sync(self._flush_collab_quietly, note_hash)
+        self.repository.db.expire_all()
+        by_hash = {note.hash_id: note for note in self.repository.get_by_hash_ids_and_user_id(
+            note_hashes=note_hashes, user_hash=user_hash, is_deleted=False)}
+        notes = [by_hash[note_hash] for note_hash in note_hashes if note_hash in by_hash]
+        if not notes:
+            raise self.NotFoundNote
+        return notes
+
+    async def download_series_pdf(self, user_hash: str, note_hashes: list, title: str,
+                                  description: str | None = None) -> DownloadResult:
+        """시리즈를 PDF 한 권으로. 노트는 받은 순서대로 저마다 새 쪽에서 시작하고, 첫 쪽에 차례가 붙는다."""
+        notes = await self._ordered_notes_for_download(user_hash, note_hashes)
+        read_image = self.storage.read if self.storage else None
+        return DownloadResult(
+            content=render_series_pdf(title=title, description=description,
+                                      notes=[(note.title, self._export_html(note)) for note in notes],
+                                      read_image=read_image),
+            media_type="application/pdf",
+            filename=self._safe_filename(_safe_name(title) or "시리즈", "pdf"),
+        )
+
+    async def download_numbered_zip(self, user_hash: str, note_hashes: list, zip_title: str,
+                                    file_format: str = "md") -> DownloadResult:
+        """노트들을 받은 순서대로 '순서. 노트 제목' 파일로 담은 zip. 시리즈를 마크다운으로 내보낼 때 쓴다.
+
+        한 개여도 zip 으로 준다. 번호는 파일 탐색기에서도 순서대로 놓이도록 자릿수를 맞춘다(10개부터 01, 02, …).
+        """
+        notes = await self._ordered_notes_for_download(user_hash, note_hashes)
+
+        width = len(str(len(notes)))
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+            for number, note in enumerate(notes, start=1):
+                title = (note.title or "").strip() or "제목없음"
+                info = zipfile.ZipInfo(self._safe_filename(f"{number:0{width}d}. {title}", file_format),
+                                       date_time=_zip_time(note.updated_at))
+                info.compress_type = zipfile.ZIP_DEFLATED
+                zf.writestr(info, self._render_note(note, file_format))
+
+        return DownloadResult(
+            content=buffer.getvalue(),
+            media_type="application/zip",
+            filename=f"{_safe_name(zip_title) or '시리즈'}.zip",
+        )
+
     def export_notes(self, user: User) -> DownloadResult:
         """노트·스냅샷·템플릿을 마크다운 zip 으로 내보낸다.
 
@@ -777,12 +826,16 @@ class NoteService(Service):
         "pdf": "application/pdf",
     }
 
-    def _render_note(self, note, file_format: str) -> bytes:
-        """노트 본문을 요청한 형식의 바이트로 만든다. 암호화된 노트는 먼저 복호화한다."""
+    def _export_html(self, note) -> str:
+        """내려받는 파일에 넣을 본문 HTML. 암호화된 노트는 풀고, 노트 링크는 전체 주소로 적는다."""
         content = self._decrypt_content(note.user, note.content) if note.is_encrypted else note.content
         content = self._resolve_note_links(content, note.user)
         # 받은 파일은 앱 밖에서 열리므로 노트 링크를 전체 주소로 적는다(PDF 의 링크도 눌러서 열리게).
-        content = _absolute_note_links(content)
+        return _absolute_note_links(content)
+
+    def _render_note(self, note, file_format: str) -> bytes:
+        """노트 본문을 요청한 형식의 바이트로 만든다."""
+        content = self._export_html(note)
 
         if file_format == "pdf":
             # 본문 이미지는 저장소에서 받아 넣는다(로컬 디스크든 MinIO 든 저장소가 안다).

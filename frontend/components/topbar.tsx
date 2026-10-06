@@ -29,14 +29,16 @@ export function Topbar() {
         setMenuOpen,
     } = useNoteSelectStore()
 
-    // 페이지 이동 시 선택 모드 초기화
+    // 페이지 이동 시 선택 모드 초기화. 노트를 고르러 온 길이면(시리즈 화면에서) 켠 채로 시작한다.
     useEffect(() => {
-        exitSelectMode()
-    }, [pathname, exitSelectMode])
+        if (pathname === "/" && useNoteSelectStore.getState().pendingSelect) enterSelectMode()
+        else exitSelectMode()
+    }, [pathname, enterSelectMode, exitSelectMode])
 
     const isSettingsPage = pathname.startsWith("/settings")
     const isTrashPage = pathname.startsWith("/deleted")
-    const topTitle = isSettingsPage ? "설정" : isTrashPage ? "휴지통" : menuItems.find(item => item.path === pathname)?.name ?? ""
+    const isSeriesPage = pathname.startsWith("/series")
+    const topTitle = isSettingsPage ? "설정" : isTrashPage ? "휴지통" : isSeriesPage ? "시리즈" : menuItems.find(item => item.path === pathname)?.name ?? ""
     const isAccountPage = isSettingsPage || pathname.startsWith("/my-info")
 
     const handleSelectMode = () => {
@@ -45,6 +47,9 @@ export function Topbar() {
     }
     const handleGotoTrash = () => {
         router.push("/deleted")
+    }
+    const handleGotoSeries = () => {
+        router.push("/series")
     }
     const handleGotoSettings = () => {
         router.push("/settings")
@@ -120,10 +125,11 @@ export function Topbar() {
                 </>
             ) : (
                 <>
-                    {(isSettingsPage || isTrashPage) && (
+                    {(isSettingsPage || isTrashPage || isSeriesPage) && (
                         <button
-                            onClick={handleBack}
-                            className="p-1.5 -ml-1.5 block sm:hidden rounded-lg hover:bg-background text-muted transition-colors cursor-pointer"
+                            // 시리즈 하나를 보다가는 목록으로, 목록에서는 개인 노트로. 하단 탭에 시리즈가 없어 여기가 돌아가는 길이다.
+                            onClick={isSeriesPage ? () => router.push(pathname === "/series" ? "/" : "/series") : handleBack}
+                            className="p-1.5 -ml-1.5 block md:hidden rounded-lg hover:bg-background text-muted transition-colors cursor-pointer"
                             aria-label="뒤로 가기"
                         >
                             <FiChevronLeft size={20}/>
@@ -145,10 +151,11 @@ export function Topbar() {
                             </button>
                         )}
 
-                        {!isSettingsPage && (
+                        {!isSettingsPage && !isSeriesPage && (
                             <TopbarMenu {...(pathname === "/" && {onFileUpload: handleFileUpload})}
                                         {...(!isAccountPage && {onSelectMode: handleSelectMode})}
                                         {...(pathname === "/" && {gotoTrash: handleGotoTrash})}
+                                        {...(pathname === "/" && {gotoSeries: handleGotoSeries})}
                                         {...(isAccountPage && {gotoSettings: handleGotoSettings})}
                                         isAccountPage={isAccountPage}
                                         open={menuOpen}

@@ -16,6 +16,7 @@ from app.modules.folder.interfaces.controller import router as folder_router
 from app.modules.note.interfaces.controller import router as note_router
 from app.modules.preference.interfaces.controller import router as preference_router
 from app.modules.search.infrastructure.repository import SearchRepository
+from app.modules.series.interfaces.controller import router as series_router
 from app.modules.tag.interfaces.controller import router as tag_router
 from app.modules.template.interfaces.controller import router as template_router
 from app.modules.user.interfaces.auth_controller import router as auth_router
@@ -65,6 +66,7 @@ routers = [
     user_router,
     note_router,
     folder_router,
+    series_router,
     template_router,
     tag_router,
     workspace_router,

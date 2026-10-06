@@ -1,7 +1,7 @@
 "use client"
 
 import {usePathname, useSearchParams} from "next/navigation"
-import {FiPlus} from "react-icons/fi"
+import {FiLayers, FiPlus} from "react-icons/fi"
 import {LuBookText, LuUser} from "react-icons/lu"
 import {MdOutlineSettings, MdWorkspacesFilled} from "react-icons/md"
 import {GrTrash} from "react-icons/gr"
@@ -14,6 +14,7 @@ import {useNavigatingPath} from "@/store/progress";
 
 // '개인 노트' 는 폴더를 품고 있어 따로 그린다. 나머지는 평범한 메뉴.
 const navItems = [
+    {name: "시리즈", icon: FiLayers, path: "/series"},
     {name: "워크스페이스", icon: MdWorkspacesFilled, path: "/workspace"},
     {name: "휴지통", icon: GrTrash, path: "/deleted"},
     {name: "설정", icon: MdOutlineSettings, path: "/settings"},
@@ -146,7 +147,8 @@ export function Sidebar() {
                     </div>
 
                     {navItems.map(item => {
-                        const active = activePath === item.path
+                        // 시리즈 하나를 보고 있을 때(/series/…)도 시리즈 메뉴가 켜져 있어야 한다.
+                        const active = activePath === item.path || activePath.startsWith(`${item.path}/`)
                         return (
                             <button
                                 key={item.path}
