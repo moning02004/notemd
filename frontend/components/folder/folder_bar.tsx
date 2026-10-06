@@ -8,6 +8,7 @@ import {LuBookText} from "react-icons/lu"
 import {useFolders} from "@/hooks/useFolders"
 import {useIncludeSub} from "@/hooks/useIncludeSub"
 import {findFolder, folderPathLabel, FolderNode} from "@/types/folder"
+import {FolderActions} from "@/components/folder/folder_actions"
 
 function useFolderNavigation() {
     const router = useProgressRouter()
@@ -126,6 +127,13 @@ export function FolderBar() {
 
             <span className="hidden md:inline text-[11.5px] text-subtle tabular-nums ml-2">{count}개</span>
 
+            {/* 모바일: 지금 보고 있는 폴더를 고친다. 지우면 한 단계 위로 올라간다. */}
+            {current && (
+                <span className="md:hidden shrink-0">
+                    <FolderActions folder={current} onDeleted={() => goTo(parent?.hash_id ?? null)}/>
+                </span>
+            )}
+
             {current && (
                 <button
                     onClick={() => setIncludeSub(!includeSub)}
@@ -197,6 +205,7 @@ export function FolderDrilldown() {
                     name={folder.name}
                     count={folder.total_count}
                     onClick={() => goTo(folder.hash_id)}
+                    actions={<FolderActions folder={folder}/>}
                 />
             ))}
 
@@ -223,22 +232,28 @@ export function FolderDrilldown() {
     )
 }
 
-function FolderRow({icon, name, count, onClick}: {
+function FolderRow({icon, name, count, onClick, actions}: {
     icon?: React.ReactNode
     name: string
     count: number
     onClick: () => void
+    /** 줄 오른쪽 끝의 ⋯ 메뉴(이름 바꾸기·삭제). 미분류에는 없다. */
+    actions?: React.ReactNode
 }) {
+    // 메뉴 버튼을 들어가는 버튼 안에 넣을 수 없어(버튼 안의 버튼) 둘을 나란히 둔다.
     return (
-        <button
-            onClick={onClick}
-            className="flex items-center gap-3 px-4 h-14 border-b border-border last:border-b-0
-                       cursor-pointer active:bg-background text-left"
-        >
-            {icon ?? <FiFolder size={17} className="text-accent shrink-0"/>}
-            <span className="flex-1 min-w-0 truncate text-[14px] font-medium text-foreground">{name}</span>
-            <span className="text-[12px] text-subtle tabular-nums shrink-0">{count}</span>
-            <FiChevronRight size={15} className="text-subtle shrink-0"/>
-        </button>
+        <div className="flex items-center border-b border-border last:border-b-0">
+            <button
+                onClick={onClick}
+                className={`flex flex-1 min-w-0 items-center gap-3 pl-4 h-14 cursor-pointer active:bg-background text-left
+                            ${actions ? "pr-1" : "pr-4"}`}
+            >
+                {icon ?? <FiFolder size={17} className="text-accent shrink-0"/>}
+                <span className="flex-1 min-w-0 truncate text-[14px] font-medium text-foreground">{name}</span>
+                <span className="text-[12px] text-subtle tabular-nums shrink-0">{count}</span>
+                <FiChevronRight size={15} className="text-subtle shrink-0"/>
+            </button>
+            {actions && <span className="shrink-0 pr-1">{actions}</span>}
+        </div>
     )
 }
