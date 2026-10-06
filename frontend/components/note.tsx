@@ -6,6 +6,7 @@ import {LuEllipsisVertical} from "react-icons/lu"
 import {FiFolder, FiInbox} from "react-icons/fi";
 import {startNoteDrag} from "@/lib/note_drag";
 import {Spinner} from "@/components/icons";
+import {NoteSeriesMark} from "@/types/note";
 
 type NoteType = {
     onClick?: React.MouseEventHandler<HTMLDivElement>
@@ -35,6 +36,8 @@ type NoteType = {
     folderUnfiled?: boolean
     folderHash?: string | null
     draggable?: boolean
+    /** 이 노트가 든 시리즈들. 있으면 상태 줄에 '시리즈' 표시를 붙인다. */
+    series?: NoteSeriesMark[]
 }
 
 export const Note = ({
@@ -62,6 +65,7 @@ export const Note = ({
                          folderUnfiled,
                          folderHash,
                          draggable,
+                         series,
                      }: NoteType) => {
     const isUntitled = !title?.trim()
     const displayTitle = isUntitled ? "제목 없음" : title
@@ -87,6 +91,17 @@ export const Note = ({
         isEncrypted && {label: "암호화", title: "암호화되어 저장되고, 목록과 본문 검색에 내용이 드러나지 않아요", tone: "lock"},
         isPassword && {label: "비번", title: "열 때 비밀번호를 확인해요", tone: "lock"},
     ].filter(Boolean) as Status[]
+
+    /*
+     * 시리즈 표시는 하나만 붙인다. 이름을 카드에 적으면 상태·폴더와 겹쳐 복잡해지고, 여러 시리즈에 든 노트는
+     * 다 적을 수도 없다. 이름과 몇 번째인지는 올려 보면 나온다. 모서리 표시(무언가 걸려 있는 노트)에는 세지 않는다.
+     */
+    const seriesChip: Status | null = series?.length ? {
+        label: series.length > 1 ? `시리즈 ${series.length}` : "시리즈",
+        title: series.map(item => `${item.title} ${item.position}/${item.total}`).join("\n"),
+        tone: "series",
+    } : null
+    const chips = seriesChip ? [...statuses, seriesChip] : statuses
 
     function handleClick(e: React.MouseEvent<HTMLDivElement>) {
         if (selectable) {
@@ -144,9 +159,9 @@ export const Note = ({
                         {displayTitle}
                     </p>
                     {/* 카드와 같은 순서(제목 -> 상태 -> 본문)로 둔다. */}
-                    {statuses.length > 0 && (
+                    {chips.length > 0 && (
                         <p className="flex flex-wrap items-center gap-1 my-0.5">
-                            {statuses.map(status => <StatusChip key={status.label} {...status}/>)}
+                            {chips.map(status => <StatusChip key={status.label} {...status}/>)}
                         </p>
                     )}
                     <p className="truncate text-xs text-subtle">
@@ -253,9 +268,9 @@ export const Note = ({
             </div>
 
             {/* 제목 바로 아래. 제목과 한 덩어리로 읽히도록 제목의 왼쪽 선에 맞춘다. */}
-            {statuses.length > 0 && (
+            {chips.length > 0 && (
                 <div className="flex flex-wrap items-center gap-1 mb-1.5">
-                    {statuses.map(status => <StatusChip key={status.label} {...status}/>)}
+                    {chips.map(status => <StatusChip key={status.label} {...status}/>)}
                 </div>
             )}
 
@@ -318,6 +333,7 @@ const CHIP_TONES = {
     share: "bg-chip-share-soft text-chip-share",  // 함께 봄
     lock: "bg-chip-lock-soft text-chip-lock",     // 잠김
     guard: "bg-accent-soft text-accent",          // 편집 제한
+    series: "bg-background text-muted ring-1 ring-inset ring-border",  // 상태가 아니라 소속이라 색 없이
 } as const
 
 /** 노트 상태를 적는 작은 칩. */

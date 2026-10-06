@@ -20,6 +20,16 @@ export interface NoteCard {
     created_at: string
     deleted_at: string | null
     folder: NoteFolder | null
+    /** 이 노트가 든 시리즈들. 내 노트 목록에서만 채워진다. */
+    series?: NoteSeriesMark[]
+}
+
+/** 목록 카드의 '시리즈' 표시에 쓰는, 시리즈 이름과 그 안의 위치. */
+export interface NoteSeriesMark {
+    hash_id: string;
+    title: string;
+    position: number;
+    total: number;
 }
 
 export interface CreateNoteResponse {

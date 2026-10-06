@@ -66,6 +66,41 @@ class SeriesRepository(Repository):
                 .order_by(asc(self.DB_MODEL.title), asc(self.DB_MODEL.pk))
                 .all())
 
+    def memberships(self, note_ids: List[int]) -> dict:
+        """노트 pk → 그 노트가 든 시리즈들({hash_id, title, position, total}). 목록의 '시리즈' 표시가 쓴다.
+
+        몇 번째인지와 전체 수는 휴지통 노트를 뺀 순서로 센다(시리즈 화면·노트 화면과 같다).
+        노트마다 묻지 않고, 걸린 시리즈를 한 번에 읽어 파이썬에서 센다.
+        """
+        if not note_ids:
+            return {}
+        series_ids = [pk for (pk,) in self.db.query(series_note.c.series_id)
+                      .filter(series_note.c.note_id.in_(note_ids)).distinct()]
+        if not series_ids:
+            return {}
+
+        rows = (self.db.query(self.DB_MODEL.pk, self.DB_MODEL.hash_id, self.DB_MODEL.title, series_note.c.note_id)
+                .join(series_note, series_note.c.series_id == self.DB_MODEL.pk)
+                .join(Note, Note.pk == series_note.c.note_id)
+                .filter(self.DB_MODEL.pk.in_(series_ids), Note.deleted_at.is_(None))
+                .order_by(asc(self.DB_MODEL.title), asc(self.DB_MODEL.pk),
+                          asc(series_note.c.position), asc(Note.pk))
+                .all())
+
+        totals: dict = {}
+        for series_id, _, _, _ in rows:
+            totals[series_id] = totals.get(series_id, 0) + 1
+
+        wanted, seen, result = set(note_ids), {}, {}
+        for series_id, hash_id, title, note_id in rows:
+            seen[series_id] = seen.get(series_id, 0) + 1
+            if note_id in wanted:
+                result.setdefault(note_id, []).append({
+                    "hash_id": hash_id, "title": title,
+                    "position": seen[series_id], "total": totals[series_id],
+                })
+        return result
+
     def create_series(self, user_id: int, title: str, description: str | None, note_ids: List[int]) -> Series:
         series = self.DB_MODEL(user_id=user_id, title=title, description=description)
         self.db.add(series)

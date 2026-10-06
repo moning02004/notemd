@@ -180,6 +180,39 @@ def test_neighbors_skip_a_trashed_note(client, auth_headers):
     assert client.get(f"/series/by-note/{first}", headers=auth_headers).json()[0]["next"]["hash_id"] == third
 
 
+# --- 노트 목록의 시리즈 표시 ----------------------------------------------------
+
+def listed(client, headers):
+    return {note["title"]: note["series"] for note in client.get("/notes", headers=headers).json()}
+
+
+def test_note_list_tells_which_series_each_note_is_in(client, auth_headers):
+    first, second, third = three_notes(client, auth_headers)
+    lonely = create_note(client, auth_headers, title="혼자인 노트")
+    intro = create_series(client, auth_headers, [first, second, third], title="파이썬 입문")
+    oop = create_series(client, auth_headers, [third, second], title="객체지향")
+
+    series = listed(client, auth_headers)
+
+    assert series["혼자인 노트"] == []
+    assert series["변수"] == [{"hash_id": intro["hash_id"], "title": "파이썬 입문", "position": 1, "total": 3}]
+    assert series["클래스"] == [
+        {"hash_id": oop["hash_id"], "title": "객체지향", "position": 1, "total": 2},
+        {"hash_id": intro["hash_id"], "title": "파이썬 입문", "position": 3, "total": 3},
+    ]
+
+
+def test_series_position_in_the_list_skips_trashed_notes(client, auth_headers):
+    first, second, third = three_notes(client, auth_headers)
+    create_series(client, auth_headers, [first, second, third])
+
+    client.delete(f"/notes/{first}", headers=auth_headers)
+
+    series = listed(client, auth_headers)
+    assert (series["함수"][0]["position"], series["함수"][0]["total"]) == (1, 2)
+    assert (series["클래스"][0]["position"], series["클래스"][0]["total"]) == (2, 2)
+
+
 # --- 내보내기 -----------------------------------------------------------------
 
 def download(client, headers, series_hash, file_format=None):

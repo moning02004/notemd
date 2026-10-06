@@ -28,6 +28,7 @@ from app.modules.note.application.note_links import (NOTE_LINK_PATTERN, NoteLink
                                                      rewrite_note_links)
 from app.modules.note.domain.entity import NoteEntity, DownloadResult, build_note_document
 from app.modules.folder.infrastructure.repository import FolderRepository
+from app.modules.series.infrastructure.repository import SeriesRepository
 from app.modules.template.infrastructure.repository import TemplateRepository
 from app.modules.note.infrastructure.models import Note, NoteSnapshot
 from app.modules.user.infrastructure.models import User
@@ -220,6 +221,11 @@ class NoteService(Service):
         for note in notes:
             if note.is_encrypted:
                 note.content = ""
+
+        # 어느 시리즈의 몇 번째인지. 목록 카드가 '시리즈' 표시를 붙이는 데 쓴다.
+        memberships = SeriesRepository(self.repository.db).memberships([note.pk for note in notes])
+        for note in notes:
+            note.series = memberships.get(note.pk, [])
         return notes
 
     def create_default_note(self, user_id: int, folder_hash: str | None = None):

@@ -151,6 +151,7 @@ function NoteListContent() {
                             folderPath={showFolderPath ? folderLabel(note.folder?.hashId) : null}
                             folderUnfiled={!note.folder}
                             folderHash={note.folder?.hashId ?? null}
+                            series={note.series}
                             draggable
                             noteMenu={!selectMode}
                             selectable={selectMode}

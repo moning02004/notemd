@@ -36,6 +36,8 @@ class NoteListSchema(BaseModel):
     deleted_at: datetime | None
     tags: list = []
     folder: object | None = None
+    # 이 노트가 든 시리즈들({hash_id, title, position, total}). 내 노트 목록에서만 채워진다.
+    series: list = []
 
     model_config = ConfigDict(from_attributes=True)
 
