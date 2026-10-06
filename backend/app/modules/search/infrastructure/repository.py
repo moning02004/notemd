@@ -21,13 +21,22 @@ class SearchRepository:
             )
         self.index.update_settings(INDEX_SETTINGS)
 
-    def search_index(self, keyword: str, user_hash: str, sort: str = None, page: int = 1):
+    PAGE_SIZE = 20
+
+    def search_index(self, keyword: str, user_hash: str, sort: str = None, page: int = 1,
+                     is_deleted: bool = False):
+        """검색어에 맞는 노트 id 를 잘 맞는 순서대로, 한 쪽(20개)씩 돌려준다.
+
+        휴지통 여부를 여기서 거른다. 받아 온 뒤에 DB 에서 거르면 한 쪽이 20개보다 적게 차서
+        '다음 쪽이 있는지' 를 개수로 알 수 없다.
+        """
         search_params = {
             "filter": [
                 f'user_hash="{user_hash}"',
+                f'is_deleted={"true" if is_deleted else "false"}',
             ],
-            # "limit": 20,
-            # "offset": (page - 1) * 20,
+            "limit": self.PAGE_SIZE,
+            "offset": (max(page, 1) - 1) * self.PAGE_SIZE,
             "matchingStrategy": "all",
         }
 
@@ -48,6 +57,7 @@ INDEX_SETTINGS = {
     ],
     "filterableAttributes": [
         "user_hash",
+        "is_deleted",
         "tags",
         "created_at",
         "updated_at",

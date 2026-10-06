@@ -102,7 +102,7 @@ class FakeSearchIndex:
 
     실제 엔진에 붙으면 (1) 컨테이너 밖에서는 테스트가 아예 돌지 않고
     (2) 테스트 데이터가 개발용 인덱스에 그대로 쌓인다. 두 문제를 함께 막는다.
-    검색은 title/content 부분 일치 + user_hash 필터만 흉내 낸다.
+    검색은 title/content 부분 일치, user_hash·is_deleted 필터, limit·offset 을 흉내 낸다. 순서는 색인에 넣은 순서다.
     """
 
     def __init__(self):
@@ -124,21 +124,23 @@ class FakeSearchIndex:
 
     def search(self, keyword, params=None):
         params = params or {}
-        user_hashes = [
-            condition.split("=", 1)[1].strip('"')
-            for condition in params.get("filter", [])
-            if condition.startswith("user_hash")
-        ]
+        conditions = dict(condition.split("=", 1) for condition in params.get("filter", []))
+        user_hash = conditions.get("user_hash", "").strip('"') or None
+        is_deleted = {"true": True, "false": False}.get(conditions.get("is_deleted"))
 
         hits = []
         for document in self.documents.values():
-            if user_hashes and document.get("user_hash") not in user_hashes:
+            if user_hash and document.get("user_hash") != user_hash:
+                continue
+            if is_deleted is not None and bool(document.get("is_deleted")) != is_deleted:
                 continue
             haystack = f"{document.get('title') or ''} {document.get('content') or ''}"
             if keyword and keyword not in haystack:
                 continue
             hits.append(document)
-        return {"hits": hits}
+        # 진짜 엔진처럼 한 번에 limit 개만(기본 20), offset 부터.
+        offset = params.get("offset", 0)
+        return {"hits": hits[offset:offset + params.get("limit", 20)]}
 
 
 @pytest.fixture(autouse=True)

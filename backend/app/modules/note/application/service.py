@@ -210,11 +210,15 @@ class NoteService(Service):
                                                            include_sub=include_sub,
                                                            unfiled=unfiled)
         else:
-            note_hashes = self.search_service.find_documents(keyword, user_hash, sort, page)
-            # 색인은 휴지통 여부를 걸러주지 않으므로 조회 단계에서 목록과 같은 조건으로 맞춘다.
-            notes = self.repository.get_by_hash_ids_and_user_id(note_hashes=note_hashes,
+            # 검색은 폴더와 태그를 가리지 않고 전체에서 찾는다. 잘 맞는 순서대로 한 쪽(20개)씩.
+            note_hashes = self.search_service.find_documents(keyword, user_hash, sort, page, is_deleted=is_deleted)
+            # 색인이 DB 보다 늦을 수 있으므로(막 지운 노트) 조회 단계에서도 같은 조건으로 한 번 더 맞춘다.
+            found = self.repository.get_by_hash_ids_and_user_id(note_hashes=note_hashes,
                                                                 user_hash=user_hash,
                                                                 is_deleted=is_deleted)
+            # IN 조회는 순서를 지키지 않는다. 검색 엔진이 매긴 순서로 되돌린다.
+            by_hash = {note.hash_id: note for note in found}
+            notes = [by_hash[note_hash] for note_hash in note_hashes if note_hash in by_hash]
 
         # 암호화한 노트는 목록에 본문을 싣지 않는다(미리보기·에이전트의 발췌). 본문은 노트를 열어야 풀린다.
         # 조회 경로는 커밋하지 않으므로 비운 본문이 DB 에 남지 않는다.
