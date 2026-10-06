@@ -1,0 +1,41 @@
+name: Backend Tests
+
+# main 에 올리거나 PR 을 열 때마다 돌린다. 릴리스(deploy.yaml)도 이미지를 올리기 전에 이것을 부른다.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 개발할 때 쓰는 이미지(Dockerfile.local)를 그대로 쓴다. PDF 를 그리는 pango 와 한글 폰트가 거기 들어 있어,
+      # 러너에 따로 깔다가 로컬과 어긋나는 일이 없다.
+      - name: Build test image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile.local
+          load: true
+          tags: notemd-backend-test
+          cache-from: type=gha,scope=backend-test
+          cache-to: type=gha,mode=max,scope=backend-test
+
+      # 테스트는 in-memory SQLite 와 검색 엔진 대역을 쓴다. 아래 값들은 설정을 읽는 데만 필요한 자리 채움이고,
+      # 바깥 서비스에 닿지 않는다는 것을 --network none 으로 못 박는다.
+      - name: Run tests
+        run: |
+          docker run --rm --network none \
+            -e SETTINGS_FILE=local \
+            -e DB_NAME=test -e DB_USER=test -e DB_PASSWORD=test \
+            -e MEILISEARCH_URL=http://meilisearch:7700 -e MEILISEARCH_INDEX_UID=test \
+            -e KEK="$(head -c 32 /dev/urandom | base64)" -e KEK_VERSION=1 \
+            notemd-backend-test python3 -m pytest -p no:cacheprovider -q
