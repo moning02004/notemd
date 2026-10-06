@@ -57,6 +57,12 @@ ps:
 test:
 	docker exec -it notemd-backend python3 manage.py test ${TEST_ARGS}
 
+# 화면 E2E 테스트(Playwright). 떠 있는 개발 스택에 붙어서 돈다. 일회용 계정을 만들었다가 끝나면 지운다.
+# 처음 한 번: cd frontend && npm install && npx playwright install chromium
+.PHONY: e2e
+e2e:
+	cd frontend && npx playwright test ${TEST_ARGS}
+
 .PHONY: db-history
 db-history:
 	docker exec -it notemd-backend alembic history

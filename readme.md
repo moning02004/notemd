@@ -147,6 +147,7 @@ Celery 워커에 `BACKUP_DIR` 을 주면 매일 03:00(KST)에 사용자마다 `B
 | 작업 | 명령 |
 | --- | --- |
 | 백엔드 테스트 | `make test` (in-memory SQLite 사용, 운영 DB 미접근). main 에 올리거나 PR 을 열면 GitHub Actions 가 같은 테스트를 돌리고, 릴리스는 통과해야 이미지를 올림 |
+| 화면 E2E 테스트 | `make e2e` (Playwright. 떠 있는 개발 스택에 붙어 로그인·노트 쓰기·폴더·시리즈·에이전트 API 를 눌러 본다. 일회용 계정을 만들었다가 지움). 처음 한 번 `cd frontend && npm install && npx playwright install chromium` |
 | 모듈 단위 테스트 | `make test TEST_ARGS="note"` (파일까지 지정하려면 `TEST_ARGS="note test_download"`) |
 | 데이터 백필 | `make backfill SCRIPT=backfill_init_preference` |
 | 마이그레이션 이력 | `make db-history` |

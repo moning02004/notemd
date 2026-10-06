@@ -192,6 +192,8 @@ export function MarkdownEditor({
                     <div
                         className="my-auto p-1.5 rounded-lg cursor-pointer text-muted hover:bg-background hover:text-foreground transition-colors duration-200"
                         onClick={goBack}
+                        role="button"
+                        aria-label="뒤로"
                         aria-busy={leaving}>
                         {leaving ? <Spinner size={24} className="text-accent"/> : <FiArrowLeft size={24}/>}
                     </div>

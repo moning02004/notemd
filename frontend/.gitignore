@@ -40,3 +40,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 화면 E2E 테스트(Playwright)
+/e2e/.auth
+/e2e/.results
+/test-results
+/playwright-report
