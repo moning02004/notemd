@@ -73,7 +73,7 @@ export function Sidebar() {
                         if (creatingNote) return
                         setCreatingNote(true)
                         try {
-                            // 보고 있던 폴더에서 시작한다. 개인 노트 상위면 미분류.
+                            // 보고 있던 폴더에서 시작한다. 개인 노트 상위면 폴더 없이.
                             await gotoNote({id: null, router, folder: onNoteList ? searchParams.get("folder") : null})
                         } finally {
                             setCreatingNote(false)
@@ -95,9 +95,9 @@ export function Sidebar() {
                     <div className="relative">
                         <button
                             onClick={() => {
-                                // 폴더나 미분류를 보고 있으면 '개인 노트'는 그 위로 나가는 메뉴다.
+                                // 폴더를 보고 있으면 '개인 노트'는 그 위로 나가는 메뉴다.
                                 // 이미 맨 위에 있을 때만 폴더를 접었다 편다.
-                                const atRoot = onNoteList && !searchParams.get("folder") && !searchParams.get("unfiled")
+                                const atRoot = onNoteList && !searchParams.get("folder")
                                 if (atRoot) setFoldersOpen(open => !open)
                                 else {
                                     setFoldersOpen(true)

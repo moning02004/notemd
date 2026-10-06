@@ -175,7 +175,7 @@ export function NotePickerModal({open, onClose, onPick, excludeId}: Props) {
                                             <span className="truncate">
                                                 {note.folder
                                                     ? folderPathLabel(folderData?.folders ?? [], note.folder.hashId).replace(/^\//, "")
-                                                    : "미분류"}
+                                                    : "개인 노트"}
                                             </span>
                                         </span>
                                         <span className={`block truncate text-[14px] font-medium
