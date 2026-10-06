@@ -43,6 +43,8 @@ export function FolderTree({creating, onCreatingChange}: {
     const goTo = (params: Record<string, string | null>) => {
         // 노트 목록 밖(휴지통·설정)에서 눌렀다면 필터를 끌고 오지 않는다.
         const next = new URLSearchParams(onNoteList ? searchParams.toString() : "")
+        // 루트에서 폴더로 들어갈 때 루트의 '하위 포함' 을 들고 가지 않는다(둘은 따로 기억한다).
+        if (!next.get("folder")) next.delete("include_sub")
         Object.entries(params).forEach(([key, value]) => {
             if (value === null) next.delete(key)
             else next.set(key, value)
