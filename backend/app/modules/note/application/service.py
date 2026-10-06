@@ -215,9 +215,11 @@ class NoteService(Service):
                                                                 user_hash=user_hash,
                                                                 is_deleted=is_deleted)
 
+        # 암호화한 노트는 목록에 본문을 싣지 않는다(미리보기·에이전트의 발췌). 본문은 노트를 열어야 풀린다.
+        # 조회 경로는 커밋하지 않으므로 비운 본문이 DB 에 남지 않는다.
         for note in notes:
             if note.is_encrypted:
-                note.content = self._decrypt_content(note.user, note.content)
+                note.content = ""
         return notes
 
     def create_default_note(self, user_id: int, folder_hash: str | None = None):

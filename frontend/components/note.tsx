@@ -71,6 +71,8 @@ export const Note = ({
 
     // 미리보기는 서식 없이 본문 텍스트만 보여준다
     const preview = previewText(content)
+    // 암호화한 노트는 서버가 목록에 본문을 싣지 않는다. 빈 노트와 헷갈리지 않게 까닭을 적는다.
+    const emptyPreview = isEncrypted ? "암호화된 노트예요. 열면 내용이 보여요" : "아직 아무것도 쓰지 않았어요"
 
     /*
      * 상태는 글자로 적는다.
@@ -82,7 +84,7 @@ export const Note = ({
         isPublic && {label: "공개", title: "링크가 있는 누구나 볼 수 있어요", tone: "open"},
         isProtected && {label: "보호", title: "편집과 삭제가 제한돼요", tone: "guard"},
         isShared && {label: "공유", title: "워크스페이스에 공유된 노트예요", tone: "share"},
-        isEncrypted && {label: "암호화", title: "암호화되어 저장돼요", tone: "lock"},
+        isEncrypted && {label: "암호화", title: "암호화되어 저장되고, 목록과 본문 검색에 내용이 드러나지 않아요", tone: "lock"},
         isPassword && {label: "비번", title: "열 때 비밀번호를 확인해요", tone: "lock"},
     ].filter(Boolean) as Status[]
 
@@ -148,7 +150,7 @@ export const Note = ({
                         </p>
                     )}
                     <p className="truncate text-xs text-subtle">
-                        {preview || "아직 아무것도 쓰지 않았어요"}
+                        {preview || emptyPreview}
                     </p>
                 </div>
 
@@ -258,7 +260,7 @@ export const Note = ({
             )}
 
             <p className={`flex-1 text-xs leading-relaxed line-clamp-4 ${preview ? "text-muted" : "text-subtle italic"}`}>
-                {preview || "아직 아무것도 쓰지 않았어요"}
+                {preview || emptyPreview}
             </p>
 
             <div className="flex flex-col gap-1 mt-3">

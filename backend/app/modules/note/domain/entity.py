@@ -26,13 +26,13 @@ class NoteDocument:
 def build_note_document(note) -> NoteDocument:
     """노트 한 건을 검색 색인 문서로 만든다.
 
-    본문은 DB 에 암호문으로 들어가 있을 수 있으나, 색인에는 태그를 벗긴 평문이 들어간다.
-    호출부는 복호화가 끝난 note 를 넘겨야 한다.
+    암호화한 노트는 본문을 색인에 넣지 않는다. 색인은 평문으로 보관되므로, 넣으면 DB 에서만 암호문이고
+    검색 서버에는 본문이 그대로 남는다. 제목과 태그로는 계속 찾을 수 있다.
     """
     return NoteDocument(
         id=note.hash_id,
         title=note.title,
-        content=re.sub(r"<[^>]+>", "", note.content or ""),
+        content="" if note.is_encrypted else re.sub(r"<[^>]+>", "", note.content or ""),
         tags=[tag.keyword for tag in note.tags],
         user_hash=note.user.hash_id,
         is_deleted=note.deleted_at is not None,
