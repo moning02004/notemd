@@ -24,7 +24,7 @@ const navItems = [
 const navItemClass = (active: boolean) => `
     flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-semibold
     cursor-pointer transition-colors duration-150 text-left w-full
-    ${active ? "bg-accent-soft text-accent" : "text-muted hover:text-foreground hover:bg-background"}`
+    ${active ? "bg-accent-menu text-accent" : "text-muted hover:text-foreground hover:bg-background"}`
 
 export function Sidebar() {
     const pathname = usePathname()
@@ -165,7 +165,7 @@ export function Sidebar() {
                 <button
                     onClick={() => router.push("/my-info")}
                     className={`mt-auto shrink-0 flex items-center gap-2.5 px-2 py-2 rounded-lg cursor-pointer transition-colors duration-150 text-left
-                    ${activePath === "/my-info" ? "bg-accent-soft text-accent" : "hover:bg-background"}`}
+                    ${activePath === "/my-info" ? "bg-accent-menu text-accent" : "hover:bg-background"}`}
                 >
                 <span
                     className="w-7 h-7 rounded-full bg-border-strong flex items-center justify-center shrink-0 text-muted">
