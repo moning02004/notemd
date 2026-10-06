@@ -3,7 +3,8 @@
 import {useEffect, useState} from "react"
 import {useParams, useRouter} from "next/navigation"
 import toast from "react-hot-toast"
-import {FiChevronLeft, FiEdit2, FiFileText, FiLayers, FiPlus, FiTrash2} from "react-icons/fi"
+import {FiArchive, FiChevronLeft, FiEdit2, FiFileText, FiLayers, FiMoreHorizontal, FiPlus, FiTrash2} from "react-icons/fi"
+import {useClickOutside} from "@/hooks/useClickOutside"
 import {useProgressRouter} from "@/hooks/useProgressRouter"
 import {useAuthStore} from "@/store/auth"
 import {useDeleteSeries, useSeriesDetail, useUpdateSeries} from "@/hooks/useSeries"
@@ -16,12 +17,17 @@ import {SERIES_MODAL_CLASS} from "@/components/series/series_create_modal"
 import {NotePickerModal} from "@/components/note/note_picker_modal"
 import {SeriesDetail, SeriesNote} from "@/types/series"
 
+const formatDate = (value: string) =>
+    new Date(value).toLocaleDateString("ko-KR", {year: "numeric", month: "short", day: "numeric"})
+
 function SeriesDetailContent({seriesId}: { seriesId: string }) {
     const router = useProgressRouter()
     const {data: series, isLoading, isError} = useSeriesDetail(seriesId)
     const deleteSeries = useDeleteSeries()
     const updateSeries = useUpdateSeries()
     const [picking, setPicking] = useState(false)
+    const [menuOpen, setMenuOpen] = useState(false)
+    const menuRef = useClickOutside<HTMLDivElement>(() => setMenuOpen(false), menuOpen)
 
     const [editing, setEditing] = useState(false)
     const [exporting, setExporting] = useState<DownloadFormat | null>(null)
@@ -95,35 +101,72 @@ function SeriesDetailContent({seriesId}: { seriesId: string }) {
                     <FiChevronLeft size={14}/> 시리즈
                 </button>
 
-                <h1 className="m-0! text-[20px] font-bold leading-snug text-foreground break-words">{series.title}</h1>
+                {/* 시리즈에 하는 일(내보내기·고치기·삭제)은 제목 옆 ⋯ 하나에 모은다. */}
+                {/* 제목 줄 높이와 버튼 높이를 같게(32px) 두고 위에서 맞춘다. 제목이 두 줄이 되어도 ⋯ 는 첫 줄 가운데에 온다. */}
+                <div className="flex items-start gap-2">
+                    {/* 전역 h1 스타일의 밑줄을 뺀다. 제목 밑에만 그어지고 옆의 ⋯ 앞에서 끊겨 줄이 어긋나 보였다. */}
+                    <h1 className="m-0! border-b-0! flex-1 min-w-0 text-[22px] font-bold leading-8 text-foreground break-words">
+                        {series.title}
+                    </h1>
+                    <div ref={menuRef} className="relative shrink-0">
+                        <button onClick={() => setMenuOpen(open => !open)}
+                                aria-label="시리즈 메뉴" aria-haspopup="menu" aria-expanded={menuOpen}
+                                aria-busy={exporting !== null}
+                                className={`h-8 w-8 flex items-center justify-center rounded-lg cursor-pointer
+                                            transition-colors duration-150
+                                            ${menuOpen ? "bg-accent-soft text-accent"
+                                    : "text-muted hover:bg-background hover:text-foreground"}`}>
+                            {/* 내보내기는 몇 초 걸린다. 메뉴는 닫혔으니 누른 자리에서 진행 중임을 보여준다. */}
+                            {exporting ? <Spinner size={16} className="text-accent"/> : <FiMoreHorizontal size={18}/>}
+                        </button>
+                        {menuOpen && (
+                            <div role="menu"
+                                 className="absolute right-0 top-9 z-20 w-56 py-1 bg-surface border border-border
+                                            rounded-xl shadow-lg overflow-hidden">
+                                <MenuItem icon={<FiFileText size={14}/>} label="PDF로 내보내기"
+                                          hint="차례가 붙은 한 파일"
+                                          disabled={empty || exporting !== null}
+                                          onClick={() => {
+                                              setMenuOpen(false)
+                                              exportAs("pdf")
+                                          }}/>
+                                <MenuItem icon={<FiArchive size={14}/>} label="Markdown으로 내보내기"
+                                          hint="‘순서. 제목.md’ 를 담은 zip"
+                                          disabled={empty || exporting !== null}
+                                          onClick={() => {
+                                              setMenuOpen(false)
+                                              exportAs("md")
+                                          }}/>
+                                <div className="my-1 h-px bg-border"/>
+                                <MenuItem icon={<FiEdit2 size={14}/>} label="고치기"
+                                          onClick={() => {
+                                              setMenuOpen(false)
+                                              setEditing(true)
+                                          }}/>
+                                <MenuItem icon={<FiTrash2 size={14}/>} label="삭제" danger
+                                          disabled={deleteSeries.isPending}
+                                          onClick={() => {
+                                              setMenuOpen(false)
+                                              remove()
+                                          }}/>
+                            </div>
+                        )}
+                    </div>
+                </div>
+                {/* 제목 바로 아래에 이 시리즈가 얼마나 되는지. 버튼 줄이 빠진 자리를 비워 두지 않고 제목과 한 덩어리로 묶는다. */}
+                <p className="mt-1.5 flex items-center gap-1.5 text-[12.5px] text-subtle">
+                    <FiLayers size={12} className="shrink-0"/>
+                    <span className="tabular-nums">노트 {series.notes.length}개</span>
+                    <span aria-hidden>·</span>
+                    <span>{formatDate(series.updated_at)}에 고침</span>
+                </p>
                 {series.description && (
-                    <p className="mt-2 text-[14px] leading-relaxed text-muted whitespace-pre-line break-words">
+                    <p className="mt-3 text-[14px] leading-relaxed text-muted whitespace-pre-line break-words">
                         {series.description}
                     </p>
                 )}
 
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                    <ActionButton onClick={() => exportAs("pdf")} disabled={empty || exporting !== null} primary>
-                        {exporting === "pdf" ? <Spinner size={14}/> : <FiFileText size={14}/>}
-                        {exporting === "pdf" ? "PDF 만드는 중…" : "PDF로 내보내기"}
-                    </ActionButton>
-                    <ActionButton onClick={() => exportAs("md")} disabled={empty || exporting !== null}>
-                        {exporting === "md" && <Spinner size={14}/>}
-                        Markdown(zip)
-                    </ActionButton>
-                    <span className="flex-1"/>
-                    <ActionButton onClick={() => setEditing(true)}>
-                        <FiEdit2 size={13}/> 고치기
-                    </ActionButton>
-                    <ActionButton onClick={remove} disabled={deleteSeries.isPending} danger>
-                        <FiTrash2 size={13}/> 삭제
-                    </ActionButton>
-                </div>
-                <p className="mt-2 text-[12px] text-subtle">
-                    PDF 는 노트를 순서대로 이어 붙인 한 파일입니다. 첫 쪽에 차례가 붙고 노트마다 새 쪽에서 시작합니다.
-                </p>
-
-                <ol className="mt-5 flex flex-col border-t border-border">
+                <ol className="mt-6 flex flex-col border-t border-border">
                     {series.notes.map((note, index) => (
                         <li key={note.hash_id}>
                             <button
@@ -196,21 +239,25 @@ function EditForm({series, onClose}: { series: SeriesDetail, onClose: () => void
     )
 }
 
-function ActionButton({onClick, disabled, primary, danger, children}: {
-    onClick: () => void
-    disabled?: boolean
-    primary?: boolean
+function MenuItem({icon, label, hint, danger, disabled, onClick}: {
+    icon: React.ReactNode
+    label: string
+    /** 이름만으로 무엇이 나오는지 알기 어려울 때 아래에 한 줄. */
+    hint?: string
     danger?: boolean
-    children: React.ReactNode
+    disabled?: boolean
+    onClick: () => void
 }) {
     return (
-        <button onClick={onClick} disabled={disabled}
-                className={`h-9 px-3 rounded-lg border text-[13px] font-medium flex items-center gap-1.5 cursor-pointer
-                            transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed
-                            ${primary ? "bg-accent border-accent text-white hover:bg-accent-hover"
-                    : danger ? "border-border text-muted hover:border-danger hover:text-danger hover:bg-danger-soft"
-                        : "border-border text-muted hover:border-accent hover:text-accent"}`}>
-            {children}
+        <button role="menuitem" onClick={onClick} disabled={disabled}
+                className={`w-full flex items-start gap-2.5 px-3.5 py-2.5 text-left cursor-pointer
+                            disabled:opacity-40 disabled:cursor-not-allowed
+                            ${danger ? "text-danger hover:bg-danger-soft" : "text-foreground hover:bg-background"}`}>
+            <span className={`mt-0.5 shrink-0 ${danger ? "" : "text-muted"}`}>{icon}</span>
+            <span className="flex flex-col">
+                <span className="text-[13.5px] leading-snug">{label}</span>
+                {hint && <span className="text-[11.5px] leading-snug text-subtle">{hint}</span>}
+            </span>
         </button>
     )
 }
