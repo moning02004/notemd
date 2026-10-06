@@ -59,5 +59,30 @@ def test_index_settings_allow_filtering_by_user():
     assert "user_hash" in INDEX_SETTINGS["filterableAttributes"]
 
 
+def test_search_returns_one_page_at_a_time(search_index):
+    search_index.add_documents([document(f"note-{n:02d}", "user-a", title="회의록") for n in range(25)])
+
+    repository = SearchRepository()
+
+    assert repository.search_index("회의록", user_hash="user-a") == [f"note-{n:02d}" for n in range(20)]
+    assert repository.search_index("회의록", user_hash="user-a", page=2) == [f"note-{n:02d}" for n in range(20, 25)]
+    assert repository.search_index("회의록", user_hash="user-a", page=3) == []
+
+
+def test_search_leaves_trashed_notes_out_unless_asked(search_index):
+    """휴지통 여부를 엔진에서 걸러야 한 쪽이 20개로 찬다(다음 쪽이 있는지를 개수로 안다)."""
+    search_index.add_documents([
+        {**document("kept", "user-a", title="회의록"), "is_deleted": False},
+        {**document("trashed", "user-a", title="회의록"), "is_deleted": True},
+    ])
+
+    assert SearchRepository().search_index("회의록", user_hash="user-a") == ["kept"]
+    assert SearchRepository().search_index("회의록", user_hash="user-a", is_deleted=True) == ["trashed"]
+
+
+def test_index_settings_allow_filtering_out_the_trash():
+    assert "is_deleted" in INDEX_SETTINGS["filterableAttributes"]
+
+
 def test_index_settings_search_title_and_body():
     assert INDEX_SETTINGS["searchableAttributes"] == ["title", "content"]

@@ -1,5 +1,5 @@
 import {useEffect, useRef, useState} from "react";
-import {FiArrowLeft, FiX} from "react-icons/fi";
+import {FiArrowLeft, FiChevronRight, FiFolder, FiX} from "react-icons/fi";
 import {apiRequest} from "@/lib/api";
 import DOMPurify from "dompurify";
 import {gotoNote} from "@/lib/note";
@@ -8,7 +8,10 @@ import {Spinner} from "@/components/icons";
 import {Modal} from "@/components/ui/modal";
 import {NoteSearchResult} from "@/types/note";
 import {useFolders} from "@/hooks/useFolders";
-import {folderPathLabel} from "@/types/folder";
+import {flattenFolders, folderPathLabel} from "@/types/folder";
+
+/** 서버가 한 쪽에 주는 수. 이만큼 왔으면 다음 쪽이 더 있을 수 있다. */
+const PAGE_SIZE = 20
 
 interface Props {
     isOpen: boolean;
@@ -58,28 +61,79 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
     const shownResults = keyword ? results : []
     const didSearch = keyword !== "" && searched
 
+    // 검색어가 바뀌면 첫 쪽부터 다시 받는다. 늦게 온 지난 검색어의 응답은 버린다.
+    const [page, setPage] = useState(1)
+    const [hasMore, setHasMore] = useState(false)
+    const [isLoadingMore, setIsLoadingMore] = useState(false)
+    const [searchedFor, setSearchedFor] = useState(keyword)
+    if (searchedFor !== keyword) {
+        setSearchedFor(keyword)
+        setPage(1)
+        setHasMore(false)
+    }
+
     useEffect(() => {
         if (keyword === "") return
 
+        let aborted = false
+        const first = page === 1
         const timer = setTimeout(async () => {
-            setIsLoading(true)
-            setSearched(true)
+            if (first) {
+                setIsLoading(true)
+                setSearched(true)
+            } else {
+                setIsLoadingMore(true)
+            }
             try {
-                let data = await apiRequest.get<NoteSearchResult[]>(`/notes?keyword=${keyword}`)
+                let data = await apiRequest.get<NoteSearchResult[]>(
+                    `/notes?keyword=${encodeURIComponent(keyword)}&page=${page}`)
+                if (aborted) return
                 data = data.map(note => ({
                     ...note,
                     content: DOMPurify.sanitize((note.content || "").replace(/<[^>]*>/g, ""))
                 }))
-                setResults(data)
+                setResults(previous => first ? data : [...previous, ...data])
+                setHasMore(data.length === PAGE_SIZE)
             } catch {
-                setResults([])
+                if (aborted) return
+                if (first) setResults([])
+                setHasMore(false)
             } finally {
-                setIsLoading(false)
+                if (!aborted) {
+                    setIsLoading(false)
+                    setIsLoadingMore(false)
+                }
             }
-        }, 300);
+        // 다음 쪽은 기다릴 까닭이 없다. 글자를 치는 동안에만 잠깐 모았다가 보낸다.
+        }, first ? 300 : 0);
 
-        return () => clearTimeout(timer);
-    }, [keyword])
+        return () => {
+            aborted = true
+            clearTimeout(timer)
+        };
+    }, [keyword, page])
+
+    // 목록 끝이 보이면 다음 쪽을 받는다.
+    const sentinelRef = useRef<HTMLDivElement>(null)
+    useEffect(() => {
+        const element = sentinelRef.current
+        if (!element || !hasMore || isLoading || isLoadingMore) return
+        const observer = new IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting) setPage(current => current + 1)
+        })
+        observer.observe(element)
+        return () => observer.disconnect()
+    }, [hasMore, isLoading, isLoadingMore, results.length])
+
+    // 이름이 검색어에 맞는 폴더. 이미 받아 둔 폴더 트리에서 고르므로 요청이 더 나가지 않는다.
+    const matchedFolders = keyword
+        ? flattenFolders(folderData?.folders ?? [])
+            .filter(folder => folder.name.toLowerCase().includes(keyword.toLowerCase()))
+        : []
+    const openFolder = (hashId: string) => {
+        onClose()
+        router.push(`/?folder=${hashId}`)
+    }
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} slide
@@ -115,14 +169,44 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
                 </div>
 
                 <div className="flex flex-col flex-1 overflow-y-auto">
-                    {isLoading ? (
+                    {/*
+                      이름이 맞는 폴더를 노트보다 위에 둔다. 폴더 이름을 치는 사람은 그 안으로 들어가려는 것이고,
+                      노트 결과 사이에 섞이면 찾을 수 없다.
+                    */}
+                    {matchedFolders.length > 0 && (
+                        <div className="border-b border-border bg-background/60">
+                            <p className="px-3 pt-2 pb-1 text-[11px] font-medium text-subtle">폴더 {matchedFolders.length}</p>
+                            {matchedFolders.map(folder => (
+                                <button
+                                    key={folder.hash_id}
+                                    onClick={() => openFolder(folder.hash_id)}
+                                    className="w-full flex items-center gap-2.5 px-3 h-11 text-left cursor-pointer hover:bg-accent-menu"
+                                >
+                                    <FiFolder size={15} className="shrink-0 text-accent"/>
+                                    <span className="min-w-0 flex-1 truncate">
+                                        <span className="text-[14px] font-medium text-foreground">{folder.name}</span>
+                                        {folder.parent_hash && (
+                                            <span className="ml-2 text-[11px] text-subtle">
+                                                {folderPathLabel(folderData?.folders ?? [], folder.parent_hash)}
+                                            </span>
+                                        )}
+                                    </span>
+                                    <span className="shrink-0 text-[12px] tabular-nums text-subtle">{folder.total_count}</span>
+                                    <FiChevronRight size={14} className="shrink-0 text-subtle"/>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* 글자를 치고 검색이 나가기 전의 짧은 틈에도 '검색하세요' 안내가 아니라 받는 중으로 보인다. */}
+                    {isLoading || (keyword !== "" && !searched) ? (
                         Array.from({length: 4}).map((_, i) => <SkeletonItem key={i}/>)
                     ) : shownResults.length > 0 ? (
                         shownResults.map((note) => (
                             <div
                                 key={note.hash_id}
                                 className={`w-full border-b border-border p-3 cursor-pointer
-                                    ${openingId === note.hash_id ? "bg-background" : "hover:bg-background"}`}
+                                    ${openingId === note.hash_id ? "bg-accent-menu" : "hover:bg-accent-menu"}`}
                                 onClick={async () => {
                                     setOpeningId(note.hash_id)
                                     await gotoNote({id: note.hash_id, router})
@@ -148,6 +232,8 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
                                 </div>
                             </div>
                         ))
+                    ) : didSearch && !isLoading && matchedFolders.length > 0 ? (
+                        <p className="px-3 py-6 text-center text-sm text-subtle">맞는 노트는 없습니다</p>
                     ) : didSearch && !isLoading ? (
                         <div className="flex flex-col items-center justify-center flex-1 text-subtle gap-2">
                             <span className="text-4xl">🔍</span>
@@ -156,6 +242,13 @@ export const SearchModal = ({isOpen, onClose}: Props) => {
                     ) : (
                         <div className="flex flex-col pl-3 pt-3 flex-1 text-subtle gap-2">
                             <span className="text-sm">키워드를 입력하여 노트를 검색하세요</span>
+                        </div>
+                    )}
+
+                    {/* 여기가 보이면 다음 쪽을 받는다. */}
+                    {!isLoading && shownResults.length > 0 && hasMore && (
+                        <div ref={sentinelRef} className="flex justify-center py-4">
+                            {isLoadingMore && <Spinner size={16} className="text-accent"/>}
                         </div>
                     )}
                 </div>

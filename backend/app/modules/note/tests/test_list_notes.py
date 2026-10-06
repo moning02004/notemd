@@ -16,7 +16,7 @@ class StubSearchService:
     def __init__(self, note_hashes):
         self.note_hashes = note_hashes
 
-    def find_documents(self, keyword, user_hash, sort, page):
+    def find_documents(self, keyword, user_hash, sort, page, is_deleted=False):
         return self.note_hashes
 
     def add_to_index(self, data):
