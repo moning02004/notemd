@@ -9,7 +9,7 @@ import {EditorState, NodeSelection, TextSelection} from "@tiptap/pm/state";
 import {EditorView} from "@tiptap/pm/view";
 import {useEditorInstance} from "@/lib/create_editor";
 import MenuBar from "@/components/editor_menubar";
-import {Complete, LoadingSpinner, Warning} from "@/components/icons";
+import {Complete, LoadingSpinner, Spinner, Warning} from "@/components/icons";
 import {apiRequest} from "@/lib/api";
 import {CreateNoteImageResponse} from "@/types/note";
 import {API_HOST} from "@/constants/api";
@@ -51,6 +51,8 @@ interface EditorProps {
     replacement?: { content: string, seq: number } | null;
     /** 공동 편집에서 지금 같이 연 다른 사람들. 제목줄 오른쪽에 보인다. */
     peers?: CollabPeer[];
+    /** 제목 옆 뒤로가기로 나가기 직전에 부른다. 끝난 뒤에 나간다. */
+    onBeforeLeave?: () => Promise<void>;
 }
 
 export function MarkdownEditor({
@@ -68,6 +70,7 @@ export function MarkdownEditor({
                                    collab = null,
                                    replacement = null,
                                    peers = [],
+                                   onBeforeLeave,
                                }: EditorProps
 ) {
     const titleRef = React.useRef<HTMLInputElement>(null);
@@ -161,11 +164,18 @@ export function MarkdownEditor({
             else editor.commands.focus("start")
         }
     }
-    const goBack = () => {
+    const [leaving, setLeaving] = useState(false)
+    const goBack = async () => {
+        if (leaving) return
         if (statusType == "loading") {
             alert("동기화가 완료되지 않았습니다. 잠시 후 다시 시도해주세요.")
             return
         }
+        // 방금 고친 것이 있으면 저장시킨 뒤에 나간다(공동 편집의 저장은 몇 초 늦다). 없으면 곧바로 나간다.
+        setLeaving(true)
+        await onBeforeLeave?.()
+        // 돌아갈 곳이 없으면(주소로 바로 들어온 노트) 화면이 그대로 남는다. 표시가 돌고만 있지 않게 끈다.
+        setLeaving(false)
         router.back()
     }
 
@@ -181,8 +191,9 @@ export function MarkdownEditor({
                     token &&
                     <div
                         className="my-auto p-1.5 rounded-lg cursor-pointer text-muted hover:bg-background hover:text-foreground transition-colors duration-200"
-                        onClick={goBack}>
-                        <FiArrowLeft size={24}/>
+                        onClick={goBack}
+                        aria-busy={leaving}>
+                        {leaving ? <Spinner size={24} className="text-accent"/> : <FiArrowLeft size={24}/>}
                     </div>
                 }
                 <input type="text"

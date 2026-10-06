@@ -21,6 +21,43 @@ export const gotoNote = async ({id, router, folder}: {
     router.push(`/s/${id}`)
 }
 
+const JUST_LEFT_KEY = "note-just-left"
+
+/**
+ * 공동 편집 중인 노트를 지금 저장하게 한다. 공동 편집의 저장은 편집 뒤 몇 초씩 늦어서,
+ * 쓰고 곧바로 목록으로 나오면 목록이 저장되기 전의 본문을 보여줬다.
+ * 실패해도 조용히 넘어간다(저장은 어차피 곧 된다). 나가는 길을 오래 막지 않게 기다림에 끝을 둔다.
+ */
+export const flushNote = (noteId: string, timeoutMs = 3000) => new Promise<void>(resolve => {
+    const timer = setTimeout(resolve, timeoutMs)
+    apiRequest.post(`/notes/${noteId}/flush`, {}, {isSilent: true})
+        .catch(() => {})
+        .finally(() => {
+            clearTimeout(timer)
+            resolve()
+        })
+})
+
+/** 편집 화면을 떠날 때 어느 노트였는지 적어 둔다. 브라우저의 뒤로 가기처럼 미리 저장시키지 못한 길을 목록이 메운다. */
+export const markNoteLeft = (noteId: string) => {
+    try {
+        sessionStorage.setItem(JUST_LEFT_KEY, noteId)
+    } catch {
+        // 저장소를 못 쓰면(사생활 보호 모드 등) 목록이 한 번 늦게 따라올 뿐이다.
+    }
+}
+
+/** 방금 떠난 노트가 있으면 돌려주고 표시를 지운다. */
+export const takeNoteLeft = (): string | null => {
+    try {
+        const noteId = sessionStorage.getItem(JUST_LEFT_KEY)
+        if (noteId) sessionStorage.removeItem(JUST_LEFT_KEY)
+        return noteId
+    } catch {
+        return null
+    }
+}
+
 export type DownloadFormat = "md" | "pdf"
 
 export const downloadNoteRequest = async (noteHashes: Array<string>, format: DownloadFormat = "md") => {

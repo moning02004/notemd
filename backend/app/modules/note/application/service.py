@@ -526,6 +526,17 @@ class NoteService(Service):
             {Note.ydoc: stored, Note.updated_at: note.updated_at}, synchronize_session=False)
         self.repository.db.commit()
 
+    def flush_note(self, user_id: int, note_hash: str) -> None:
+        """공동 편집으로 열려 있는 노트의 지금 내용을 곧바로 저장하게 한다.
+
+        공동 편집의 저장은 편집 뒤 몇 초씩 늦다. 노트를 쓰고 곧바로 목록으로 나오면 목록이 저장되기 전의
+        본문을 읽어, 방금 쓴 것이 보이지 않았다. 나올 때 이것을 먼저 부른다.
+        볼 수 있는 사람만 부를 수 있다(볼 수 없으면 노트가 있는지도 알리지 않는다).
+        """
+        self.get_note_by_hash_id(user_id=user_id, note_hash=note_hash)
+        self._flush_collab_quietly(note_hash)
+        self.repository.db.expire_all()
+
     @staticmethod
     def _flush_collab_quietly(note_hash: str) -> None:
         """열려 있는 공동 편집 문서를 곧바로 저장하게 한다. collab 이 없거나 실패하면 저장본을 그대로 쓴다."""

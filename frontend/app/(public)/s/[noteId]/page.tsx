@@ -12,6 +12,7 @@ import {useAuthStore} from "@/store/auth";
 import {useNoteDetail} from "@/hooks/useNoteDetail";
 import {useNoteAutosave} from "@/hooks/useNoteAutoSave";
 import {apiRequest} from "@/lib/api";
+import {useSaveBeforeLeaving} from "@/hooks/useSaveBeforeLeaving";
 import {FiAlertTriangle, FiTrash2, FiWifiOff} from "react-icons/fi";
 import {useCollabDocument} from "@/hooks/useCollabDocument";
 import {COLLAB_URL} from "@/constants/api";
@@ -58,6 +59,9 @@ export default function Page() {
     if (collabStalled && !collabFallback) setFallbackNoteId(noteId)
     const collab = collabSession && collabSession.status !== "denied" && !collabStalled ? collabSession : null
     const collabDenied = collabSession?.status === "denied"
+
+    // 방금 고친 채로 나갈 때만 공동 편집의 늦은 저장을 당긴다(useSaveBeforeLeaving).
+    const saveBeforeLeaving = useSaveBeforeLeaving(noteId, collab && isEditable ? collab.doc : null)
 
     // 제목도 Y 문서(Text "title")로 같이 편집한다. 다른 사람이 고친 제목을 화면에 옮긴다.
     const setTitleState = setters.setTitle
@@ -266,6 +270,7 @@ export default function Page() {
                                 widthClass={EDITOR_WIDTHS[editorWidth].className}
                                 notice={deletedNotice || collabNotice || offlineNotice || conflictNotice}
                                 peers={collab?.peers}
+                                onBeforeLeave={saveBeforeLeaving}
                 />
             </div>
 

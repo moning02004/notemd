@@ -120,6 +120,12 @@ def update_note(note_hash: str,
     return note
 
 
+@router.post("/{note_hash}/flush", status_code=204)
+def flush_note(note_hash: str, user=Depends(get_current_user), service: NoteService = Depends(get_note_service)):
+    """공동 편집 중인 노트를 지금 저장하게 한다. 편집 화면이 목록으로 나가기 전에 부른다."""
+    service.flush_note(user_id=user.pk, note_hash=note_hash)
+
+
 @router.get("/{note_hash}/backlinks", response_model=List[NoteBacklinkSchema])
 def get_note_backlinks(note_hash: str, user=Depends(get_current_user),
                        service: NoteService = Depends(get_note_service)):
