@@ -210,8 +210,11 @@ class NoteService(Service):
                                                            include_sub=include_sub,
                                                            unfiled=unfiled)
         else:
-            # 검색은 폴더와 태그를 가리지 않고 전체에서 찾는다. 잘 맞는 순서대로 한 쪽(20개)씩.
-            note_hashes = self.search_service.find_documents(keyword, user_hash, sort, page, is_deleted=is_deleted)
+            # 검색은 기본으로 전체에서 찾는다. 폴더를 주면 그 폴더와 하위 폴더 안으로 좁힌다. 태그는 보지 않는다.
+            # 잘 맞는 순서대로 한 쪽(20개)씩.
+            folders = self.repository.folder_hashes_for(user_hash, folder) if folder else None
+            note_hashes = self.search_service.find_documents(keyword, user_hash, sort, page,
+                                                             is_deleted=is_deleted, folders=folders)
             # 색인이 DB 보다 늦을 수 있으므로(막 지운 노트) 조회 단계에서도 같은 조건으로 한 번 더 맞춘다.
             found = self.repository.get_by_hash_ids_and_user_id(note_hashes=note_hashes,
                                                                 user_hash=user_hash,
