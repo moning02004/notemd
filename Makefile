@@ -19,12 +19,14 @@ up-build:
 	docker compose -f $(LOCAL_COMPOSE_FILE) up -d
 
 # 프론트 의존성을 바꿨을 때(package.json 수정 등) 쓰는 재빌드.
-# compose 의 익명 볼륨(/app/node_modules, /app/.next)은 up 할 때 이전 컨테이너 것을
-# 그대로 재사용하므로, 그냥 --build 만 하면 새 이미지의 node_modules 가 반영되지 않는다.
-# --renew-anon-volumes 로 익명 볼륨까지 새로 만들어야 한다.
+# /app/node_modules 와 /app/.next 는 이름 있는 볼륨이라 컨테이너를 다시 만들어도 그대로 남는다.
+# 그냥 --build 만 하면 새 이미지의 node_modules 가 반영되지 않으므로, 두 볼륨을 지우고 다시 올린다.
 .PHONY: fe-rebuild
 fe-rebuild:
-	docker compose -f $(LOCAL_COMPOSE_FILE) up -d --build --force-recreate --renew-anon-volumes frontend
+	docker compose -f $(LOCAL_COMPOSE_FILE) build frontend
+	docker compose -f $(LOCAL_COMPOSE_FILE) rm -sf frontend
+	-docker volume rm mdnote_frontend_node_modules mdnote_frontend_next
+	docker compose -f $(LOCAL_COMPOSE_FILE) up -d frontend
 
 # Docker Compose 중지
 down:
