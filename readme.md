@@ -249,6 +249,7 @@ PDF 내보내기는 WeasyPrint 가 시스템 라이브러리(`libpango`)와 한�
 | DELETE | `/api-tokens/{token_id}` | 토큰 폐기 |
 | POST | `/api/v1/notes` | 마크다운으로 노트 생성 |
 | POST | `/api/v1/notes/{note_id}/append` | 노트 끝에 덧붙이기 |
+| PUT | `/api/v1/notes/{note_id}` | 본문을 통째로 바꾸기(제목은 줄 때만). 바꾸기 전 모습은 스냅샷에 남음 |
 | GET | `/api/v1/notes` · `/api/v1/notes/{note_id}` | 찾기 / 마크다운으로 읽기(읽기 권한 토큰) |
 | GET | `/api/v1/folders` | 폴더 경로 목록 |
 | — | `/mcp` | 같은 일을 하는 MCP 서버(Streamable HTTP) |

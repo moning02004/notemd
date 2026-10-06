@@ -42,6 +42,11 @@ def flush(note_hash: str) -> None:
     _post(note_hash, "flush")
 
 
+def replace(note_hash: str, html: str, title: str | None = None) -> None:
+    """본문을 통째로 바꾸고(제목은 줄 때만), collab 이 저장까지 마치면 돌아온다."""
+    _post(note_hash, "replace", {"html": html} if title is None else {"html": html, "title": title})
+
+
 def append(note_hash: str, html: str) -> None:
     """문서 끝에 HTML 을 붙이고, collab 이 저장까지 마치면 돌아온다."""
     _post(note_hash, "append", {"html": html})

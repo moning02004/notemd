@@ -12,7 +12,7 @@ import {Server} from "@hocuspocus/server"
 import * as Y from "yjs"
 import type {IncomingMessage, ServerResponse} from "node:http"
 import {timingSafeEqual} from "node:crypto"
-import {appendHtml, bodyHtml, ensureEpoch, epochOf, fillFromHtml, titleOf} from "./convert"
+import {appendHtml, bodyHtml, ensureEpoch, epochOf, fillFromHtml, replaceHtml, titleOf} from "./convert"
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://backend:8000"
 const COLLAB_SECRET = process.env.COLLAB_SECRET ?? ""
@@ -78,9 +78,10 @@ function reply(response: ServerResponse, status: number, body: unknown) {
  * 누가 노트를 열어 두고 있어도 그 문서에 바로 섞이고, 아무도 안 열었으면 불러와서 고치고 저장한 뒤 내린다.
  *   POST /internal/notes/:id/flush   열려 있으면 지금 내용을 곧바로 저장한다(덧붙이기 전 스냅샷을 위해).
  *   POST /internal/notes/:id/append  {"html": "..."} 문서 끝에 붙이고 저장까지 마친 뒤 답한다.
+ *   POST /internal/notes/:id/replace {"html": "...", "title": "..."} 본문을 통째로 바꾸고(제목은 줄 때만) 저장까지 마친 뒤 답한다.
  */
 async function handleInternal(request: IncomingMessage, response: ServerResponse): Promise<boolean> {
-    const match = /^\/internal\/notes\/([^/]+)\/(flush|append)$/.exec(request.url ?? "")
+    const match = /^\/internal\/notes\/([^/]+)\/(flush|append|replace)$/.exec(request.url ?? "")
     if (!match) return false
 
     if (request.method !== "POST" || !isBackend(request)) {
@@ -102,10 +103,12 @@ async function runInternal(name: string, action: string, request: IncomingMessag
             // 기본값(unloadImmediately: true)이어야 디바운스 없이 곧바로 저장한다. 문서는 연결된 사람이 없을 때만 내린다.
             await connection.disconnect()
         } else {
-            const {html} = await readJson(request)
+            const {html, title} = await readJson(request)
             if (typeof html !== "string" || !html.trim()) return [400, {detail: "html 이 필요합니다."}]
             const connection = await server.hocuspocus.openDirectConnection(name)
-            await connection.transact(document => appendHtml(document, html))
+            await connection.transact(document => action === "replace"
+                ? replaceHtml(document, html, typeof title === "string" ? title : undefined)
+                : appendHtml(document, html))
             storeErrors.delete(name)
             // 끊을 때 곧바로 저장한다(디바운스 없이). 저장이 끝나야 돌아온다.
             await connection.disconnect()

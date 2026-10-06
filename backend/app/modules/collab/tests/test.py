@@ -250,6 +250,8 @@ def fake_collab(client, monkeypatch):
         if action == "flush":
             if html != state["html"]:
                 store(client, note_hash, html=html, title=state["title"])
+        elif action == "replace":
+            store(client, note_hash, html=body["html"], title=body.get("title", state["title"]))
         else:
             store(client, note_hash, html=html + body["html"], title=state["title"])
 
@@ -271,6 +273,25 @@ def test_agent_append_goes_through_collab(client, auth_headers, db_session, fake
     # 편집 중이던 내용이 덮이지 않고, 그 뒤에 붙었다
     assert client.get(f"/notes/{note}", headers=owner).json()["content"] == "<p>월요일</p><p>편집 중</p><p>화요일</p>"
     # 덧붙이기 전 스냅샷에는 편집 중이던 내용까지 담긴다(먼저 저장하게 했으므로)
+    from app.modules.note.infrastructure.models import NoteSnapshot
+    snapshot = db_session.query(NoteSnapshot).order_by(NoteSnapshot.pk.desc()).first()
+    assert snapshot.content == "<p>월요일</p><p>편집 중</p>"
+
+
+def test_agent_replace_goes_through_collab(client, auth_headers, db_session, fake_collab):
+    """열려 있는 문서 안에서 바꾼다. DB 에만 쓰면 편집 중인 사람의 다음 저장이 옛 본문을 되살린다."""
+    owner = member_headers(client)
+    note = create_note(client, owner, title="일지", content="<p>월요일</p>")
+    fake_collab["open_docs"][note] = "<p>월요일</p><p>편집 중</p>"
+
+    response = client.put(f"/api/v1/notes/{note}", headers={"Authorization": f"Bearer {agent_token(client, owner)}"},
+                          json={"content": "다시 쓴 글"})
+
+    assert response.status_code == 200, response.text
+    assert fake_collab["calls"] == ["flush", "replace"]
+    detail = client.get(f"/notes/{note}", headers=owner).json()
+    assert (detail["title"], detail["content"]) == ("일지", "<p>다시 쓴 글</p>")
+    # 바꾸기 전 스냅샷에는 편집 중이던 내용까지 담긴다(먼저 저장하게 했으므로)
     from app.modules.note.infrastructure.models import NoteSnapshot
     snapshot = db_session.query(NoteSnapshot).order_by(NoteSnapshot.pk.desc()).first()
     assert snapshot.content == "<p>월요일</p><p>편집 중</p>"

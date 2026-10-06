@@ -110,6 +110,40 @@ class AgentNoteService:
         self.notes.update_note(user, note_hash, NoteUpdateRequest(content=content))
         return self.notes.repository.get_by_hash_id(hash_id=note_hash)
 
+    def replace_note(self, user, token, note_hash: str, markdown: str, title: str | None = None):
+        """본문을 통째로 바꾼다. 제목은 줄 때만 바꾼다. 바꾸기 전 모습은 스냅샷으로 남긴다.
+
+        덧붙이기만 되면 '다시 써 달라' 는 일을 맡길 때마다 새 노트가 쌓인다. 순서는 덧붙이기와 같다:
+        열려 있는 문서를 먼저 저장하게 하고 → 그 모습을 스냅샷으로 남기고 → collab 에 맡겨 바꾼다
+        (같이 보고 있는 사람의 화면도 그 자리에서 바뀐다). collab 을 안 쓰면 DB 에 바로 쓴다.
+        """
+        self._get_own_note(user, note_hash)
+        if not (markdown or "").strip():
+            raise HTTPException(status_code=400, detail="바꿀 내용을 입력해주세요. 노트를 비우려면 앱에서 지워 주세요.")
+        html = markdown_to_html(markdown)
+        title = title.strip() if title is not None else None
+
+        try:
+            collab_client.flush(note_hash)
+            use_collab = True
+        except CollabUnavailable:
+            use_collab = False
+        self.db.expire_all()
+        note = self._get_own_note(user, note_hash)
+
+        self.notes.repository.add_note_snapshot(description=f"API 토큰 '{token.name}' 바꾸기 전", note=note)
+
+        if use_collab:
+            try:
+                collab_client.replace(note_hash, html, title)
+                self.db.expire_all()
+                return self.notes.repository.get_by_hash_id(hash_id=note_hash)
+            except CollabUnavailable:
+                pass
+
+        self.notes.update_note(user, note_hash, NoteUpdateRequest(content=html, title=title))
+        return self.notes.repository.get_by_hash_id(hash_id=note_hash)
+
     # ---------------------------------------------------------------- 읽기
 
     def get_note_markdown(self, user, note_hash: str) -> tuple:

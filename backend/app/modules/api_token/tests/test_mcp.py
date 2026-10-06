@@ -32,7 +32,7 @@ def test_tools_are_registered():
 
     names = {tool.name for tool in asyncio.run(mcp_module.mcp_server.list_tools())}
 
-    assert names == {"create_note", "append_to_note", "search_notes", "read_note", "list_folders"}
+    assert names == {"create_note", "append_to_note", "replace_note", "search_notes", "read_note", "list_folders"}
 
 
 def test_create_append_read_through_tools(client, auth_headers):
@@ -48,6 +48,18 @@ def test_create_append_read_through_tools(client, auth_headers):
 
     assert note.content == "- [ ] 안건\n\n덧붙임\n"
     assert mcp_module.list_folders(ctx(token)) == ["업무", "업무/회의"]
+
+
+def test_replace_through_tools(client, auth_headers):
+    owner = member_headers(client)
+    token = issue(client, owner, scope="read_write")
+    created = mcp_module.create_note(ctx(token), title="초안", content="처음 쓴 글")
+
+    replaced = mcp_module.replace_note(ctx(token), note_id=created.id, content="다시 쓴 글")
+
+    assert replaced.id == created.id
+    assert replaced.title == "초안"
+    assert mcp_module.read_note(ctx(token), note_id=created.id).content == "다시 쓴 글\n"
 
 
 def test_search_through_tools(client, auth_headers):
