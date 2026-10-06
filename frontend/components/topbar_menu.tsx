@@ -1,14 +1,13 @@
 "use client"
 
 import {BsThreeDotsVertical} from "react-icons/bs"
-import {FiCheckSquare, FiLayers, FiUpload} from "react-icons/fi"
+import {FiLayers, FiUpload} from "react-icons/fi"
 import {MdOutlineSettings} from "react-icons/md"
 import {GrTrash} from "react-icons/gr";
 import {useClickOutside} from "@/hooks/useClickOutside"
 
 interface TopbarMenuProps {
     onFileUpload?: () => void
-    onSelectMode: () => void
     gotoSettings: () => void
     gotoTrash: () => void
     gotoSeries?: () => void
@@ -20,7 +19,6 @@ interface TopbarMenuProps {
 
 export default function TopbarMenu({
                                        onFileUpload,
-                                       onSelectMode,
                                        gotoSettings,
                                        gotoTrash,
                                        gotoSeries,
@@ -53,7 +51,7 @@ export default function TopbarMenu({
                             }}
                             className="w-full flex cursor-pointer items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-background transition-colors duration-100"
                         >
-                            <span className="text-muted shrink-0"><FiCheckSquare size={15}/></span>
+                            <span className="text-muted shrink-0"><FiUpload size={15}/></span>
                             <span className="flex flex-col">
                                 <span className="text-foreground font-medium leading-snug">파일 업로드</span>
                                 <span
@@ -91,26 +89,6 @@ export default function TopbarMenu({
                             </button>
                         </div>
                     }
-                    {onSelectMode &&
-                        <div>
-                            <button
-                                onClick={() => {
-                                    onClose();
-                                    onSelectMode();
-                                }}
-                                className="w-full flex cursor-pointer items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-background transition-colors duration-100"
-                            >
-                                <span className="text-muted shrink-0"><FiUpload size={15}/></span>
-                                <span className="flex flex-col">
-                                    <span className="text-foreground font-medium leading-snug">선택 모드</span>
-                                    <span className="text-xs text-subtle leading-snug">여러 노트를 옮기거나 시리즈로 묶습니다.</span>
-                                </span>
-                            </button>
-                        </div>
-                    }
-
-                    <div className="h-px bg-border"/>
-
                     {gotoSettings &&<div>
                         <button
                             onClick={() => {

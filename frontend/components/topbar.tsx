@@ -41,10 +41,6 @@ export function Topbar() {
     const topTitle = isSettingsPage ? "설정" : isTrashPage ? "휴지통" : isSeriesPage ? "시리즈" : menuItems.find(item => item.path === pathname)?.name ?? ""
     const isAccountPage = isSettingsPage || pathname.startsWith("/my-info")
 
-    const handleSelectMode = () => {
-        setMenuOpen(false);
-        enterSelectMode()
-    }
     const handleGotoTrash = () => {
         router.push("/deleted")
     }
@@ -151,9 +147,9 @@ export function Topbar() {
                             </button>
                         )}
 
-                        {!isSettingsPage && !isSeriesPage && (
+                        {/* 선택 모드가 목록 도구 줄로 옮겨 가서, 메뉴에 남는 것이 있는 화면에서만 ⋮ 를 둔다. */}
+                        {(pathname === "/" || isAccountPage) && !isSettingsPage && (
                             <TopbarMenu {...(pathname === "/" && {onFileUpload: handleFileUpload})}
-                                        {...(!isAccountPage && {onSelectMode: handleSelectMode})}
                                         {...(pathname === "/" && {gotoTrash: handleGotoTrash})}
                                         {...(pathname === "/" && {gotoSeries: handleGotoSeries})}
                                         {...(isAccountPage && {gotoSettings: handleGotoSettings})}

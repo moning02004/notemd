@@ -13,6 +13,7 @@ import toast from "react-hot-toast";
 import {NoteListSkeleton, SkeletonLoading} from "@/components/skeleton";
 import {useViewModeStore} from "@/store/viewMode";
 import ViewModeToggle from "@/components/view_mode_toggle";
+import SelectModeButton from "@/components/select_mode_button";
 
 function NoteListContent() {
     const {viewMode} = useViewModeStore()
@@ -47,7 +48,8 @@ function NoteListContent() {
     return (
         <div className="bg-white min-h-[100%]">
             <div
-                className="sticky top-0 z-10 backdrop-blur border-b border-border bg-surface/80 flex items-center justify-end px-4 h-11">
+                className="sticky top-0 z-10 backdrop-blur border-b border-border bg-surface/80 flex items-center justify-between px-4 h-11">
+                <div className="-ml-1.5"><SelectModeButton/></div>
                 <ViewModeToggle/>
             </div>
 

@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { Tag } from "@/types/note";
 import { useClickOutside } from "@/hooks/useClickOutside"
 import ViewModeToggle from "@/components/view_mode_toggle"
+import SelectModeButton from "@/components/select_mode_button"
 
 function sortTags(tags: Tag[]): Tag[] {
     const totalTag = tags.filter(t => t.keyword === '전체')
@@ -78,6 +79,11 @@ export default function NoteFilterBar({ tags }: Props) {
     return (
         <div className="shadow-sm bg-surface">
             <div className="flex items-center gap-3 px-4 h-11">
+
+                <div className="flex items-center gap-1 shrink-0 -ml-1.5">
+                    <SelectModeButton/>
+                    <div className="w-px h-3 bg-border ml-1"/>
+                </div>
 
                 <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-1">
                     {displayTags.map(tag => (
