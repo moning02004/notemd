@@ -56,7 +56,11 @@
 | 가져오기 | PDF(텍스트 추출), 마크다운, 코드 파일 업로드 → 노트로 변환. 코드는 확장자에 맞는 코드블록으로 감쌈 |
 | 내보내기 | 목록에서 Markdown 다운로드(1개는 `.md`, 여러 개는 zip), 노트 설정에서 PDF 내보내기 |
 | 시리즈 | 이어서 읽을 노트를 골라 순서대로 묶음. 노트 아래에서 이전·다음 노트로 넘어가고, 시리즈 전체를 차례가 붙은 PDF 한 권(또는 `순서. 제목.md` zip)으로 내보냄 |
-| 계정 | 최초 가입자가 관리자, 이후 계정은 관리자가 발급. 액세스 토큰 15분 + 리프레시 토큰 14일 |
+| 공동 편집 | 같은 노트를 여럿이 동시에 편집(Yjs). 연결이 끊기면 이 기기의 사본에 고쳤다가 다시 붙으면 합침 |
+| 폴더 | 3단계까지의 폴더. 개인 노트(루트)에는 폴더에 넣지 않은 노트만 보임 |
+| 에이전트 API | 개인 API 토큰으로 노트를 만들고 덧붙이고 찾는 `/api/v1` 과 MCP 서버(`/mcp`) |
+| 자동 백업 | `BACKUP_DIR` 을 주면 매일 03:00(KST) 사용자마다 전체 내보내기 zip 을 남기고 최근 것만 보관 |
+| 계정 | 관리자는 서버의 `ADMIN_KEY` 로 가입, 이후 계정은 관리자가 발급(임시 비밀번호). 액세스 토큰 15분 + 리프레시 토큰 14일 |
 | 그 외 | PWA 매니페스트, 편집 영역 너비 조절(100/70/50%), 다중 선택 후 일괄 다운로드·삭제 |
 
 ---
@@ -91,7 +95,7 @@ cd notemd
 make up-build
 ```
 
-프론트엔드·백엔드·PostgreSQL·Meilisearch·Redis·Celery 워커/비트가 함께 올라온다.
+프론트엔드·백엔드·공동 편집 서버(collab)·PostgreSQL·Meilisearch·Redis·Celery 워커/비트가 함께 올라온다.
 
 | 주소 | 용도 |
 | --- | --- |
@@ -119,8 +123,19 @@ make up-build
 
 ### 4-3. 첫 계정
 
-최초 가입자가 관리자가 된다. 이후 계정은 관리자가 발급하며, 발급된 계정의 초기 비밀번호는 `0000`.
-공개 가입 창구가 없는 셀프호스팅 전제이므로, 서버를 띄운 뒤 첫 계정을 먼저 만들어 둘 것.
+관리자 계정은 서버의 `ADMIN_KEY` 를 아는 사람만 가입 화면에서 만들 수 있다. `ADMIN_KEY` 가 비어 있으면 관리자 가입을 받지 않는다.
+이후 계정은 관리자가 발급한다. 발급할 때 무작위 임시 비밀번호가 한 번 보이고, 그 계정은 처음 로그인하면 새 비밀번호를 정해야 앱을 쓸 수 있다.
+공개 가입 창구가 없는 셀프호스팅 전제이므로, 서버를 띄운 뒤 관리자 계정을 먼저 만들어 둘 것.
+
+### 4-4. 자동 백업
+
+Celery 워커에 `BACKUP_DIR` 을 주면 매일 03:00(KST)에 사용자마다 `BACKUP_DIR/<계정>-<번호>/note.md-<날짜>-<시각>.zip` 을 남긴다.
+설정의 '데이터 내보내기' 와 같은 zip 이다(노트·스냅샷·템플릿·이미지를 폴더 구조 그대로 마크다운으로). 사용자마다 최근 `BACKUP_KEEP` 개(기본 7)만 남긴다.
+
+- 기본은 꺼져 있다. `BACKUP_DIR` 이 비어 있으면 아무 일도 하지 않는다.
+- 폴더는 컨테이너 밖에 남도록 볼륨으로 잡고, 가능하면 서버와 다른 디스크나 원격 저장소로 한 번 더 옮겨 둔다.
+- zip 에는 **암호화한 노트도 풀려서** 들어간다. 이 폴더는 `KEK` 만큼 지켜야 한다.
+- 이 zip 은 읽고 옮기기 위한 사본이다. 서버를 그대로 되살리려면 PostgreSQL 덤프와 업로드 폴더도 따로 백업한다.
 
 ---
 
@@ -131,7 +146,7 @@ make up-build
 
 | 작업 | 명령 |
 | --- | --- |
-| 백엔드 테스트 | `make test` (in-memory SQLite 사용, 운영 DB 미접근) |
+| 백엔드 테스트 | `make test` (in-memory SQLite 사용, 운영 DB 미접근). main 에 올리거나 PR 을 열면 GitHub Actions 가 같은 테스트를 돌리고, 릴리스는 통과해야 이미지를 올림 |
 | 모듈 단위 테스트 | `make test TEST_ARGS="note"` (파일까지 지정하려면 `TEST_ARGS="note test_download"`) |
 | 데이터 백필 | `make backfill SCRIPT=backfill_init_preference` |
 | 마이그레이션 이력 | `make db-history` |
@@ -146,7 +161,7 @@ PDF 내보내기는 WeasyPrint 가 시스템 라이브러리(`libpango`)와 한�
 
 | 주제 | 선택과 이유 |
 | --- | --- |
-| 모듈 구조 | 도메인 7개(note·tag·template·workspace·preference·search·user)를 각각 `domain / application / infrastructure / interfaces` 4계층으로 분리. 반복되는 골격은 별도 라이브러리로 떼어내 관리 커맨드 한 줄로 새 모듈을 생성 |
+| 모듈 구조 | 도메인 11개(note·folder·series·tag·template·workspace·preference·search·user·api_token·collab)를 각각 `domain / application / infrastructure / interfaces` 4계층으로 분리. 반복되는 골격은 별도 라이브러리로 떼어내 관리 커맨드 한 줄로 새 모듈을 생성 |
 | 본문 암호화 | 환경변수 KEK 로 사용자별 데이터 키(DEK)를 AES-GCM 으로 감싸 DB 에 보관하고, 본문은 그 DEK 로 암호화. AAD 에 사용자 식별자를 묶어 다른 사용자의 암호문을 가져와 복호화하는 경로를 차단하고, 키 교체를 대비해 KEK 버전을 함께 기록. 서버가 복호화하므로 종단간 암호화는 아니며 DB 유출 대비가 목적. 그래서 본문이 평문으로 남을 다른 자리도 막는다: 암호화한 노트는 검색 색인에 제목·태그만 넣고, 목록 응답과 에이전트 API(/api/v1·MCP)에는 본문을 싣지 않는다(내보내기는 주인이 직접 받는 것이라 풀어서 준다) |
 | 토큰 | 액세스 토큰은 헤더(15분), 리프레시 토큰은 HttpOnly 쿠키(14일). 401 을 받으면 재발급 후 원래 요청을 재시도하되, 여러 요청이 동시에 401 을 받아도 진행 중인 재발급을 공유해 호출은 한 번만 발생. 토큰 없이 보낸 공개 노트 요청의 401 은 재발급 대상에서 제외 |
 | 식별자 | 외부로 나가는 리소스 ID 는 auto increment 값 대신 별도 해시 ID 사용 |
@@ -177,17 +192,18 @@ PDF 내보내기는 WeasyPrint 가 시스템 라이브러리(`libpango`)와 한�
 | 메서드 | 경로 | 설명 |
 | --- | --- | --- |
 | GET | `/users` | 사용자 목록 |
-| POST | `/users` | 계정 생성. 최초 1회는 관리자 계정, 이후는 관리자가 발급 |
+| POST | `/users` | 계정 생성. 관리자 가입은 `admin_key` 필요, 일반 계정은 관리자가 발급(응답에 임시 비밀번호) |
 | GET | `/users/{user_hash}` | 사용자 정보 |
 | GET | `/users/{user_hash}/workspaces` | 사용자가 속한 워크스페이스 |
 | PATCH | `/users/change-password` | 비밀번호 변경 |
+| POST | `/users/{user_hash}/reset-password` | 관리자가 새 임시 비밀번호 발급 |
 | DELETE | `/users/{user_hash}` | 계정 삭제 |
 
 ### 7-3. 노트
 
 | 메서드 | 경로 | 설명 |
 | --- | --- | --- |
-| GET | `/notes` | 목록. `keyword` `tag` `sort` `page` `is_deleted` 쿼리 지원 |
+| GET | `/notes` | 목록. `keyword` `tag` `sort` `page` `is_deleted` `folder` `include_sub` `unfiled` 쿼리 지원 |
 | POST | `/notes` | 빈 노트 생성 |
 | GET | `/notes/{note_hash}` | 상세 조회 |
 | POST | `/notes/{note_hash}` | 비밀번호가 걸린 노트 조회 |
@@ -197,6 +213,8 @@ PDF 내보내기는 WeasyPrint 가 시스템 라이브러리(`libpango`)와 한�
 | PATCH | `/notes/{note_hash}/restore` | 휴지통에서 복구 |
 | DELETE · PATCH | `/notes` · `/notes/permanently` · `/notes/restore` | 다중 선택 일괄 처리 |
 | POST | `/notes/download` | 내보내기. `file_format` 은 `md`(기본) 또는 `pdf`, 여러 개면 zip |
+| GET | `/notes/export` | 노트·스냅샷·템플릿·이미지 전체를 마크다운 zip 으로 |
+| GET | `/notes/{note_hash}/backlinks` | 이 노트를 가리키는 노트 |
 | POST | `/notes/files` | 파일 업로드로 노트 생성 |
 | POST | `/notes/{note_hash}/images` | 본문 이미지 업로드 |
 
@@ -208,7 +226,34 @@ PDF 내보내기는 WeasyPrint 가 시스템 라이브러리(`libpango`)와 한�
 | POST | `/notes/{note_hash}/snapshots` | 스냅샷 수동 생성 |
 | DELETE | `/notes/{note_hash}/snapshots/{snapshot_hash}` | 스냅샷 삭제 |
 
-### 7-5. 워크스페이스 · 분류 · 설정
+### 7-5. 폴더 · 시리즈
+
+| 메서드 | 경로 | 설명 |
+| --- | --- | --- |
+| GET · POST | `/folders` | 폴더 트리(미분류 수 포함) / 생성 |
+| PATCH · DELETE | `/folders/{folder_hash}` | 이름·위치 변경 / 삭제(안의 노트는 휴지통으로) |
+| PATCH | `/folders/notes` | 노트 여러 개를 한 폴더로 이동. `folder` 가 null 이면 폴더 밖으로 |
+| POST | `/folders/from-tags` | 태그를 폴더로 만들고 노트를 옮김 |
+| GET · POST | `/series` | 시리즈 목록 / 생성(`title`, `description`, 순서대로의 `note_hashes`) |
+| GET · PATCH · DELETE | `/series/{series_hash}` | 조회 / 제목·설명·노트 순서 변경 / 삭제(노트는 남음) |
+| GET | `/series/by-note/{note_hash}` | 노트가 든 시리즈와 이전·다음 노트 |
+| POST | `/series/{series_hash}/download` | `pdf`(기본)는 차례가 붙은 한 파일, `md` 는 `순서. 제목.md` zip |
+
+### 7-6. 에이전트 API
+
+앱의 로그인 토큰이 아니라 설정에서 발급한 개인 API 토큰(`mdn_…`)으로 인증한다. 토큰 주인의 노트만 다루고, 암호화한 노트의 본문은 읽을 수 없다.
+
+| 메서드 | 경로 | 설명 |
+| --- | --- | --- |
+| GET · POST | `/api-tokens` | 토큰 목록 / 발급(`write` 또는 `read_write`). 토큰 값은 발급할 때 한 번만 보임 |
+| DELETE | `/api-tokens/{token_id}` | 토큰 폐기 |
+| POST | `/api/v1/notes` | 마크다운으로 노트 생성 |
+| POST | `/api/v1/notes/{note_id}/append` | 노트 끝에 덧붙이기 |
+| GET | `/api/v1/notes` · `/api/v1/notes/{note_id}` | 찾기 / 마크다운으로 읽기(읽기 권한 토큰) |
+| GET | `/api/v1/folders` | 폴더 경로 목록 |
+| — | `/mcp` | 같은 일을 하는 MCP 서버(Streamable HTTP) |
+
+### 7-7. 워크스페이스 · 분류 · 설정
 
 | 메서드 | 경로 | 설명 |
 | --- | --- | --- |
@@ -220,7 +265,7 @@ PDF 내보내기는 WeasyPrint 가 시스템 라이브러리(`libpango`)와 한�
 | GET | `/tags` | 태그 목록 |
 | GET · POST | `/templates` | 템플릿 목록 / 생성 |
 | GET · DELETE | `/templates/{template_id}` | 템플릿 조회 / 삭제 |
-| GET · PATCH | `/preferences` | 스냅샷·휴지통 정책 조회 / 변경 |
+| GET · PATCH | `/preferences` | 스냅샷·휴지통 정책, 본문 너비 조회 / 변경 |
 
 ---
 
@@ -243,6 +288,11 @@ PDF 내보내기는 WeasyPrint 가 시스템 라이브러리(`libpango`)와 한�
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `15M` | X | 액세스 토큰 만료. `15M`, `14D` 형식 |
 | `REFRESH_TOKEN_EXPIRE_MINUTES` | `14D` | X | 리프레시 토큰 만료 |
 | `TRASH_RETENTION_DAYS` | `30` | X | 휴지통 기본 보관 일수 |
+| `ADMIN_KEY` | `""` | △ | 관리자 가입에 필요한 키. 비어 있으면 관리자 가입을 받지 않음 |
+| `COLLAB_SECRET` | `""` | △ | 백엔드와 공동 편집 서버가 서로를 확인하는 비밀. 비어 있으면 공동 편집 내부 API 를 막음 |
+| `COLLAB_INTERNAL_URL` | `http://collab:1234` | X | 백엔드가 공동 편집 서버를 부르는 주소 |
+| `BACKUP_DIR` | `""` | X | 자동 백업을 둘 폴더(Celery 워커에 지정). 비어 있으면 백업하지 않음 |
+| `BACKUP_KEEP` | `7` | X | 사용자마다 남겨 둘 백업 수 |
 | `DEBUG` | `true` | X | 디버그 모드 |
 
 ---
