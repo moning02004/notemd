@@ -22,4 +22,9 @@ celery_app.conf.beat_schedule = {
         "task": "app.modules.note.application.tasks.purge_expired_trash_notes",
         "schedule": crontab(minute=0, hour=0),
     },
+    # 휴지통 정리(자정)와 겹치지 않게, 쓰는 사람이 적은 새벽에 돈다. BACKUP_DIR 이 없으면 아무 일도 하지 않는다.
+    "backup-notes": {
+        "task": "app.modules.note.application.tasks.backup_notes",
+        "schedule": crontab(minute=0, hour=3),
+    },
 }
