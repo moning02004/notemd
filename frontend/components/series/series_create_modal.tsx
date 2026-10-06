@@ -71,6 +71,13 @@ function Content({picked, onClose, onSaved}: { picked: SeriesNote[], onClose: ()
                 )}
             </div>
 
+            {/* 공개된 시리즈에 덧붙이면 그 노트들도 시리즈 링크로 읽힌다. */}
+            {appending && target?.is_public && (
+                <p className="px-4 py-2 text-[12px] bg-chip-open-soft text-chip-open">
+                    링크로 공개한 시리즈입니다. 덧붙인 노트도 시리즈 링크로 읽을 수 있게 됩니다.
+                </p>
+            )}
+
             {ready ? (
                 <SeriesForm
                     // 대상을 바꾸면 제목·설명 칸을 그 시리즈 것으로 다시 채운다.

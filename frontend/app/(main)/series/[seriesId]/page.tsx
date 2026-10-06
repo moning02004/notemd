@@ -3,11 +3,11 @@
 import {useEffect, useState} from "react"
 import {useParams, useRouter} from "next/navigation"
 import toast from "react-hot-toast"
-import {FiArchive, FiChevronLeft, FiEdit2, FiFileText, FiLayers, FiMoreHorizontal, FiPlus, FiTrash2} from "react-icons/fi"
+import {FiArchive, FiChevronLeft, FiCopy, FiEdit2, FiGlobe, FiLock, FiFileText, FiLayers, FiMoreHorizontal, FiPlus, FiTrash2} from "react-icons/fi"
 import {useClickOutside} from "@/hooks/useClickOutside"
 import {useProgressRouter} from "@/hooks/useProgressRouter"
 import {useAuthStore} from "@/store/auth"
-import {useDeleteSeries, useSeriesDetail, useUpdateSeries} from "@/hooks/useSeries"
+import {useDeleteSeries, usePublishSeries, useSeriesDetail, useUpdateSeries} from "@/hooks/useSeries"
 import {DownloadFormat, downloadSeriesRequest, gotoNote} from "@/lib/note"
 import {LoadingPage} from "@/components/loading"
 import {Spinner} from "@/components/icons"
@@ -25,6 +25,7 @@ function SeriesDetailContent({seriesId}: { seriesId: string }) {
     const {data: series, isLoading, isError} = useSeriesDetail(seriesId)
     const deleteSeries = useDeleteSeries()
     const updateSeries = useUpdateSeries()
+    const publishSeries = usePublishSeries()
     const [picking, setPicking] = useState(false)
     const [menuOpen, setMenuOpen] = useState(false)
     const menuRef = useClickOutside<HTMLDivElement>(() => setMenuOpen(false), menuOpen)
@@ -74,6 +75,26 @@ function SeriesDetailContent({seriesId}: { seriesId: string }) {
         router.replace("/series")
     }
 
+    const shareUrl = () => `${window.location.origin}/p/${series.hash_id}`
+    const copyLink = async () => {
+        await navigator.clipboard.writeText(shareUrl())
+        toast("시리즈 링크가 복사되었습니다.")
+    }
+
+    /*
+     * 링크로 공개. 노트 각각의 공개 설정은 바꾸지 않는다. 시리즈 링크로 들어온 사람에게만, 공개인 동안만 열린다.
+     * 무엇이 읽히게 되는지 켜기 전에 한 번 알린다.
+     */
+    const togglePublic = async () => {
+        if (!series.is_public && !confirm(
+            `이 시리즈를 링크로 공개합니다.\n\n` +
+            `링크가 있는 누구나 안의 노트 ${series.notes.length}개를 읽을 수 있습니다(고칠 수는 없습니다).\n` +
+            `노트 각각의 공개 설정은 바뀌지 않고, 공개를 끄면 곧바로 막힙니다.`)) return
+        const saved = await publishSeries.mutateAsync({hashId: series.hash_id, isPublic: !series.is_public})
+        if (saved.is_public) await copyLink().catch(() => toast.success("시리즈를 공개했습니다."))
+        else toast.success("공개를 껐습니다. 링크로는 더 열리지 않습니다.")
+    }
+
     // 고른 노트를 맨 뒤에 붙인다. 자리는 '고치기' 에서 옮긴다.
     const addNote = async (note: { hashId: string, title: string }) => {
         setPicking(false)
@@ -81,6 +102,9 @@ function SeriesDetailContent({seriesId}: { seriesId: string }) {
             toast("이미 이 시리즈에 있는 노트입니다.")
             return
         }
+        // 공개된 시리즈에 넣으면 그 노트도 링크로 읽힌다.
+        if (series.is_public && !confirm(
+            `공개된 시리즈입니다. '${note.title}' 도 시리즈 링크로 읽을 수 있게 됩니다. 넣을까요?`)) return
         await updateSeries.mutateAsync({
             hashId: series.hash_id,
             title: series.title,
@@ -138,6 +162,22 @@ function SeriesDetailContent({seriesId}: { seriesId: string }) {
                                               exportAs("md")
                                           }}/>
                                 <div className="my-1 h-px bg-border"/>
+                                {series.is_public && (
+                                    <MenuItem icon={<FiCopy size={14}/>} label="링크 복사"
+                                              onClick={() => {
+                                                  setMenuOpen(false)
+                                                  void copyLink()
+                                              }}/>
+                                )}
+                                <MenuItem icon={series.is_public ? <FiLock size={14}/> : <FiGlobe size={14}/>}
+                                          label={series.is_public ? "공개 끄기" : "링크로 공개"}
+                                          hint={series.is_public ? "링크로는 더 열리지 않음" : "링크가 있는 누구나 읽기"}
+                                          disabled={publishSeries.isPending}
+                                          onClick={() => {
+                                              setMenuOpen(false)
+                                              void togglePublic()
+                                          }}/>
+                                <div className="my-1 h-px bg-border"/>
                                 <MenuItem icon={<FiEdit2 size={14}/>} label="고치기"
                                           onClick={() => {
                                               setMenuOpen(false)
@@ -159,6 +199,15 @@ function SeriesDetailContent({seriesId}: { seriesId: string }) {
                     <span className="tabular-nums">노트 {series.notes.length}개</span>
                     <span aria-hidden>·</span>
                     <span>{formatDate(series.updated_at)}에 고침</span>
+                    {series.is_public && (
+                        <button onClick={copyLink} title="링크가 있는 누구나 읽을 수 있어요. 누르면 링크를 복사해요."
+                                className="ml-1 inline-flex items-center gap-1 rounded-lg px-1.5 text-[10.5px] leading-[1.7]
+                                           font-medium bg-chip-open-soft text-chip-open cursor-pointer hover:opacity-80">
+                            <FiGlobe size={10}/> 공개 중
+                            {/* 누르면 링크가 복사된다는 것을 아이콘으로 보여준다. 색만으로는 버튼인 줄 모른다. */}
+                            <FiCopy size={10} className="ml-0.5 opacity-70"/>
+                        </button>
+                    )}
                 </p>
                 {series.description && (
                     <p className="mt-3 text-[14px] leading-relaxed text-muted whitespace-pre-line break-words">

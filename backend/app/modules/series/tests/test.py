@@ -157,7 +157,7 @@ def test_note_knows_its_neighbors_in_the_series(client, auth_headers):
     last = client.get(f"/series/by-note/{third}", headers=auth_headers).json()
 
     assert middle == [{
-        "hash_id": series["hash_id"], "title": "파이썬 입문", "position": 2, "total": 3,
+        "hash_id": series["hash_id"], "title": "파이썬 입문", "is_public": False, "position": 2, "total": 3,
         "prev": {"hash_id": first, "title": "변수"},
         "next": {"hash_id": third, "title": "클래스"},
     }]
@@ -298,3 +298,160 @@ def test_ten_or_more_notes_are_zero_padded_so_files_sort_in_order(client, auth_h
     with zipfile.ZipFile(io.BytesIO(response.content)) as zf:
         assert zf.namelist()[0] == "01. 1장.md"
         assert zf.namelist()[-1] == "10. 10장.md"
+
+
+# --- 링크로 공개 --------------------------------------------------------------
+
+def publish(client, headers, series_hash, is_public=True):
+    response = client.patch(f"/series/{series_hash}", headers=headers, json={"is_public": is_public})
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def test_series_is_private_until_published(client, auth_headers):
+    series = create_series(client, auth_headers, three_notes(client, auth_headers))
+
+    assert series["is_public"] is False
+    assert client.get(f"/series/public/{series['hash_id']}").status_code == 404
+
+
+def test_published_series_is_readable_without_login(client, auth_headers):
+    first, second, third = three_notes(client, auth_headers)
+    series = create_series(client, auth_headers, [third, first, second], description="처음 배우는 사람에게")
+
+    assert publish(client, auth_headers, series["hash_id"])["is_public"] is True
+    response = client.get(f"/series/public/{series['hash_id']}")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "hash_id": series["hash_id"], "title": "파이썬 입문", "description": "처음 배우는 사람에게",
+        "owner_name": "테스터",
+        "notes": [{"hash_id": third, "title": "클래스", "is_locked": False},
+                  {"hash_id": first, "title": "변수", "is_locked": False},
+                  {"hash_id": second, "title": "함수", "is_locked": False}],
+    }
+
+
+def test_notes_open_only_through_the_published_series(client, auth_headers):
+    """노트 자체는 비공개 그대로다. 시리즈를 통해서만 열리고, 노트의 주소만으로는 열리지 않는다."""
+    first, second, third = three_notes(client, auth_headers)
+    series = create_series(client, auth_headers, [first, second, third])
+    publish(client, auth_headers, series["hash_id"])
+
+    through_series = client.get(f"/notes/{first}", params={"series": series["hash_id"]})
+    directly = client.get(f"/notes/{first}")
+
+    assert through_series.status_code == 200
+    assert through_series.json()["content"] == "<p>본문 내용</p>"
+    assert through_series.json()["is_editable"] is False
+    assert through_series.json()["is_public"] is False
+    assert directly.status_code == 404
+
+
+def test_a_series_does_not_open_notes_that_are_not_in_it(client, auth_headers):
+    first, second, third = three_notes(client, auth_headers)
+    outsider = create_note(client, auth_headers, title="시리즈 밖 노트")
+    series = create_series(client, auth_headers, [first, second, third])
+    publish(client, auth_headers, series["hash_id"])
+
+    assert client.get(f"/notes/{outsider}", params={"series": series["hash_id"]}).status_code == 404
+    assert client.get(f"/notes/{first}", params={"series": "no-such-series"}).status_code == 404
+
+
+def test_unpublishing_closes_the_notes_at_once(client, auth_headers):
+    first, second, third = three_notes(client, auth_headers)
+    series = create_series(client, auth_headers, [first, second, third])
+    publish(client, auth_headers, series["hash_id"])
+
+    publish(client, auth_headers, series["hash_id"], is_public=False)
+
+    assert client.get(f"/series/public/{series['hash_id']}").status_code == 404
+    assert client.get(f"/notes/{first}", params={"series": series["hash_id"]}).status_code == 404
+
+
+def test_note_taken_out_of_a_published_series_is_closed(client, auth_headers):
+    first, second, third = three_notes(client, auth_headers)
+    series = create_series(client, auth_headers, [first, second, third])
+    publish(client, auth_headers, series["hash_id"])
+
+    client.patch(f"/series/{series['hash_id']}", headers=auth_headers, json={"note_hashes": [first, third]})
+
+    assert client.get(f"/notes/{second}", params={"series": series["hash_id"]}).status_code == 404
+    assert client.get(f"/notes/{first}", params={"series": series["hash_id"]}).status_code == 200
+
+
+def test_trashed_note_is_closed_even_in_a_published_series(client, auth_headers):
+    first, second, third = three_notes(client, auth_headers)
+    series = create_series(client, auth_headers, [first, second, third])
+    publish(client, auth_headers, series["hash_id"])
+
+    client.delete(f"/notes/{second}", headers=auth_headers)
+
+    assert client.get(f"/notes/{second}", params={"series": series["hash_id"]}).status_code == 404
+    assert [note["hash_id"] for note in client.get(f"/series/public/{series['hash_id']}").json()["notes"]] == [
+        first, third]
+
+
+def test_password_note_still_asks_for_its_password_through_a_series(client, auth_headers):
+    """비밀번호가 걸린 노트는 시리즈를 통해 들어와도 비밀번호를 묻는다. 차례에는 제목 없이 잠긴 줄로 보인다."""
+    locked = create_note(client, auth_headers, title="비밀 장", password="1234")
+    plain = create_note(client, auth_headers, title="열린 장")
+    series = create_series(client, auth_headers, [locked, plain])
+    publish(client, auth_headers, series["hash_id"])
+    through = {"series": series["hash_id"]}
+
+    listed = client.get(f"/series/public/{series['hash_id']}").json()["notes"]
+    without_password = client.get(f"/notes/{locked}", params=through)
+    with_password = client.post(f"/notes/{locked}", params=through, json={"password": "1234"})
+
+    assert listed[0] == {"hash_id": locked, "title": "", "is_locked": True}
+    assert without_password.status_code == 403
+    assert with_password.status_code == 200
+    assert with_password.json()["title"] == "비밀 장"
+
+
+def test_encrypted_note_is_readable_through_a_published_series(client, auth_headers):
+    secret = create_note(client, auth_headers, title="암호화한 장", content="<p>풀려서 보인다</p>", is_encrypted=True)
+    series = create_series(client, auth_headers, [secret])
+    publish(client, auth_headers, series["hash_id"])
+
+    response = client.get(f"/notes/{secret}", params={"series": series["hash_id"]})
+
+    assert response.status_code == 200
+    assert response.json()["content"] == "<p>풀려서 보인다</p>"
+
+
+def test_another_user_reads_but_cannot_edit_through_a_published_series(client, auth_headers):
+    first, second, third = three_notes(client, auth_headers)
+    series = create_series(client, auth_headers, [first, second, third])
+    publish(client, auth_headers, series["hash_id"])
+    member = member_headers(client)
+
+    read = client.get(f"/notes/{first}", headers=member, params={"series": series["hash_id"]})
+    edit = client.patch(f"/notes/{first}", headers=member, json={"content": "<p>남이 고침</p>"})
+
+    assert read.status_code == 200
+    assert read.json()["is_editable"] is False
+    assert edit.status_code == 404
+    assert client.get(f"/notes/{first}", headers=member).status_code == 404
+
+
+def test_only_the_owner_can_publish(client, auth_headers):
+    series = create_series(client, auth_headers, three_notes(client, auth_headers))
+    member = member_headers(client)
+
+    response = client.patch(f"/series/{series['hash_id']}", headers=member, json={"is_public": True})
+
+    assert response.status_code == 404
+    assert client.get(f"/series/public/{series['hash_id']}").status_code == 404
+
+
+def test_owner_sees_on_the_note_that_its_series_is_published(client, auth_headers):
+    first, second, third = three_notes(client, auth_headers)
+    series = create_series(client, auth_headers, [first, second, third])
+
+    before = client.get(f"/series/by-note/{first}", headers=auth_headers).json()[0]["is_public"]
+    publish(client, auth_headers, series["hash_id"])
+    after = client.get(f"/series/by-note/{first}", headers=auth_headers).json()[0]["is_public"]
+
+    assert (before, after) == (False, True)

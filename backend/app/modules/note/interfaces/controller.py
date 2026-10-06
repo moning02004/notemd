@@ -99,15 +99,18 @@ async def upload_files_and_create_note(files: list[UploadFile] = File(...),
 
 
 @router.get("/{note_hash}", response_model=NoteDetailSchema | None)
-def get_note(note_hash: str, user=Depends(get_user_or_none), service: NoteService = Depends(get_note_service)):
-    note = service.get_note_by_hash_id(user_id=user and user.pk, note_hash=note_hash)
+def get_note(note_hash: str, series: str | None = None, user=Depends(get_user_or_none),
+             service: NoteService = Depends(get_note_service)):
+    """series: 링크로 공개한 시리즈를 통해 들어왔을 때 그 시리즈의 id."""
+    note = service.get_note_by_hash_id(user_id=user and user.pk, note_hash=note_hash, series_hash=series)
     return note
 
 
 @router.post("/{note_hash}", response_model=NoteDetailSchema | None)
-def get_note(request: NoteRequest, note_hash: str, user=Depends(get_user_or_none),
+def get_note(request: NoteRequest, note_hash: str, series: str | None = None, user=Depends(get_user_or_none),
              service: NoteService = Depends(get_note_service)):
-    note = service.get_note_by_hash_id(user_id=user and user.pk, note_hash=note_hash, password=request.password)
+    note = service.get_note_by_hash_id(user_id=user and user.pk, note_hash=note_hash, password=request.password,
+                                       series_hash=series)
     return note
 
 

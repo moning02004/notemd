@@ -246,9 +246,16 @@ class NoteService(Service):
         self.indexing_note(note)
         return note
 
-    def get_note_by_hash_id(self, user_id: int | None, note_hash: str, password: str | None = None):
+    def get_note_by_hash_id(self, user_id: int | None, note_hash: str, password: str | None = None,
+                            series_hash: str | None = None):
+        """series_hash: 링크로 공개한 시리즈를 통해 들어왔을 때 그 시리즈. 노트가 그 시리즈에 들어 있으면
+        공개 노트처럼 읽을 수 있다(읽기만). 노트 자체의 공개 설정은 그대로라, 이 값 없이는 열리지 않는다."""
         note = self.repository.get_by_hash_id(hash_id=note_hash)
-        if note is None or (not note.is_public and user_id is None):
+        if note is None:
+            raise self.NotFoundNote
+        readable_by_link = note.is_public or bool(
+            series_hash and SeriesRepository(self.repository.db).public_contains(series_hash, note.pk))
+        if not readable_by_link and user_id is None:
             raise self.NotFoundNote
 
         note_password = self._decrypt_content(note.user, note.password) if note.password else None
@@ -268,7 +275,7 @@ class NoteService(Service):
                 user_id=user.pk)
 
             # 공개 노트는 로그인 여부와 무관하게 열람할 수 있어야 한다.
-            if not note.is_public and not user.is_superuser and not workspaces and note.user_id != user.pk:
+            if not readable_by_link and not user.is_superuser and not workspaces and note.user_id != user.pk:
                 raise self.NotFoundNote
 
             if note.password:

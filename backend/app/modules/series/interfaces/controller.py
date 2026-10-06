@@ -7,8 +7,9 @@ from starlette.responses import Response
 from app.core.dependancies import get_current_user
 from app.modules.series.application.service import SeriesService
 from app.modules.series.interfaces.dependencies import get_series_service, get_series_service_with_storage
-from app.modules.series.interfaces.schemas import (NoteSeriesSchema, SeriesCreateRequest, SeriesDetailSchema,
-                                                   SeriesDownloadRequest, SeriesSchema, SeriesUpdateRequest)
+from app.modules.series.interfaces.schemas import (NoteSeriesSchema, PublicSeriesSchema, SeriesCreateRequest,
+                                                   SeriesDetailSchema, SeriesDownloadRequest, SeriesSchema,
+                                                   SeriesUpdateRequest)
 
 router = APIRouter(prefix="/series", tags=["Series"])
 
@@ -29,6 +30,12 @@ def list_series_of_note(note_hash: str, user=Depends(get_current_user),
                         service: SeriesService = Depends(get_series_service)):
     """/{series_hash} 보다 먼저 두어야 'by-note' 가 시리즈 id 로 잡히지 않는다."""
     return service.series_of_note(user_id=user.pk, note_hash=note_hash)
+
+
+@router.get("/public/{series_hash}", response_model=PublicSeriesSchema)
+def get_public_series(series_hash: str, service: SeriesService = Depends(get_series_service)):
+    """링크로 공개한 시리즈. 로그인 없이 읽는다. 안의 노트는 /notes/{id}?series={이 시리즈} 로 읽는다."""
+    return service.get_public_series(series_hash=series_hash)
 
 
 @router.get("/{series_hash}", response_model=SeriesDetailSchema)
