@@ -129,9 +129,9 @@ function SeriesDetailContent({seriesId}: { seriesId: string }) {
                 {/* 제목 줄 높이와 버튼 높이를 같게(32px) 두고 위에서 맞춘다. 제목이 두 줄이 되어도 ⋯ 는 첫 줄 가운데에 온다. */}
                 <div className="flex items-start gap-2">
                     {/* 전역 h1 스타일의 밑줄을 뺀다. 제목 밑에만 그어지고 옆의 ⋯ 앞에서 끊겨 줄이 어긋나 보였다. */}
-                    <h1 className="m-0! border-b-0! flex-1 min-w-0 text-[22px] font-bold leading-8 text-foreground break-words">
+                    <div className="m-0! border-b-0! flex-1 min-w-0 text-[1.2rem] font-bold leading-8 text-foreground break-words">
                         {series.title}
-                    </h1>
+                    </div>
                     <div ref={menuRef} className="relative shrink-0">
                         <button onClick={() => setMenuOpen(open => !open)}
                                 aria-label="시리즈 메뉴" aria-haspopup="menu" aria-expanded={menuOpen}
