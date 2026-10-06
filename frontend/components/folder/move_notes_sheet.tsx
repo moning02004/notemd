@@ -43,7 +43,8 @@ export function MoveNotesSheet({open, onClose, noteHashes, currentFolder, onMove
     const targets: Target[] = useMemo(() => {
         const folders = flattenFolders(data?.folders ?? [])
             .map(folder => ({hashId: folder.hash_id, name: folder.name, path: folder.path}))
-        return [{hashId: null, name: "미분류", path: "미분류"}, ...folders]
+        // 폴더 밖(루트). 목록에서는 '개인 노트' 에 보인다.
+        return [{hashId: null, name: "개인 노트", path: "개인 노트"}, ...folders]
     }, [data])
 
     const matches = useMemo(() => {

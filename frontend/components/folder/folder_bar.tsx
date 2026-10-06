@@ -3,7 +3,7 @@
 import {useState} from "react"
 import {useSearchParams} from "next/navigation"
 import {useProgressRouter} from "@/hooks/useProgressRouter"
-import {FiChevronDown, FiChevronLeft, FiChevronRight, FiFolder, FiInbox} from "react-icons/fi"
+import {FiChevronDown, FiChevronLeft, FiChevronRight, FiFolder} from "react-icons/fi"
 import {LuBookText} from "react-icons/lu"
 import {useFolders} from "@/hooks/useFolders"
 import {useIncludeSub} from "@/hooks/useIncludeSub"
@@ -14,21 +14,20 @@ function useFolderNavigation() {
     const router = useProgressRouter()
     const searchParams = useSearchParams()
 
-    const goTo = (folderHash: string | null, unfiled = false) => {
+    const goTo = (folderHash: string | null) => {
         const next = new URLSearchParams(searchParams.toString())
         next.delete("folder")
+        // 예전 '미분류' 화면의 주소(?unfiled=1). 이제 개인 노트(루트)가 그 화면이라 남기지 않는다.
         next.delete("unfiled")
         // 하위 포함은 폴더 안에서만 뜻이 있다. 폴더를 옮겨 다닐 때는 들고 다닌다.
-        if (!folderHash || unfiled) next.delete("include_sub")
-        if (unfiled) next.set("unfiled", "1")
-        else if (folderHash) next.set("folder", folderHash)
+        if (!folderHash) next.delete("include_sub")
+        else next.set("folder", folderHash)
         router.push(next.toString() ? `/?${next.toString()}` : "/")
     }
 
     return {
         goTo,
         folderHash: searchParams.get("folder"),
-        unfiled: searchParams.get("unfiled") === "1",
     }
 }
 
@@ -40,7 +39,7 @@ function useFolderNavigation() {
  */
 export function FolderBar() {
     const {data} = useFolders()
-    const {goTo, folderHash, unfiled} = useFolderNavigation()
+    const {goTo, folderHash} = useFolderNavigation()
     const [includeSub, setIncludeSub] = useIncludeSub()
 
     const folders = data?.folders ?? []
@@ -48,7 +47,7 @@ export function FolderBar() {
 
     // 개인 노트(루트)에서도 줄을 남긴다. 폴더에 들어갈 때만 생기면 목록이 위아래로
     // 밀리고, 지금 어디를 보고 있는지도 그때만 알 수 있다.
-    const atRoot = !current && !unfiled
+    const atRoot = !current
 
     const trail: FolderNode[] = []
     let cursor = current
@@ -58,10 +57,8 @@ export function FolderBar() {
     }
 
     const parent = trail.length > 1 ? trail[trail.length - 2] : null
-    const unfiledCount = data?.unfiled_count ?? 0
-    // 루트는 폴더 안 노트까지 모두 보여주므로 합계도 그렇게 센다.
-    const rootCount = unfiledCount + folders.reduce((sum, folder) => sum + folder.total_count, 0)
-    const count = unfiled ? unfiledCount : current ? current.total_count : rootCount
+    // 루트는 폴더에 넣지 않은 노트만 보여주므로 그 수만 센다.
+    const count = current ? current.total_count : (data?.unfiled_count ?? 0)
 
     return (
         <div className="flex items-center gap-1 px-2 md:px-4 h-12 md:h-10 border-b border-border bg-surface">
@@ -90,15 +87,6 @@ export function FolderBar() {
                         개인 노트
                     </button>}
 
-                {unfiled && (
-                    <><Separator/>
-                        <span className="flex items-center gap-1 font-semibold text-foreground">
-                            <FiInbox size={12} className="shrink-0"/>
-                            미분류
-                        </span>
-                    </>
-                )}
-
                 {trail.map((node, index) => (
                     <span key={node.hash_id} className="flex items-center gap-1 min-w-0">
                         <Separator/>
@@ -117,11 +105,10 @@ export function FolderBar() {
             </nav>
 
             <span className="md:hidden flex items-center gap-1.5 flex-1 min-w-0 text-[13px] text-muted">
-                {unfiled ? <FiInbox size={13} className="shrink-0"/>
-                    : atRoot ? <LuBookText size={13} className="shrink-0"/>
-                        : <FiFolder size={13} className="shrink-0"/>}
+                {atRoot ? <LuBookText size={13} className="shrink-0"/>
+                    : <FiFolder size={13} className="shrink-0"/>}
                 <span className="truncate tracking-wider">
-                    {unfiled ? "/미분류" : atRoot ? "/개인 노트" : folderPathLabel(folders, current?.hash_id)}
+                    {atRoot ? "/개인 노트" : folderPathLabel(folders, current?.hash_id)}
                 </span>
             </span>
 
@@ -166,21 +153,19 @@ const COLLAPSE_THRESHOLD = 4
  */
 export function FolderDrilldown() {
     const {data} = useFolders()
-    const {goTo, folderHash, unfiled} = useFolderNavigation()
+    const {goTo, folderHash} = useFolderNavigation()
     const [includeSub] = useIncludeSub()
 
     const folders = data?.folders ?? []
     const current = findFolder(folders, folderHash)
     const children = current ? current.children : folders
-    const unfiledCount = data?.unfiled_count ?? 0
-    const showUnfiled = !current && unfiledCount > 0
-    const rowCount = children.length + (showUnfiled ? 1 : 0)
+    const rowCount = children.length
 
     const [open, setOpen] = useState(false)
     const collapsible = rowCount > COLLAPSE_THRESHOLD
 
     // 하위 포함을 켜면 그 노트들이 이미 아래 목록에 있으므로 폴더 줄을 또 보여주지 않는다.
-    if (unfiled || (includeSub && current)) return null
+    if (includeSub && current) return null
     if (rowCount === 0) return null
 
     if (collapsible && !open) {
@@ -209,15 +194,6 @@ export function FolderDrilldown() {
                 />
             ))}
 
-            {showUnfiled && (
-                <FolderRow
-                    icon={<FiInbox size={17} className="text-subtle shrink-0"/>}
-                    name="미분류"
-                    count={unfiledCount}
-                    onClick={() => goTo(null, true)}
-                />
-            )}
-
             {collapsible && (
                 <button
                     onClick={() => setOpen(false)}
@@ -232,12 +208,11 @@ export function FolderDrilldown() {
     )
 }
 
-function FolderRow({icon, name, count, onClick, actions}: {
-    icon?: React.ReactNode
+function FolderRow({name, count, onClick, actions}: {
     name: string
     count: number
     onClick: () => void
-    /** 줄 오른쪽 끝의 ⋯ 메뉴(이름 바꾸기·삭제). 미분류에는 없다. */
+    /** 줄 오른쪽 끝의 ⋯ 메뉴(이름 바꾸기·삭제). */
     actions?: React.ReactNode
 }) {
     // 메뉴 버튼을 들어가는 버튼 안에 넣을 수 없어(버튼 안의 버튼) 둘을 나란히 둔다.
@@ -248,7 +223,7 @@ function FolderRow({icon, name, count, onClick, actions}: {
                 className={`flex flex-1 min-w-0 items-center gap-3 pl-4 h-14 cursor-pointer active:bg-background text-left
                             ${actions ? "pr-1" : "pr-4"}`}
             >
-                {icon ?? <FiFolder size={17} className="text-accent shrink-0"/>}
+                <FiFolder size={17} className="text-accent shrink-0"/>
                 <span className="flex-1 min-w-0 truncate text-[14px] font-medium text-foreground">{name}</span>
                 <span className="text-[12px] text-subtle tabular-nums shrink-0">{count}</span>
                 <FiChevronRight size={15} className="text-subtle shrink-0"/>

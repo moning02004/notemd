@@ -54,7 +54,7 @@ export function Bottombar() {
                             await gotoNote({
                                 id: null,
                                 router,
-                                // 보고 있던 폴더에서 시작한다. 개인 노트 상위면 미분류.
+                                // 보고 있던 폴더에서 시작한다. 개인 노트 상위면 폴더 없이.
                                 folder: pathname === "/" ? searchParams.get("folder") : null,
                             })
                         } finally {

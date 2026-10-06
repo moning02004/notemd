@@ -3,7 +3,7 @@
 import {usePathname, useSearchParams} from "next/navigation"
 import {useProgressRouter} from "@/hooks/useProgressRouter"
 import {useEffect, useRef, useState} from "react"
-import {FiChevronRight, FiFolder, FiInbox, FiMoreHorizontal} from "react-icons/fi"
+import {FiChevronRight, FiFolder, FiMoreHorizontal} from "react-icons/fi"
 import {useCreateFolder, useDeleteFolder, useFolders, useMoveFolder, useMoveNotes, useRenameFolder} from "@/hooks/useFolders"
 import {useFolderUiStore} from "@/store/folderUi"
 import {findFolder, FolderNode} from "@/types/folder"
@@ -25,7 +25,6 @@ export function FolderTree({creating, onCreatingChange}: {
 
     const onNoteList = pathname === "/"
     const selected = onNoteList ? searchParams.get("folder") : null
-    const unfiledSelected = onNoteList && searchParams.get("unfiled") === "1"
 
     // 고른 폴더는 트리에서도 펼쳐 둔다. 목록에서 상위 폴더로 들어갔을 때
     // 사이드바는 접힌 채라 지금 어디에 있고 무엇이 들어 있는지 보이지 않았다.
@@ -81,17 +80,7 @@ export function FolderTree({creating, onCreatingChange}: {
                     />
                 </div>
             )}
-            <button
-                onClick={() => goTo({folder: null, unfiled: "1"})}
-                className={rowClass(unfiledSelected)}
-                style={{paddingLeft: 22}}
-            >
-                <span className="w-3.5 shrink-0"/>
-                <FiInbox size={13} className="shrink-0"/>
-                <span className="flex-1 truncate text-left">미분류</span>
-                <span className="text-[10px] tabular-nums shrink-0">{data?.unfiled_count ?? 0}</span>
-            </button>
-
+            {/* '미분류' 줄은 두지 않는다. 폴더에 넣지 않은 노트는 '개인 노트'(루트)에 보인다. */}
             {(data?.folders ?? []).map(folder => (
                 <FolderRow
                     key={folder.hash_id}
