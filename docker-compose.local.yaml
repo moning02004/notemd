@@ -132,6 +132,10 @@ services:
       MEILISEARCH_MASTER_KEY: 6547723aae4112da0be104ad3ec45cf2057cd6baa3c63dc4a0ad9dbb3e9ff45b
       MEILISEARCH_INDEX_UID: "notes"
       REDIS_URL: "redis://redis:6379/0"
+      # 자동 백업(매일 03:00). 주석을 풀면 backend/backups 아래에 사용자마다 전체 내보내기 zip 이 쌓인다.
+      # zip 에는 암호화한 노트도 풀려서 들어간다.
+      # BACKUP_DIR: "backups"
+      # BACKUP_KEEP: "7"
     depends_on:
       postgres:
         condition: service_healthy

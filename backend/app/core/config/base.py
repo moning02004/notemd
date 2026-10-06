@@ -38,6 +38,12 @@ class BaseAbstractSettings(AbstractSettings):
     # 휴지통에 들어간 노트를 영구 삭제하기까지의 보관 기간(일)
     TRASH_RETENTION_DAYS = int(os.environ.get("TRASH_RETENTION_DAYS", "30"))
 
+    # 자동 백업. BACKUP_DIR 이 비어 있으면 하지 않는다. 사용자마다 '전체 내보내기' zip 을 그 아래에 매일 남긴다.
+    # zip 에는 암호화한 노트도 풀려서 들어가므로(설정의 데이터 내보내기와 같다) 이 폴더는 KEK 만큼 지켜야 한다.
+    BACKUP_DIR: str = os.environ.get("BACKUP_DIR", "")
+    # 사용자마다 남겨 둘 백업 수. 넘치면 오래된 것부터 지운다.
+    BACKUP_KEEP: int = int(os.environ.get("BACKUP_KEEP", "7"))
+
     # storage
     STORAGE = {
         "type": "local",
