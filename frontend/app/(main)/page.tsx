@@ -60,6 +60,8 @@ function NoteListContent() {
     // 여러 폴더가 섞여 보이는 목록에서만 경로를 붙인다. 한 폴더만 보고 있을 때는 군더더기다.
     // 검색은 폴더를 가로지르고, 하위 포함은 하위 폴더 노트가 섞인다.
     const isSearching = Boolean(searchParams.get("keyword"))
+    // 폴더 안에 든 노트 수. 루트가 비었을 때 '노트는 폴더 안에 있다' 고 알릴지 정한다(노트가 아예 없으면 알리지 않는다).
+    const notesInFolders = (folderData?.folders ?? []).reduce((sum, folder) => sum + folder.total_count, 0)
     const showFolderPath = isSearching || includeSub
 
     // 검색과 루트(하위 포함)는 트리 전체가 섞이니 전체 경로를, 한 폴더 안(하위 포함)에서는 폴더 이름만.
@@ -134,7 +136,7 @@ function NoteListContent() {
             {isRoot && <UnfiledBanner count={notes.length}/>}
 
             {/* 노트가 모두 폴더에 들어가 있으면 루트가 비어 보인다. 없어진 게 아니라 폴더 안에 있다고 알려준다. */}
-            {isRoot && !includeSub && !isLoading && !isSearching && notes.length === 0 && (folderData?.folders.length ?? 0) > 0 && (
+            {isRoot && !includeSub && !isLoading && !isSearching && notes.length === 0 && notesInFolders > 0 && (
                 <p className="px-4 md:px-6 pt-10 text-center text-[13px] text-subtle">
                     폴더에 넣지 않은 노트가 없습니다. 노트는 폴더 안에 있어요. 위의 ‘하위 포함’ 을 켜면 모두 보입니다.
                 </p>
