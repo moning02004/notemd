@@ -1,5 +1,6 @@
 "use client"
 
+import {SelectBox} from "@/components/ui/select_box";
 import {useEffect, useState} from "react"
 import toast from "react-hot-toast"
 import {FiCode, FiTrash2} from "react-icons/fi"
@@ -132,11 +133,16 @@ export function SettingsApiTokens() {
                            if (e.key === "Enter" && !e.nativeEvent.isComposing) void create()
                        }}
                        className="flex-1 min-w-0 bg-background border border-border-strong rounded-lg px-3 py-2 text-[13px] text-foreground placeholder:text-subtle outline-none focus:border-accent"/>
-                <select value={scope} onChange={e => setScope(e.target.value as Scope)} aria-label="토큰 권한"
-                        className="bg-background border border-border-strong rounded-lg px-2 py-2 text-[13px] text-foreground outline-none focus:border-accent cursor-pointer">
-                    <option value="write">쓰기만</option>
-                    <option value="read_write">읽기·쓰기</option>
-                </select>
+                <SelectBox<Scope>
+                    ariaLabel="토큰 권한"
+                    value={scope}
+                    onChange={setScope}
+                    className="bg-background border border-border-strong rounded-lg px-2.5 py-2 text-[13px] text-foreground"
+                    options={[
+                        {value: "write", label: "쓰기만"},
+                        {value: "read_write", label: "읽기·쓰기"},
+                    ]}
+                />
                 <button onClick={() => void create()}
                         className="shrink-0 px-3 py-2 rounded-lg bg-accent text-white text-[13px] font-medium cursor-pointer hover:bg-accent-hover">
                     토큰 만들기

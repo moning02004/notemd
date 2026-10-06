@@ -6,6 +6,7 @@ import {Modal} from "@/components/ui/modal"
 import {SeriesForm} from "@/components/series/series_form"
 import {useCreateSeries, useSeriesDetail, useSeriesList, useUpdateSeries} from "@/hooks/useSeries"
 import {SeriesNote} from "@/types/series"
+import {SelectBox} from "@/components/ui/select_box"
 
 interface Props {
     /** 고른 순서대로의 노트. null 이면 닫혀 있다. */
@@ -52,18 +53,21 @@ function Content({picked, onClose, onSaved}: { picked: SeriesNote[], onClose: ()
                 <p className="text-[15px] font-semibold text-foreground">시리즈로 묶기</p>
                 <p className="mt-0.5 text-[12px] text-muted">읽을 순서대로 놓으세요. 노트는 그대로 있고 시리즈가 순서만 기억합니다.</p>
                 {(seriesList?.length ?? 0) > 0 && (
-                    <select
-                        id="series-target"
-                        value={targetHash}
-                        onChange={event => setTargetHash(event.target.value)}
-                        className="mt-3 w-full h-10 px-2 rounded-lg border border-border-strong bg-surface
-                                   text-[14px] text-foreground outline-none focus:border-accent"
-                    >
-                        <option value="">새 시리즈 만들기</option>
-                        {seriesList?.map(series => (
-                            <option key={series.hash_id} value={series.hash_id}>‘{series.title}’ 에 덧붙이기</option>
-                        ))}
-                    </select>
+                    <div className="mt-3">
+                        <SelectBox
+                            id="series-target"
+                            ariaLabel="새로 만들지, 있는 시리즈에 덧붙일지"
+                            value={targetHash}
+                            onChange={setTargetHash}
+                            className="w-full h-10 px-3 rounded-lg border border-border-strong bg-surface
+                                       text-[14px] text-foreground"
+                            options={[
+                                {value: "", label: "새 시리즈 만들기"},
+                                ...(seriesList ?? []).map(series => (
+                                    {value: series.hash_id, label: `‘${series.title}’ 에 덧붙이기`})),
+                            ]}
+                        />
+                    </div>
                 )}
             </div>
 

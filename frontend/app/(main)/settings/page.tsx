@@ -1,5 +1,6 @@
 "use client"
 
+import {SelectBox} from "@/components/ui/select_box";
 import {useEffect, useState} from "react";
 import {
     FiArchive,
@@ -257,15 +258,18 @@ export default function Page() {
                                 <p className="text-[12px] text-subtle">노트 변경 이력을 언제 저장할지 정해요.</p>
                             </div>
                         </div>
-                        <select
+                        <SelectBox
+                            ariaLabel="스냅샷 자동 생성"
+                            align="right"
                             value={preference.snapshotPolicy}
-                            onChange={(e) => updatePreference({snapshotPolicy: e.target.value})}
+                            onChange={value => updatePreference({snapshotPolicy: value})}
                             className={selectClassName}
-                        >
-                            <option value="ON_FIRST_EDIT">열고 처음 수정 시</option>
-                            <option value="ON_EVERY_EDIT">수정마다</option>
-                            <option value="MANUAL">수동</option>
-                        </select>
+                            options={[
+                                {value: "ON_FIRST_EDIT", label: "열고 처음 수정 시"},
+                                {value: "ON_EVERY_EDIT", label: "수정마다"},
+                                {value: "MANUAL", label: "수동"},
+                            ]}
+                        />
                     </div>
 
                     <div className="h-px bg-border my-1"/>
@@ -281,15 +285,18 @@ export default function Page() {
                                 <p className="text-[12px] text-subtle">삭제된 노트를 완전히 지우기까지 걸리는 기간이에요.</p>
                             </div>
                         </div>
-                        <select
+                        <SelectBox
+                            ariaLabel="휴지통 자동 삭제"
+                            align="right"
                             value={preference.trashPolicy}
-                            onChange={(e) => updatePreference({trashPolicy: e.target.value})}
+                            onChange={value => updatePreference({trashPolicy: value})}
                             className={selectClassName}
-                        >
-                            <option value="15_DAYS">15일 후</option>
-                            <option value="30_DAYS">30일 후</option>
-                            <option value="NEVER">삭제 안 함</option>
-                        </select>
+                            options={[
+                                {value: "15_DAYS", label: "15일 후"},
+                                {value: "30_DAYS", label: "30일 후"},
+                                {value: "NEVER", label: "삭제 안 함"},
+                            ]}
+                        />
                     </div>
                 </SettingsCard>
 
@@ -536,16 +543,20 @@ export default function Page() {
                     <div className="flex-1 overflow-y-auto p-3">
                         <div className="border-b border-border pb-3">
                             <div className="flex flex-col sm:flex-row gap-2">
-                                <select
-                                    value={selectedUserId}
-                                    onChange={(e) => setSelectedUserId(e.target.value)}
-                                    className="flex-1 min-w-0 bg-background border border-border-strong rounded-lg px-3 py-2 text-[13px] text-foreground cursor-pointer outline-none focus:border-accent transition-colors duration-150"
-                                >
-                                    <option value="">사용자 선택</option>
-                                    {users
-                                        .filter(u => !workspaceMembers.some(m => m.userHash === u.userHash))
-                                        .map(u => <option key={u.userHash} value={u.userHash}>{u.name}</option>)}
-                                </select>
+                                <div className="flex-1 min-w-0">
+                                    <SelectBox
+                                        ariaLabel="추가할 사용자"
+                                        value={selectedUserId}
+                                        onChange={setSelectedUserId}
+                                        className="w-full bg-background border border-border-strong rounded-lg px-3 py-2 text-[13px] text-foreground transition-colors duration-150"
+                                        options={[
+                                            {value: "", label: "사용자 선택"},
+                                            ...users
+                                                .filter(u => !workspaceMembers.some(m => m.userHash === u.userHash))
+                                                .map(u => ({value: u.userHash, label: u.name})),
+                                        ]}
+                                    />
+                                </div>
                                 <button onClick={addIntoWorkspace} className={primaryButtonClassName}>
                                     <FiPlus size={14}/>
                                     추가
