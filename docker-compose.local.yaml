@@ -10,8 +10,9 @@ services:
     container_name: notemd-frontend
     volumes:
       - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
+      # 이름 없는 볼륨으로 두면 컨테이너를 다시 만들 때마다 새로 생기고 옛것이 남아 디스크를 채운다.
+      - frontend_node_modules:/app/node_modules
+      - frontend_next:/app/.next
     environment:
       # 백엔드와 같은 이유 — macOS Docker Desktop 의 bind mount 는 inotify 이벤트를
       # 안정적으로 전달하지 않아 next dev 가 파일 변경을 놓친다. 폴링으로 강제한다.
@@ -226,6 +227,8 @@ volumes:
   postgres_data:
   meili_data:
   redis_data:
+  frontend_node_modules:
+  frontend_next:
 
 networks:
   notemd-network:
