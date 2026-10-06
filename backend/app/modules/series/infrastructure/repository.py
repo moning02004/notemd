@@ -22,6 +22,25 @@ class SeriesRepository(Repository):
                 .filter(self.DB_MODEL.user_id == user_id, self.DB_MODEL.hash_id == hash_id)
                 .first())
 
+    def get_public(self, hash_id: str) -> Series | None:
+        return (self.db.query(self.DB_MODEL)
+                .filter(self.DB_MODEL.hash_id == hash_id, self.DB_MODEL.is_public.is_(True))
+                .first())
+
+    def public_contains(self, series_hash: str, note_id: int) -> bool:
+        """공개된 시리즈 series_hash 에 이 노트가 들어 있는지(휴지통 노트는 아니다).
+
+        시리즈를 통해 노트를 읽게 해 줄지 정하는 단 하나의 물음이다.
+        """
+        return self.db.query(series_note.c.note_id).join(
+            self.DB_MODEL, self.DB_MODEL.pk == series_note.c.series_id
+        ).join(Note, Note.pk == series_note.c.note_id).filter(
+            self.DB_MODEL.hash_id == series_hash,
+            self.DB_MODEL.is_public.is_(True),
+            series_note.c.note_id == note_id,
+            Note.deleted_at.is_(None),
+        ).first() is not None
+
     def note_counts(self, series_ids: List[int]) -> dict:
         """시리즈별 노트 수. 휴지통에 있는 노트는 세지 않는다."""
         if not series_ids:
@@ -110,7 +129,10 @@ class SeriesRepository(Repository):
         self.db.refresh(series)
         return series
 
-    def update_series(self, series: Series, title=None, description=None, note_ids=None) -> Series:
+    def update_series(self, series: Series, title=None, description=None, note_ids=None,
+                      is_public=None) -> Series:
+        if is_public is not None:
+            series.is_public = is_public
         if title is not None:
             series.title = title
         if description is not None:

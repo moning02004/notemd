@@ -337,11 +337,12 @@ export function MarkdownEditor({
                                    setTableMenuOpen(false)
                                    setOpenedSetting(false)
                                }}/>
-                {token && <NoteSeriesNav noteId={paramsNoteId}
-                                         // 시리즈를 넘겨 가며 읽는 동안은 방문 기록을 쌓지 않는다. 그래야 제목 옆 뒤로가기가
-                                         // 방금 본 노트가 아니라 들어오기 전 화면(시리즈·노트 목록)으로 돌아간다.
-                                         onOpenNote={noteId => router.replace(`/s/${noteId}`)}
-                                         onOpenSeries={seriesId => router.push(`/series/${seriesId}`)}/>}
+                {/* 로그인하지 않아도 그린다. 링크로 공개한 시리즈를 통해 들어온 사람도 이전·다음으로 넘겨 읽는다. */}
+                <NoteSeriesNav noteId={paramsNoteId}
+                               // 시리즈를 넘겨 가며 읽는 동안은 방문 기록을 쌓지 않는다. 그래야 제목 옆 뒤로가기가
+                               // 방금 본 노트가 아니라 들어오기 전 화면(시리즈·노트 목록)으로 돌아간다.
+                               onOpenNote={href => router.replace(href)}
+                               onOpenSeries={href => router.push(href)}/>
                 {token && <NoteBacklinks noteId={paramsNoteId} onOpen={setPeekNoteId}/>}
             </div>
         </div>

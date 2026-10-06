@@ -41,6 +41,7 @@ class SeriesService(Service):
             "title": series.title,
             "description": series.description or "",
             "note_count": note_count,
+            "is_public": bool(series.is_public),
             "updated_at": series.updated_at,
         }
 
@@ -83,6 +84,7 @@ class SeriesService(Service):
             result.append({
                 "hash_id": series.hash_id,
                 "title": series.title,
+                "is_public": bool(series.is_public),
                 "position": index + 1,
                 "total": len(members),
                 "prev": neighbor(index - 1),
@@ -114,8 +116,28 @@ class SeriesService(Service):
             title=self._clean_title(request.title) if request.title is not None else None,
             description=request.description.strip() if request.description is not None else None,
             note_ids=note_ids,
+            is_public=request.is_public,
         )
         return self._detail(series)
+
+    def get_public_series(self, series_hash: str) -> dict:
+        """링크로 공개한 시리즈. 로그인 없이 읽는다. 공개가 아니면 있는지도 알리지 않는다.
+
+        비밀번호가 걸린 노트는 제목도 비밀번호 뒤에 있다(본문 링크·백링크와 같은 규칙). 잠긴 줄로만 보여준다.
+        """
+        series = self.repository.get_public(series_hash)
+        if series is None:
+            raise self.NotFoundSeries
+        notes = self.repository.notes_of(series)
+        return {
+            "hash_id": series.hash_id,
+            "title": series.title,
+            "description": series.description or "",
+            "owner_name": series.user.name,
+            "notes": [{"hash_id": note.hash_id,
+                       "title": "" if note.is_password else (note.title or ""),
+                       "is_locked": note.is_password} for note in notes],
+        }
 
     def delete_series(self, user_id: int, series_hash: str) -> None:
         self.repository.delete_series(self._get_owned(user_id, series_hash))

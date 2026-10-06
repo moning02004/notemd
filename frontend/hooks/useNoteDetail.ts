@@ -7,6 +7,7 @@ import {NoteDetailResponse} from "@/types/note";
 import {NoteWorkspace} from "@/types/workspace";
 import {NoteFolder} from "@/types/folder";
 import Cookies from "js-cookie";
+import {useSearchParams} from "next/navigation";
 
 /** 화면이 편집하는 노트 상태. 서버 응답(snake_case)과 분리해서 관리한다. */
 export type NoteDraft = {
@@ -51,6 +52,10 @@ const getStatusCode = (error: unknown): number =>
 
 export function useNoteDetail(noteId: string) {
     const {userHash} = useAuthStore.getState()
+    // 링크로 공개한 시리즈를 통해 들어왔으면(/s/노트?series=시리즈) 그 시리즈를 함께 보낸다.
+    // 노트 자체가 공개가 아니어도 그 시리즈에 들어 있으면 읽을 수 있다.
+    const series = useSearchParams().get("series")
+    const via = series ? `?series=${encodeURIComponent(series)}` : ""
 
     const [state, setState] = useState<NoteLoadState>({status: "loading"})
     const [draft, setDraft] = useState<NoteDraft | null>(null)
@@ -74,7 +79,7 @@ export function useNoteDetail(noteId: string) {
 
         const load = async () => {
             try {
-                const response = await apiRequest.get<NoteDetailResponse>(`/notes/${noteId}`)
+                const response = await apiRequest.get<NoteDetailResponse>(`/notes/${noteId}${via}`)
                 if (Cookies.get('is_first_edit') === undefined) {
                     Cookies.set('is_first_edit', '1')
                 }
@@ -93,7 +98,7 @@ export function useNoteDetail(noteId: string) {
         return () => {
             aborted = true
         }
-    }, [noteId, applyNote, version])
+    }, [noteId, via, applyNote, version])
 
     const reload = useCallback(() => setVersion(value => value + 1), [])
 
@@ -101,12 +106,12 @@ export function useNoteDetail(noteId: string) {
     const [unlockedWith, setUnlockedWith] = useState<{ noteId: string, password: string } | null>(null)
 
     const unlock = useCallback(async (password: string) => {
-        const response = await apiRequest.post<NoteDetailResponse>(`/notes/${noteId}`, {
+        const response = await apiRequest.post<NoteDetailResponse>(`/notes/${noteId}${via}`, {
             body: JSON.stringify({password}),
         })
         setUnlockedWith({noteId, password})
         applyNote(response)
-    }, [noteId, applyNote])
+    }, [noteId, via, applyNote])
 
     const password = unlockedWith?.noteId === noteId ? unlockedWith.password : null
 

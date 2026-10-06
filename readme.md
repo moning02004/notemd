@@ -55,7 +55,7 @@
 | 템플릿 | 자주 쓰는 형식을 저장해 새 노트의 시작점으로 사용 |
 | 가져오기 | PDF(텍스트 추출), 마크다운, 코드 파일 업로드 → 노트로 변환. 코드는 확장자에 맞는 코드블록으로 감쌈 |
 | 내보내기 | 목록에서 Markdown 다운로드(1개는 `.md`, 여러 개는 zip), 노트 설정에서 PDF 내보내기 |
-| 시리즈 | 이어서 읽을 노트를 골라 순서대로 묶음. 노트 아래에서 이전·다음 노트로 넘어가고, 시리즈 전체를 차례가 붙은 PDF 한 권(또는 `순서. 제목.md` zip)으로 내보냄 |
+| 시리즈 | 이어서 읽을 노트를 골라 순서대로 묶음. 노트 아래에서 이전·다음 노트로 넘어가고, 시리즈 전체를 차례가 붙은 PDF 한 권(또는 `순서. 제목.md` zip)으로 내보냄. 링크로 공개하면 로그인 없이 넘겨 읽을 수 있고, 안의 노트는 시리즈를 통해서만 열림(노트 각각의 공개 설정은 그대로) |
 | 공동 편집 | 같은 노트를 여럿이 동시에 편집(Yjs). 연결이 끊기면 이 기기의 사본에 고쳤다가 다시 붙으면 합침 |
 | 폴더 | 3단계까지의 폴더. 개인 노트(루트)에는 폴더에 넣지 않은 노트만 보임 |
 | 에이전트 API | 개인 API 토큰으로 노트를 만들고 덧붙이고 찾는 `/api/v1` 과 MCP 서버(`/mcp`) |
@@ -236,8 +236,9 @@ PDF 내보내기는 WeasyPrint 가 시스템 라이브러리(`libpango`)와 한�
 | PATCH | `/folders/notes` | 노트 여러 개를 한 폴더로 이동. `folder` 가 null 이면 폴더 밖으로 |
 | POST | `/folders/from-tags` | 태그를 폴더로 만들고 노트를 옮김 |
 | GET · POST | `/series` | 시리즈 목록 / 생성(`title`, `description`, 순서대로의 `note_hashes`) |
-| GET · PATCH · DELETE | `/series/{series_hash}` | 조회 / 제목·설명·노트 순서 변경 / 삭제(노트는 남음) |
+| GET · PATCH · DELETE | `/series/{series_hash}` | 조회 / 제목·설명·노트 순서·공개 여부(`is_public`) 변경 / 삭제(노트는 남음) |
 | GET | `/series/by-note/{note_hash}` | 노트가 든 시리즈와 이전·다음 노트 |
+| GET | `/series/public/{series_hash}` | 링크로 공개한 시리즈(로그인 없이). 안의 노트는 `/notes/{note_hash}?series={series_hash}` 로 읽음 |
 | POST | `/series/{series_hash}/download` | `pdf`(기본)는 차례가 붙은 한 파일, `md` 는 `순서. 제목.md` zip |
 
 ### 7-6. 에이전트 API

@@ -44,6 +44,17 @@ export function useUpdateSeries() {
     })
 }
 
+/** 링크로 공개하거나 공개를 끈다. */
+export function usePublishSeries() {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: ({hashId, isPublic}: { hashId: string, isPublic: boolean }) =>
+            apiRequest.patch<SeriesDetail>(`/series/${hashId}`, {body: JSON.stringify({is_public: isPublic})}),
+        onSuccess: () => queryClient.invalidateQueries({queryKey: SERIES_KEY}),
+        onError: (error: Error) => toast.error(error.message),
+    })
+}
+
 export function useDeleteSeries() {
     const queryClient = useQueryClient()
     return useMutation({
