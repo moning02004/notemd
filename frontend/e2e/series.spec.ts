@@ -22,7 +22,7 @@ test("노트를 골라 시리즈로 묶고, 다음 노트로 넘기다 뒤로 �
     await page.getByRole("button", {name: "시리즈 만들기"}).click()
 
     await expect(page).toHaveURL(/\/series\/[^/]+$/)
-    await expect(page.getByRole("heading", {name: series})).toBeVisible()
+    await expect(page.getByText(series, {exact: true})).toBeVisible()
     const items = page.locator("ol > li")
     await expect(items.nth(0)).toContainText(first)
     await expect(items.nth(1)).toContainText(second)
