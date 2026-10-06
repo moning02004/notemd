@@ -1,7 +1,7 @@
 "use client"
 
 import {useState} from "react"
-import {FiDownload, FiFolder, FiTrash2} from "react-icons/fi"
+import {FiDownload, FiFolder, FiLayers, FiTrash2} from "react-icons/fi"
 import {Spinner} from "@/components/icons"
 
 type Action = () => void | Promise<void>
@@ -10,6 +10,7 @@ interface SelectActionBarProps {
     selectedCount: number
     onMove?: Action
     onDownload?: Action
+    onSeries?: Action
     onRestore?: Action
     onDelete?: Action
 }
@@ -18,6 +19,7 @@ export default function SelectActionBar({
                                             selectedCount,
                                             onMove,
                                             onDownload,
+                                            onSeries,
                                             onRestore,
                                             onDelete,
                                         }: SelectActionBarProps) {
@@ -36,6 +38,12 @@ export default function SelectActionBar({
                 icon={<FiDownload size={16}/>}
                 label="다운로드"
                 onClick={onDownload}
+                disabled={disabled}
+            />}
+            {onSeries && <ActionBtn
+                icon={<FiLayers size={16}/>}
+                label="시리즈"
+                onClick={onSeries}
                 disabled={disabled}
             />}
             {onRestore && <ActionBtn

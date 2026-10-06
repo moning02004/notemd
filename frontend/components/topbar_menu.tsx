@@ -1,7 +1,7 @@
 "use client"
 
 import {BsThreeDotsVertical} from "react-icons/bs"
-import {FiCheckSquare, FiUpload} from "react-icons/fi"
+import {FiCheckSquare, FiLayers, FiUpload} from "react-icons/fi"
 import {MdOutlineSettings} from "react-icons/md"
 import {GrTrash} from "react-icons/gr";
 import {useClickOutside} from "@/hooks/useClickOutside"
@@ -11,6 +11,7 @@ interface TopbarMenuProps {
     onSelectMode: () => void
     gotoSettings: () => void
     gotoTrash: () => void
+    gotoSeries?: () => void
     open: boolean
     isAccountPage: boolean
     onToggle: () => void
@@ -22,6 +23,7 @@ export default function TopbarMenu({
                                        onSelectMode,
                                        gotoSettings,
                                        gotoTrash,
+                                       gotoSeries,
                                        open,
                                        isAccountPage,
                                        onToggle,
@@ -60,6 +62,21 @@ export default function TopbarMenu({
                         </button>
                     </div>}
 
+                    {gotoSeries &&
+                        <div>
+                            <button
+                                onClick={() => {
+                                    onClose();
+                                    gotoSeries();
+                                }}
+                                className="w-full flex cursor-pointer items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-background transition-colors duration-100"
+                            >
+                                <span className="text-muted shrink-0"><FiLayers size={15}/></span>
+                                <span className="text-foreground font-medium leading-snug">시리즈</span>
+                            </button>
+                        </div>
+                    }
+
                     {gotoTrash &&
                         <div>
                             <button
@@ -84,7 +101,10 @@ export default function TopbarMenu({
                                 className="w-full flex cursor-pointer items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-background transition-colors duration-100"
                             >
                                 <span className="text-muted shrink-0"><FiUpload size={15}/></span>
-                                <span className="text-foreground font-medium leading-snug">선택 모드</span>
+                                <span className="flex flex-col">
+                                    <span className="text-foreground font-medium leading-snug">선택 모드</span>
+                                    <span className="text-xs text-subtle leading-snug">여러 노트를 옮기거나 시리즈로 묶습니다.</span>
+                                </span>
                             </button>
                         </div>
                     }

@@ -13,6 +13,12 @@ interface NoteSelectStore {
     exitSelectMode: () => void
     toggleSelect: (id: string) => void
     selectAll: (ids: string[]) => void
+    /**
+     * 다른 화면에서 노트 목록으로 가면서 선택 모드를 켜 달라고 맡긴다(시리즈 화면의 '노트 고르러 가기').
+     * 화면이 바뀔 때 선택 모드를 끄는 쪽(Topbar)이 이 표시를 보고 대신 켠다.
+     */
+    pendingSelect: boolean
+    requestSelectMode: () => void
 
     setMenuOpen: (open: boolean) => void
     toggleMenu: () => void
@@ -22,8 +28,11 @@ export const useNoteSelectStore = create<NoteSelectStore>((set, get) => ({
     selectMode: false,
     selectedIds: new Set(),
     menuOpen: false,
+    pendingSelect: false,
 
-    enterSelectMode: () => set({selectMode: true, selectedIds: new Set(), menuOpen: false}),
+    enterSelectMode: () => set({selectMode: true, selectedIds: new Set(), menuOpen: false, pendingSelect: false}),
+
+    requestSelectMode: () => set({pendingSelect: true}),
 
     exitSelectMode: () => set({selectMode: false, selectedIds: new Set()}),
 

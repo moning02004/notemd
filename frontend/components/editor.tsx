@@ -20,6 +20,7 @@ import EditorLinkModal from "@/components/editor_link_modal";
 import {NotePickerModal} from "@/components/note/note_picker_modal";
 import {NotePeekPanel} from "@/components/note/note_peek_panel";
 import {NoteBacklinks} from "@/components/note/note_backlinks";
+import {NoteSeriesNav} from "@/components/note/note_series_nav";
 import type {CollabPeer, CollabSession} from "@/hooks/useCollabDocument";
 import {CollabPeers} from "@/components/note/collab_peers";
 import EditorLinkBubble from "@/components/editor_link_bubble";
@@ -323,6 +324,11 @@ export function MarkdownEditor({
                                    setTableMenuOpen(false)
                                    setOpenedSetting(false)
                                }}/>
+                {token && <NoteSeriesNav noteId={paramsNoteId}
+                                         // 시리즈를 넘겨 가며 읽는 동안은 방문 기록을 쌓지 않는다. 그래야 제목 옆 뒤로가기가
+                                         // 방금 본 노트가 아니라 들어오기 전 화면(시리즈·노트 목록)으로 돌아간다.
+                                         onOpenNote={noteId => router.replace(`/s/${noteId}`)}
+                                         onOpenSeries={seriesId => router.push(`/series/${seriesId}`)}/>}
                 {token && <NoteBacklinks noteId={paramsNoteId} onOpen={setPeekNoteId}/>}
             </div>
         </div>

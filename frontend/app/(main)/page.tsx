@@ -22,6 +22,8 @@ import {useMoveSheetStore} from "@/store/moveSheet";
 import {useIncludeSub} from "@/hooks/useIncludeSub";
 import {useFolders} from "@/hooks/useFolders";
 import {findFolder} from "@/types/folder";
+import {SeriesCreateModal} from "@/components/series/series_create_modal";
+import {SeriesNote} from "@/types/series";
 
 function NoteListContent() {
     const router = useProgressRouter()
@@ -83,6 +85,21 @@ function NoteListContent() {
     function handleMoveSelected() {
         openMoveSheet([...selectedIds], folderHash)
         exitSelectMode()
+    }
+
+    // 시리즈로 묶을 노트. 고른 순서(Set 에 들어간 순서)가 처음 순서가 된다.
+    const [seriesPicked, setSeriesPicked] = useState<SeriesNote[] | null>(null)
+
+    function handleSeriesSelected() {
+        const byHash = new Map(notes.map(note => [note.hash_id, note]))
+        const picked = [...selectedIds].flatMap(hashId => {
+            const note = byHash.get(hashId)
+            return note ? [{hash_id: note.hash_id, title: note.title ?? ""}] : []
+        })
+        // 시리즈에는 내 노트만 담긴다(서버도 걸러낸다).
+        const mine = picked.filter(note => byHash.get(note.hash_id)?.user_hash == userHash)
+        if (mine.length < picked.length) toast("내 노트만 시리즈에 담을 수 있어 나머지는 뺐습니다.")
+        if (mine.length > 0) setSeriesPicked(mine)
     }
 
     function handleDeleteSelected() {
@@ -158,9 +175,20 @@ function NoteListContent() {
                     selectedCount={selectedIds.size}
                     onMove={handleMoveSelected}
                     onDownload={handleDownloadSelected}
+                    onSeries={handleSeriesSelected}
                     onDelete={handleDeleteSelected}
                 />
             )}
+
+            <SeriesCreateModal
+                picked={seriesPicked}
+                onClose={() => setSeriesPicked(null)}
+                onSaved={seriesHash => {
+                    setSeriesPicked(null)
+                    exitSelectMode()
+                    router.push(`/series/${seriesHash}`)
+                }}
+            />
         </div>
     )
 }

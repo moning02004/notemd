@@ -31,6 +31,15 @@ export const downloadNoteRequest = async (noteHashes: Array<string>, format: Dow
     await saveResponseAsFile(res)
 }
 
+/** 시리즈를 그 제목의 zip 으로 받는다. 안의 파일은 '순서. 노트 제목' 이다. */
+export const downloadSeriesRequest = async (seriesHash: string, format: DownloadFormat = "pdf") => {
+    const res = await apiRequest.post<Response>(`/series/${seriesHash}/download`,
+        {body: JSON.stringify({file_format: format})},
+        {isDownloadFile: true}
+    );
+    await saveResponseAsFile(res)
+}
+
 /** 노트·스냅샷·템플릿을 담은 마크다운 zip 을 받는다(설정의 데이터 내보내기). */
 export const exportAllNotes = async () => {
     const res = await apiRequest.get<Response>("/notes/export", {}, {isDownloadFile: true})
