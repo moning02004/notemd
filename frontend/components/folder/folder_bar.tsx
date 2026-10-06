@@ -19,9 +19,9 @@ function useFolderNavigation() {
         next.delete("folder")
         // 예전 '미분류' 화면의 주소(?unfiled=1). 이제 개인 노트(루트)가 그 화면이라 남기지 않는다.
         next.delete("unfiled")
-        // 하위 포함은 폴더 안에서만 뜻이 있다. 폴더를 옮겨 다닐 때는 들고 다닌다.
-        if (!folderHash) next.delete("include_sub")
-        else next.set("folder", folderHash)
+        // 하위 포함은 폴더를 옮겨 다닐 때는 들고 다니고, 루트와 폴더 사이를 오갈 때는 뗀다(둘은 따로 기억한다).
+        if (!folderHash || !searchParams.get("folder")) next.delete("include_sub")
+        if (folderHash) next.set("folder", folderHash)
         router.push(next.toString() ? `/?${next.toString()}` : "/")
     }
 
@@ -57,8 +57,11 @@ export function FolderBar() {
     }
 
     const parent = trail.length > 1 ? trail[trail.length - 2] : null
-    // 루트는 폴더에 넣지 않은 노트만 보여주므로 그 수만 센다.
-    const count = current ? current.total_count : (data?.unfiled_count ?? 0)
+    // 루트는 폴더에 넣지 않은 노트만 보여주므로 그 수만 센다. 하위 포함이면 폴더 안 노트까지 모두.
+    const unfiledCount = data?.unfiled_count ?? 0
+    const count = current ? current.total_count
+        : includeSub ? unfiledCount + folders.reduce((sum, folder) => sum + folder.total_count, 0)
+            : unfiledCount
 
     return (
         <div className="flex items-center gap-1 px-2 md:px-4 h-12 md:h-10 border-b border-border bg-surface">
@@ -121,10 +124,12 @@ export function FolderBar() {
                 </span>
             )}
 
-            {current && (
+            {/* 루트에서도 둔다. 켜면 폴더 안 노트까지 모두 보인다. 폴더가 하나도 없으면 달라질 것이 없어 감춘다. */}
+            {(current || folders.length > 0) && (
                 <button
                     onClick={() => setIncludeSub(!includeSub)}
                     aria-pressed={includeSub}
+                    title={atRoot ? "폴더 안의 노트까지 모두 보기" : "하위 폴더의 노트까지 보기"}
                     className={`shrink-0 md:ml-auto h-8 md:h-7 px-2.5 rounded-full border text-[11.5px] font-medium
                                 cursor-pointer transition-colors duration-150
                         ${includeSub
@@ -165,7 +170,7 @@ export function FolderDrilldown() {
     const collapsible = rowCount > COLLAPSE_THRESHOLD
 
     // 하위 포함을 켜면 그 노트들이 이미 아래 목록에 있으므로 폴더 줄을 또 보여주지 않는다.
-    if (includeSub && current) return null
+    if (includeSub) return null
     if (rowCount === 0) return null
 
     if (collapsible && !open) {
