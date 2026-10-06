@@ -131,7 +131,7 @@ export function Topbar() {
                             <FiChevronLeft size={20}/>
                         </button>
                     )}
-                    <h3 className="m-0!">{topTitle}</h3>
+                    <h4 className="m-0! font-bold">{topTitle}</h4>
 
                     {pathname === "/workspace" && <WorkspaceSelector/>}
 
