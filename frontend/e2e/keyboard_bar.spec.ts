@@ -70,3 +70,25 @@ test("키보드 위 막대의 화살표로 커서를 옮긴다", async ({page}) 
     await page.keyboard.type("^")
     await expect(body.locator("p").nth(1)).toContainText("^")
 })
+
+test("키보드가 올라와 보이는 화면이 줄면 막대가 키보드 바로 위로 올라간다", async ({page}) => {
+    // 실제 키보드는 띄울 수 없어 iOS Safari 의 visualViewport·innerHeight 를 흉내 낸다.
+    await page.addInitScript(() => {
+        // 키보드가 오르기 전에는 화면 전체(844). init 스크립트가 도는 때는 아직 문서가 없어 높이를 미리 잴 수 없다.
+        const fake = Object.assign(new EventTarget(), {offsetTop: 0, height: 844, width: 390})
+        Object.defineProperty(window, "visualViewport", {get: () => fake})
+        // iOS Safari 는 키보드가 오르면 innerHeight 도 보이는 화면만큼 준다.
+        Object.defineProperty(window, "innerHeight", {get: () => fake.height})
+        ;(window as unknown as { openKeyboard: (height: number) => void }).openKeyboard = height => {
+            fake.height = height
+            fake.dispatchEvent(new Event("resize"))
+        }
+    })
+    const body = await openNote(page, "<p>본문</p>")
+    await body.getByText("본문").tap()
+    const bar = page.getByRole("toolbar", {name: "키보드 도구"})
+    await expect(bar).toBeVisible()
+
+    await page.evaluate(() => (window as unknown as { openKeyboard: (height: number) => void }).openKeyboard(500))
+    await expect.poll(async () => Math.round((await bar.boundingBox())!.y + (await bar.boundingBox())!.height)).toBe(500)
+})
