@@ -9,6 +9,7 @@ import {EditorState, NodeSelection, TextSelection} from "@tiptap/pm/state";
 import {EditorView} from "@tiptap/pm/view";
 import {useEditorInstance} from "@/lib/create_editor";
 import MenuBar from "@/components/editor_menubar";
+import EditorKeyboardBar from "@/components/editor_keyboard_bar";
 import {Complete, LoadingSpinner, Spinner, Warning} from "@/components/icons";
 import {apiRequest} from "@/lib/api";
 import {CreateNoteImageResponse} from "@/types/note";
@@ -236,6 +237,7 @@ export function MarkdownEditor({
                     <div className="shrink-0 my-auto text-right">{status}</div>
                 </div>
             }
+            {!isReadonly && <EditorKeyboardBar editor={editor}/>}
             {
                 /* 버블 메뉴의 z-index 가 모달보다 높아서, 링크 모달이 떠 있는 동안에는 감춘다 */
                 !isReadonly && !linkModalOpen && scroller &&
