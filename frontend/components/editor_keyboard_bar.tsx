@@ -25,13 +25,20 @@ import {indentCode, outdentCode} from "@/lib/code_block";
  * 단추를 눌러도 본문에서 포커스가 빠지지 않게 pointerdown 을 막는다. 빠지면 키보드가 내려가 버린다.
  */
 
-/** 화면 아래에서 키보드가 차지한 높이. 키보드가 layout viewport 를 줄이지 않는 브라우저(iOS 등)에서도 맞다. */
-function useKeyboardInset(): number {
-    const [inset, setInset] = useState(0);
+/**
+ * 키보드 바로 위, 곧 지금 보이는 화면(visual viewport)의 아랫변. layout viewport 위쪽에서 잰 값이다.
+ *
+ * position: fixed 는 layout viewport 에 붙는다. 키보드가 올라오면 보이는 화면만 줄고(iOS, 요즘 안드로이드 Chrome)
+ * layout viewport 는 그대로라 bottom: 0 이면 키보드 뒤에 숨는다. 그래서 보이는 화면의 아랫변에 맞춰 놓는다.
+ * window.innerHeight 로 키보드 높이를 셈하면 안 된다. iOS Safari 는 키보드가 오르면 innerHeight 도 같이 줄어
+ * 키보드 높이가 0 으로 나온다(그래서 운영 아이폰에서 막대가 키보드 뒤에 숨어 보이지 않았다).
+ */
+function useVisibleBottom(): number | null {
+    const [bottom, setBottom] = useState<number | null>(null);
     useEffect(() => {
         const viewport = window.visualViewport;
         if (!viewport) return;
-        const update = () => setInset(Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop));
+        const update = () => setBottom(viewport.offsetTop + viewport.height);
         update();
         viewport.addEventListener("resize", update);
         viewport.addEventListener("scroll", update);
@@ -40,15 +47,19 @@ function useKeyboardInset(): number {
             viewport.removeEventListener("scroll", update);
         };
     }, []);
-    return inset;
+    return bottom;
 }
 
-/** 손가락으로 쓰는 기기인지(마우스·트랙패드가 붙은 태블릿은 빼고). */
+/**
+ * 손가락으로 쓰는 기기인지. 화면 키보드가 뜨는 기기면 된다.
+ * "(hover: none) and (pointer: coarse)" 만 보면 S펜이 있는 갤럭시처럼 hover 가 된다고 알리는 휴대폰이 빠진다.
+ * 손가락 입력이 하나라도 있으면(any-pointer: coarse) 보여 준다.
+ */
 function useTouchOnly(): boolean {
     const [touch, setTouch] = useState(false);
     useEffect(() => {
-        const query = window.matchMedia("(hover: none) and (pointer: coarse)");
-        const update = () => setTouch(query.matches);
+        const query = window.matchMedia("(any-pointer: coarse)");
+        const update = () => setTouch(query.matches || navigator.maxTouchPoints > 0 && window.innerWidth < 1024);
         update();
         query.addEventListener("change", update);
         return () => query.removeEventListener("change", update);
@@ -115,7 +126,7 @@ function moveVertically(editor: Editor, dir: -1 | 1) {
 }
 
 export default function EditorKeyboardBar({editor}: { editor: Editor }) {
-    const inset = useKeyboardInset();
+    const visibleBottom = useVisibleBottom();
     const touch = useTouchOnly();
 
     // shouldRerenderOnTransaction 이 꺼져 있어 필요한 값만 구독한다.
@@ -153,7 +164,8 @@ export default function EditorKeyboardBar({editor}: { editor: Editor }) {
 
     return (
         <div role="toolbar" aria-label="키보드 도구"
-             style={{bottom: inset}}
+             // 보이는 화면의 아랫변에 막대의 아랫변을 맞춘다. visualViewport 가 없는 브라우저는 화면 바닥에.
+             style={visibleBottom === null ? {bottom: 0} : {top: visibleBottom, transform: "translateY(-100%)"}}
              className="fixed left-0 right-0 z-40 flex items-center gap-0.5 px-1 h-11 overflow-x-auto scrollbar-none
                         bg-surface border-t border-border">
             {key("내어쓰기", <IndentDecrease size={20}/>, () => outdent(editor), canOutdent)}
