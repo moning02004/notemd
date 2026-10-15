@@ -11,6 +11,7 @@ import {useImageViewerStore} from "@/store/imageViewer";
 import {DetailsContent, DetailsSummary} from '@tiptap/extension-details'
 import {detailsNestingGuard} from "@/lib/details_nesting";
 import {arrowUpFromSummary, emptyDetailsBody, enterEmptyDetailsBody} from "@/lib/details_body";
+import {backspaceIndent, enterInCode, indentCode, outdentCode, selectCodeBlock} from "@/lib/code_block";
 
 import Document from '@tiptap/extension-document'
 import javascript from 'highlight.js/lib/languages/javascript'
@@ -66,7 +67,10 @@ import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCaret from "@tiptap/extension-collaboration-caret";
 import type {CollabSession} from "@/hooks/useCollabDocument";
 
-// 버튼 컴포넌트
+/*
+ * 코드 블록의 화면. 위 막대(언어 이름 + 복사)를 잡고 끌면 블록째 옮긴다(data-drag-handle).
+ * 막대는 contentEditable=false 라 글처럼 골라지지 않는다.
+ */
 const CodeBlockComponent = ({node}) => {
     const [copied, setCopied] = useState(false)
     const language = node.attrs.language || 'text'
@@ -81,10 +85,14 @@ const CodeBlockComponent = ({node}) => {
 
     return (
         <NodeViewWrapper>
-            <pre data-language={language}>
-                <button className="copy-code-btn" onClick={handleCopy} contentEditable={false}>
-                    {copied ? 'Copied!' : 'Copy'}
-                </button>
+            <pre>
+                <div className="code-block-header" contentEditable={false} draggable data-drag-handle
+                     title="끌어서 옮기기">
+                    <span className="code-block-language">{language}</span>
+                    <button className="copy-code-btn" onClick={handleCopy} draggable={false}>
+                        {copied ? 'Copied!' : 'Copy'}
+                    </button>
+                </div>
                 <NodeViewContent className={`language-${language}`}/>
             </pre>
         </NodeViewWrapper>
@@ -193,30 +201,21 @@ export const CustomDetails = DetailsBase.extend({
 })
 
 export const CustomCodeBlock = CodeBlockLowlight.extend({
+    // 위 막대를 잡고 끌어 옮긴다. draggable 은 스키마 모양(schemaSignature)에 들지 않아 에디터에만 둔다.
+    draggable: true,
+
     addKeyboardShortcuts() {
+        const parent = this.parent?.() ?? {}
         return {
-            Tab: ({editor}) => {
-                if (editor.isActive('codeBlock')) {
-                    editor.commands.insertContent('    ')
-                    return true
-                }
-                return false
-            },
-
-            'Shift-Tab': ({editor}) => {
-                if (editor.isActive('codeBlock')) {
-                    const {state, dispatch} = editor.view
-                    const {from} = state.selection
-
-                    const text = state.doc.textBetween(from - 4, from)
-                    if (text === '    ') {
-                        dispatch(state.tr.delete(from - 4, from))
-                    }
-
-                    return true
-                }
-                return false
-            },
+            ...parent,
+            // 코드 에디터처럼 움직이는 키들. lib/code_block.ts
+            Tab: ({editor}) => indentCode(editor),
+            'Shift-Tab': ({editor}) => outdentCode(editor),
+            Enter: props => enterInCode(props.editor) || (parent.Enter?.(props) ?? false),
+            'Shift-Enter': ({editor}) => enterInCode(editor)
+                || (editor.isActive(this.name) && editor.commands.newlineInCode()),
+            Backspace: props => backspaceIndent(props.editor) || (parent.Backspace?.(props) ?? false),
+            'Mod-a': ({editor}) => selectCodeBlock(editor),
 
             ArrowUp: ({editor}) => {
                 const {selection} = editor.state
@@ -253,6 +252,21 @@ export const CustomCodeBlock = CodeBlockLowlight.extend({
 
     addNodeView() {
         return ReactNodeViewRenderer(CodeBlockComponent)
+    },
+})
+
+/*
+ * 하드 브레이크(Shift-Enter)는 코드 블록 안에서 줄을 바꾸지 않고 블록을 빠져나간다(exitCode).
+ * 코드 블록 안에서는 비켜서 CustomCodeBlock 의 Shift-Enter(들여쓰기를 잇는 줄바꿈)가 받게 한다.
+ * 블록을 빠져나가는 Mod-Enter 는 그대로 둔다.
+ */
+const CustomHardBreak = HardBreak.extend({
+    addKeyboardShortcuts() {
+        const parent = this.parent?.() ?? {}
+        return {
+            ...parent,
+            'Shift-Enter': props => !props.editor.isActive('codeBlock') && (parent['Shift-Enter']?.(props) ?? false),
+        }
     },
 })
 
@@ -448,6 +462,14 @@ export function useEditorInstance({initialContent, setContent, uploadFile, onPic
         editable,
         immediatelyRender: false,
         shouldRerenderOnTransaction: false,
+        editorProps: {
+            /*
+             * Enter 로 내려가며 쓸 때 커서가 화면 바닥에 붙지 않게, 바닥에서 이만큼 남으면 미리 스크롤해
+             * 이만큼 띄워 둔다(기본값은 5px 이라 커서가 맨 아래 줄에 걸려 있었다).
+             */
+            scrollThreshold: {top: 40, right: 0, bottom: 120, left: 0},
+            scrollMargin: {top: 40, right: 0, bottom: 120, left: 0},
+        },
         extensions: [
             CustomImage.configure({
                 ...IMAGE_OPTIONS,
@@ -495,7 +517,7 @@ export function useEditorInstance({initialContent, setContent, uploadFile, onPic
             BulletList,
             OrderedList,
             ListItem,
-            HardBreak,
+            CustomHardBreak,
             ...(collab ? [] : [History]),
             HorizontalRule,
             Bold,
