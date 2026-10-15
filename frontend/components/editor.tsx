@@ -332,7 +332,7 @@ export function MarkdownEditor({
             {/* 짧은 노트에서는 본문이 남는 높이를 채우고 백링크는 맨 아래에, 긴 노트에서는 본문 뒤에 온다. */}
             <div className={`flex-20 flex flex-col bg-surface ${widthClass} mx-auto`}>
                 <EditorContent editor={editor}
-                               className="flex-1"
+                               className="note-body flex-1"
                                onClick={() => {
                                    setTableMenuOpen(false)
                                    setOpenedSetting(false)

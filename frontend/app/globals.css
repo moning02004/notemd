@@ -330,26 +330,37 @@ body pre * {
 
 }
 
-.ProseMirror pre::before {
+/* 코드 블록 위 막대(언어 이름 + 복사). 잡고 끌어 블록을 옮긴다(lib/create_editor.tsx 의 CodeBlockComponent). */
+.ProseMirror .code-block-header {
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
-    padding: 0.75rem 1rem;
-    font-size: 1rem;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+    height: 3rem;
     background-color: rgba(255, 255, 255, 0.08);
     border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-    color: var(--surface);
-    text-transform: uppercase;
-    font-weight: bold;
     border-top-left-radius: 0.5rem;
     border-top-right-radius: 0.5rem;
+    user-select: none;
 }
 
-.ProseMirror pre::before {
-    content: attr(data-language);
+.ProseMirror[contenteditable="true"] .code-block-header {
+    cursor: grab;
 }
 
+.ProseMirror[contenteditable="true"] .code-block-header:active {
+    cursor: grabbing;
+}
+
+.ProseMirror .code-block-language {
+    font-size: 1rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
 
 .ProseMirror p code {
     background-color: var(--accent-soft);
@@ -372,6 +383,14 @@ body pre * {
        한 단어가 줄보다 긴 경우(긴 주소 등)에만 끊어 넘치지 않게 한다. */
     word-break: keep-all;
     overflow-wrap: anywhere;
+}
+
+/*
+ * 노트 화면의 본문은 마지막 줄 아래에도 빈 자리를 둔다. 끝에서 Enter 로 내려가며 쓸 때 더 스크롤할 곳이 없어
+ * 커서가 화면 바닥에 붙어 있었다. 에디터의 scrollMargin(lib/create_editor.tsx)과 함께 커서 아래를 띄운다.
+ */
+.note-body .ProseMirror[contenteditable="true"] {
+    padding-bottom: 8rem;
 }
 
 /*
@@ -891,10 +910,7 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
 }
 
 .ProseMirror .copy-code-btn {
-    position: absolute;
-    top: 0;
-    right: 1rem;
-    padding: 0.75rem 0.5rem;
+    padding: 0.5rem;
     cursor: pointer;
     font-weight: 700;
     text-transform: uppercase;
