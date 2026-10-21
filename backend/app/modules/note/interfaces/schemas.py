@@ -21,6 +21,45 @@ class QueryParams:
     unfiled: int = Query(0)
 
 
+# 목록 카드의 미리보기 길이. 카드는 4줄(검색 창은 2줄)까지만 보여 준다. 넉넉히 둔다.
+PREVIEW_LENGTH = 400
+# 끝나는 자리에 공백을 두는 블록. 프론트의 previewText(lib/note.ts)와 같게 둬야 글이 붙지 않는다.
+PREVIEW_BLOCKS = {"p", "h1", "h2", "h3", "h4", "h5", "h6", "li", "div", "blockquote", "pre", "td", "th", "summary"}
+_SPACES = re.compile(r"\s+")
+# 태그 하나. 속성 값은 따옴표째 건너뛰어 그 안의 '>' 에서 끊기지 않는다(콜렉션은 data 속성에 JSON 을 담는다).
+_TAG = re.compile(r"<!--.*?-->|<(/?)([a-zA-Z][a-zA-Z0-9]*)(?:[^>\"']|\"[^\"]*\"|'[^']*')*>", re.S)
+
+
+def _tag_space(match: re.Match) -> str:
+    name = (match.group(2) or "").lower()
+    return " " if name == "br" or (match.group(1) and name in PREVIEW_BLOCKS) else ""
+
+
+def preview_text(html: str | None, limit: int = PREVIEW_LENGTH) -> str:
+    """목록 카드에 보일 앞부분 글.
+
+    목록은 예전에 본문 HTML 을 통째로 내려보냈지만, 카드는 몇 줄만 보여 준다(노트 20개면 응답이 100KB 를 넘었다).
+    태그를 걷어 낸 앞부분만 보낸다. 엔티티(&lt; 등)는 그대로 둬 결과도 안전한 HTML 글이고,
+    프론트의 previewText 는 이 글에도 그대로 돈다.
+
+    본문 앞 2KB 만 보고, 글이 모자라면(큰 속성이 앞을 차지했을 때) 네 배씩 늘려 다시 본다.
+    잘라 낸 자리에 걸친 태그는 끝나지 않았으므로 그 앞에서 끊는다.
+    """
+    if not html:
+        return ""
+    size = 2048
+    while True:
+        text = _TAG.sub(_tag_space, html[:size])
+        if size < len(html):
+            cut = text.find("<")
+            if cut != -1:
+                text = text[:cut]
+        text = _SPACES.sub(" ", text).strip()
+        if len(text) >= limit or size >= len(html):
+            return text[:limit]
+        size *= 4
+
+
 class NoteListSchema(BaseModel):
     title: str
     content: str
@@ -61,16 +100,7 @@ class NoteListSchema(BaseModel):
 
     @field_serializer('content')
     def serialize_content(self, value: str, _info):
-        value = re.sub(r'\n{2,}', '\n', value)
-        values = value.split("\n")
-        for index in range(len(values)):
-            if values[index] == "<br />":
-                values[index] = "\n"
-            elif "<br />" in values[index]:
-                values[index] = values[index].replace("<br />", "--")
-
-        value = re.sub(r'\n{3,}', '\n\n', "\n".join(values))
-        return value.strip()
+        return preview_text(value)
 
     @field_serializer('deleted_at')
     def serialize_deleted_at(self, value: datetime, _info):

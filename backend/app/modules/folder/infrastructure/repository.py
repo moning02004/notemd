@@ -47,8 +47,11 @@ class FolderRepository(Repository):
         self.db.commit()
 
     def note_count_by_folder(self, user_id: int) -> dict:
-        """폴더별 직속 노트 수. 휴지통에 있는 노트는 세지 않는다."""
-        rows = (self.db.query(Note.folder_id, func.count(Note.pk))
+        """폴더별 직속 노트 수. 휴지통에 있는 노트는 세지 않는다.
+
+        count(*) 로 센다. count(note.id) 는 id 를 읽으러 표까지 가야 해 인덱스만으로 끝나지 않는다.
+        """
+        rows = (self.db.query(Note.folder_id, func.count())
                 .filter(Note.user_id == user_id,
                         Note.deleted_at.is_(None),
                         Note.folder_id.isnot(None))
@@ -57,7 +60,8 @@ class FolderRepository(Repository):
         return {folder_id: count for folder_id, count in rows}
 
     def unfiled_note_count(self, user_id: int) -> int:
-        return (self.db.query(func.count(Note.pk))
+        return (self.db.query(func.count())
+                .select_from(Note)
                 .filter(Note.user_id == user_id,
                         Note.deleted_at.is_(None),
                         Note.folder_id.is_(None))

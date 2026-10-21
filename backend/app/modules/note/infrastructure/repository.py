@@ -5,7 +5,7 @@ from typing import List, Any
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from fastapi_clean_archi.core.commons.repository import Repository
 from sqlalchemy import case, desc, asc, delete, insert, or_
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import defer, joinedload, selectinload
 
 from app.core.config import settings
 from app.modules.note.domain.entity import SnapshotEntity
@@ -18,17 +18,33 @@ from app.modules.user.infrastructure.models import User
 from app.modules.workspace.infrastructure.models import Workspace, workspace_member
 
 
+def list_options():
+    """목록 카드가 읽는 것을 한 번에 가져오는 옵션. 목록 화면(NoteListSchema)과 같이 고친다.
+
+    - 태그·공유 워크스페이스(is_shared)는 노트마다 따로 묻지 않고 IN 한 번으로 읽는다(예전에는 공유 여부를 노트마다 물었다).
+    - 폴더·주인은 노트당 하나라 조인으로 붙인다.
+    - Y 문서는 목록에 쓰지 않는다. 본문만큼 큰 바이너리라 읽지 않는다.
+    """
+    return (
+        selectinload(Note.tags),
+        selectinload(Note.workspaces),
+        joinedload(Note.folder),
+        joinedload(Note.user),
+        defer(Note.ydoc),
+    )
+
+
 class NoteRepository(Repository):
     DB_MODEL = Note
     PAGE_SIZE = 20
 
     def list_note_by_user_hash(self, user_hash: int, is_deleted=False, tag=None, sort=None, page=1,
                                folder_hash=None, include_sub=False, unfiled=False):
-        queryset = self.db.query(self.DB_MODEL).join(self.DB_MODEL.user).options(
-            joinedload(self.DB_MODEL.tags),
-            joinedload(self.DB_MODEL.folder),
-        ).filter(
-            User.hash_id == user_hash,
+        # 사용자는 조인하지 않고 pk 로 바로 거른다. 조인으로 거르면 (user_id, 정렬 열) 인덱스를 순서대로 읽고
+        # 20개에서 멈추지 못해, 그 사람의 노트를 전부 읽어 정렬했다.
+        user_id = self.db.query(User.pk).filter(User.hash_id == user_hash).scalar_subquery()
+        queryset = self.db.query(self.DB_MODEL).options(*list_options()).filter(
+            self.DB_MODEL.user_id == user_id,
         )
 
         own_folder_id = None
@@ -243,7 +259,7 @@ class NoteRepository(Repository):
                 self.DB_MODEL.deleted_at.isnot(None) if is_deleted
                 else self.DB_MODEL.deleted_at.is_(None)
             )
-        instances = self.db.query(self.DB_MODEL).join(self.DB_MODEL.user).filter(
+        instances = self.db.query(self.DB_MODEL).join(self.DB_MODEL.user).options(*list_options()).filter(
             *filter_criterion
         ).all()
         return instances

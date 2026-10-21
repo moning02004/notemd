@@ -1,0 +1,142 @@
+{
+  "label": "before",
+  "rounds": 30,
+  "results": [
+    {
+      "name": "목록: 최근 고친 순 1쪽",
+      "method": "GET",
+      "median_ms": 52.44,
+      "p95_ms": 70.33,
+      "queries": 25,
+      "bytes": 123483
+    },
+    {
+      "name": "목록: 50쪽",
+      "method": "GET",
+      "median_ms": 51.82,
+      "p95_ms": 61.81,
+      "queries": 24,
+      "bytes": 130372
+    },
+    {
+      "name": "목록: 만든 순",
+      "method": "GET",
+      "median_ms": 49.46,
+      "p95_ms": 64.98,
+      "queries": 24,
+      "bytes": 130650
+    },
+    {
+      "name": "목록: 폴더(하위 포함)",
+      "method": "GET",
+      "median_ms": 18.43,
+      "p95_ms": 24.47,
+      "queries": 25,
+      "bytes": 122639
+    },
+    {
+      "name": "목록: 태그",
+      "method": "GET",
+      "median_ms": 28.15,
+      "p95_ms": 36.13,
+      "queries": 25,
+      "bytes": 123840
+    },
+    {
+      "name": "목록: 휴지통",
+      "method": "GET",
+      "median_ms": 39.6,
+      "p95_ms": 50.19,
+      "queries": 24,
+      "bytes": 132979
+    },
+    {
+      "name": "목록: 미분류",
+      "method": "GET",
+      "median_ms": 26.41,
+      "p95_ms": 34.89,
+      "queries": 24,
+      "bytes": 113966
+    },
+    {
+      "name": "목록: 가벼운 사용자",
+      "method": "GET",
+      "median_ms": 43.27,
+      "p95_ms": 57.65,
+      "queries": 24,
+      "bytes": 118739
+    },
+    {
+      "name": "폴더 트리",
+      "method": "GET",
+      "median_ms": 41.47,
+      "p95_ms": 47.8,
+      "queries": 5,
+      "bytes": 24726
+    },
+    {
+      "name": "태그 목록",
+      "method": "GET",
+      "median_ms": 77.28,
+      "p95_ms": 88.26,
+      "queries": 4,
+      "bytes": 14704
+    },
+    {
+      "name": "시리즈 목록",
+      "method": "GET",
+      "median_ms": 6.23,
+      "p95_ms": 7.76,
+      "queries": 4,
+      "bytes": 7091
+    },
+    {
+      "name": "공유 노트 목록",
+      "method": "GET",
+      "median_ms": 29.0,
+      "p95_ms": 47.16,
+      "queries": 75,
+      "bytes": 169550
+    },
+    {
+      "name": "노트 열기(링크 많음)",
+      "method": "GET",
+      "median_ms": 5.31,
+      "p95_ms": 5.76,
+      "queries": 9,
+      "bytes": 7805
+    },
+    {
+      "name": "백링크",
+      "method": "GET",
+      "median_ms": 6.4,
+      "p95_ms": 7.1,
+      "queries": 5,
+      "bytes": 2667
+    },
+    {
+      "name": "스냅샷 목록",
+      "method": "GET",
+      "median_ms": 39.51,
+      "p95_ms": 49.48,
+      "queries": 4,
+      "bytes": 290536
+    },
+    {
+      "name": "노트 저장",
+      "method": "PATCH",
+      "median_ms": 16.11,
+      "p95_ms": 31.99,
+      "queries": 12,
+      "bytes": 3214
+    },
+    {
+      "name": "공동 편집 저장",
+      "method": "PUT",
+      "median_ms": 14.12,
+      "p95_ms": 34.64,
+      "queries": 9,
+      "bytes": 0
+    }
+  ]
+}

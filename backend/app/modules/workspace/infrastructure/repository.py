@@ -1,5 +1,9 @@
 from fastapi import HTTPException
 from fastapi_clean_archi.core.commons.repository import Repository
+from sqlalchemy import desc
+
+from app.modules.note.infrastructure.models import Note, workspace_note
+from app.modules.note.infrastructure.repository import list_options
 
 from app.modules.workspace.infrastructure.models import Workspace, workspace_member
 from app.modules.user.infrastructure.models import User
@@ -91,4 +95,11 @@ class WorkspaceRepository(Repository):
         ).first():
             raise HTTPException(status_code=403, detail="사용자가 워크스페이스에 속해있지 않습니다.")
 
-        return [note for note in workspace.notes if note.deleted_at is None]
+        # workspace.notes 로 읽으면 노트마다 주인·태그·폴더·공유 정보를 따로 물었다(공유 노트 25개에 SQL 75번).
+        # 목록 카드가 읽는 것을 한 번에 가져오고, 휴지통 노트는 DB 에서 거른다. 순서는 내 노트 목록처럼 최근 고친 순.
+        return (self.db.query(Note)
+                .join(workspace_note, workspace_note.c.note_id == Note.pk)
+                .options(*list_options())
+                .filter(workspace_note.c.workspace_id == workspace.pk, Note.deleted_at.is_(None))
+                .order_by(desc(Note.updated_at))
+                .all())

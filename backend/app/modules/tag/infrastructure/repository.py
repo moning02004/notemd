@@ -18,7 +18,7 @@ class TagRepository(Repository):
         note_count_subq = (
             self.db.query(
                 notetag.c.tag_id,
-                func.count(Note.pk).label("note_count")
+                func.count().label("note_count")
             )
             .join(Note, and_(Note.pk == notetag.c.note_id,
                              Note.user_id == user.pk,
@@ -40,8 +40,9 @@ class TagRepository(Repository):
 
         if total:
             all_tag = Tag(keyword="전체")
-            all_tag.count = self.db.query(Note).filter(Note.user_id == user.pk,
-                                                       Note.deleted_at.is_(None)).count()
+            # Query.count() 는 노트 열 전부를 고르는 서브쿼리를 감싸 센다. 개수만 세면 인덱스만 읽고 끝난다.
+            all_tag.count = self.db.query(func.count()).select_from(Note).filter(
+                Note.user_id == user.pk, Note.deleted_at.is_(None)).scalar()
             filtered_tags = [all_tag] + filtered_tags
 
         return filtered_tags

@@ -1,5 +1,5 @@
 from fastapi_clean_archi.core.db.base import BaseModel
-from sqlalchemy import Column, String, Text, ForeignKey, Integer, Boolean, DateTime, LargeBinary, Table
+from sqlalchemy import Column, String, Text, ForeignKey, Integer, Boolean, DateTime, LargeBinary, Table, Index, text
 from sqlalchemy.orm import relationship
 
 workspace_note = Table(
@@ -7,6 +7,8 @@ workspace_note = Table(
     BaseModel.metadata,
     Column("note_id", ForeignKey("note.id"), primary_key=True),
     Column("workspace_id", ForeignKey("workspace.id"), primary_key=True),
+    # 기본 키는 (note_id, workspace_id) 라 워크스페이스 쪽에서 찾을 때(공유 노트 목록)는 따로 둔다.
+    Index("ix_workspace_note_workspace_id", "workspace_id"),
 )
 
 # 본문의 노트 링크(<a data-note>)를 저장할 때마다 옮겨 적는 표. "이 노트를 가리키는 노트"(백링크)를 찾는 데 쓴다.
@@ -20,7 +22,26 @@ note_link = Table(
 )
 
 
+# 목록·개수는 늘 '한 사람의, 휴지통에 없는 노트' 를 본다. 그 조건만 담은 부분 인덱스라 휴지통 노트는 들지 않고,
+# 정렬 열까지 담아 첫 쪽 20개를 인덱스 순서대로 읽고 멈춘다(전부 읽어 정렬하지 않는다).
+LIVE = text("deleted_at IS NULL")
+TRASHED = text("deleted_at IS NOT NULL")
+
+
 class Note(BaseModel):
+    __table_args__ = (
+        # 목록 기본(최근 고친 순)과 태그·전체 노트 수. id 를 함께 담아 태그 집계(notetag 와 조인)도 표를 읽지 않는다.
+        Index("ix_note_user_updated_live", "user_id", "updated_at", postgresql_where=LIVE, sqlite_where=LIVE,
+              postgresql_include=["id"]),
+        # 만든 순 목록.
+        Index("ix_note_user_created_live", "user_id", "created_at", postgresql_where=LIVE, sqlite_where=LIVE),
+        # 폴더별 노트 수(인덱스만 읽는다), 미분류 수·목록, 한 폴더 목록.
+        Index("ix_note_user_folder_live", "user_id", "folder_id", "updated_at",
+              postgresql_where=LIVE, sqlite_where=LIVE),
+        # 휴지통 목록(지운 순).
+        Index("ix_note_user_trashed", "user_id", "deleted_at", postgresql_where=TRASHED, sqlite_where=TRASHED),
+    )
+
     user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
 
     title = Column(String)
@@ -65,6 +86,9 @@ class Note(BaseModel):
 
 
 class NoteSnapshot(BaseModel):
+    # 노트 하나의 스냅샷 목록(최근 것부터)과 공동 편집 저장 때마다 보는 마지막 스냅샷.
+    __table_args__ = (Index("ix_notesnapshot_note_created", "note_id", "created_at"),)
+
     note_id = Column(Integer, ForeignKey("note.id", ondelete="CASCADE"), nullable=False)
     description = Column(String)
 
