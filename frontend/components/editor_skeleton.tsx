@@ -6,7 +6,7 @@
  */
 export function EditorSkeleton() {
     return (
-        <div className="h-screen w-full flex flex-col bg-surface" aria-busy="true" aria-label="노트를 불러오는 중">
+        <div className="h-dvh w-full flex flex-col bg-surface" aria-busy="true" aria-label="노트를 불러오는 중">
             <div className="flex items-center gap-3 border-b border-border px-4 h-14 shrink-0">
                 <div className="skeleton w-6 h-6 rounded-lg"/>
                 <div className="skeleton h-5 w-1/3 max-w-[16rem]"/>

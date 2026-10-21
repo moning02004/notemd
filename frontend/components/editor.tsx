@@ -184,7 +184,7 @@ export function MarkdownEditor({
 
     return (
         <div ref={setScroller}
-             className={`h-screen flex flex-col bg-surface w-full overflow-y-auto
+             className={`h-dvh flex flex-col bg-surface w-full overflow-y-auto
                         ${peekNoteId ? "md:pr-[var(--note-peek-width)]" : ""}`}>
             {/* 제목 줄(뒤로 가기·제목·메뉴)과 툴바를 한 덩어리로 위에 붙인다. 내려 읽는 중에도 어느 노트인지 보이고
                 바로 나가거나 설정을 열 수 있다. 알림(휴지통·오프라인 등)은 길 수 있어 붙이지 않고 그 아래에 둔다. */}

@@ -104,7 +104,7 @@ export const NoteSettings = ({
 
     return (
         <>
-            <div className={`w-full md:w-[420px] lg:w-[400px] bg-background fixed flex flex-col right-0 top-0 h-screen border-l border-border shadow-2xl overflow-y-auto
+            <div className={`w-full md:w-[420px] lg:w-[400px] bg-background fixed flex flex-col right-0 top-0 h-dvh border-l border-border shadow-2xl overflow-y-auto
                 transform transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] z-20
                 ${isOpenedSetting ? "translate-x-0" : "translate-x-full"}`}>
 

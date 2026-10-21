@@ -253,7 +253,7 @@ export default function Page() {
     )
 
     return (
-        <div className="relative h-screen w-full">
+        <div className="relative h-dvh w-full">
             <div className="flex h-full w-full">
                 <MarkdownEditor key={collab ? (collab.offline ? "offline" : "collab") : "static"}
                                 collab={collab}
