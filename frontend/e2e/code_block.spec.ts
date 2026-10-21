@@ -126,3 +126,22 @@ test("코드 블록 위 막대를 끌어 다른 자리로 옮긴다", async ({pa
     await expect.poll(() => editor.evaluate(el => [...el.children].map(c => c.textContent?.includes("moved") ? "code" : c.textContent)))
         .toEqual(["code", "첫째", "둘째"])
 })
+
+test("코드 블록을 접기 제목 위에 놓으면 접기 본문 맨 앞에 들어가고, 접혀 있었으면 펼친다", async ({page}) => {
+    await openCode(page, '<p>위</p><details class="details"><summary>접기 제목</summary>'
+        + '<div data-type="detailsContent"><p>접기 안 글</p></div></details><p>가운데</p><pre><code>moved</code></pre>')
+    const header = (await page.locator(".ProseMirror .code-block-header").boundingBox())!
+    await page.mouse.move(header.x + 200, header.y + header.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(header.x + 210, header.y + 10, {steps: 3})
+    const summary = (await page.locator(".ProseMirror summary").boundingBox())!
+    await page.mouse.move(summary.x + 40, summary.y + summary.height / 2, {steps: 10})
+    await expect(page.locator(".ProseMirror .details.drop-into")).toHaveCount(1)
+    await page.mouse.up()
+
+    await expect(page.locator(".ProseMirror .details.drop-into")).toHaveCount(0)
+    expect(await page.evaluate(() => (document.querySelector('.ProseMirror[contenteditable="true"]') as unknown as {
+        editor: { getHTML: () => string }
+    }).editor.getHTML())).toBe('<p>위</p><details class="details" open=""><summary>접기 제목</summary>'
+        + '<div data-type="detailsContent"><pre><code>moved</code></pre><p>접기 안 글</p></div></details><p>가운데</p>')
+})

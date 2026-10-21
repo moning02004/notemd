@@ -1,4 +1,5 @@
-import {NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, useEditor} from "@tiptap/react";
+import {NodeViewContent, ReactNodeViewRenderer, useEditor, useReactNodeView} from "@tiptap/react";
+import {setCodeDragImage} from "@/lib/code_block_drag";
 
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import {createLowlight} from "lowlight";
@@ -10,6 +11,7 @@ import {Plugin, PluginKey} from '@tiptap/pm/state'
 import {useImageViewerStore} from "@/store/imageViewer";
 import {DetailsContent, DetailsSummary} from '@tiptap/extension-details'
 import {detailsNestingGuard} from "@/lib/details_nesting";
+import {detailsDrop} from "@/lib/details_drop";
 import {arrowUpFromSummary, emptyDetailsBody, enterEmptyDetailsBody} from "@/lib/details_body";
 import {backspaceIndent, enterInCode, indentCode, outdentCode, selectCodeBlock} from "@/lib/code_block";
 
@@ -74,6 +76,7 @@ import type {CollabSession} from "@/hooks/useCollabDocument";
 const CodeBlockComponent = ({node}) => {
     const [copied, setCopied] = useState(false)
     const language = node.attrs.language || 'text'
+    const {onDragStart} = useReactNodeView()
 
     const handleCopy = () => {
         const code = node.textContent
@@ -84,7 +87,13 @@ const CodeBlockComponent = ({node}) => {
     }
 
     return (
-        <NodeViewWrapper>
+        // NodeViewWrapper 와 같은 것인데, tiptap 의 끌기 시작 뒤에 드래그 그림을 작은 코드 블록으로 바꾼다.
+        // (NodeViewWrapper 는 넘긴 onDragStart 를 자기 것으로 덮어써 끼어들 수 없다.)
+        <div data-node-view-wrapper="" style={{whiteSpace: "normal"}} onDragStart={event => {
+            // tiptap 은 React 이벤트를 그대로 받아 쓴다(offsetX 가 없으면 nativeEvent 에서 읽는다).
+            onDragStart?.(event as unknown as DragEvent)
+            setCodeDragImage(event, language, node.textContent)
+        }}>
             <pre>
                 <div className="code-block-header" contentEditable={false} draggable data-drag-handle
                      title="끌어서 옮기기">
@@ -95,7 +104,7 @@ const CodeBlockComponent = ({node}) => {
                 </div>
                 <NodeViewContent className={`language-${language}`}/>
             </pre>
-        </NodeViewWrapper>
+        </div>
     )
 }
 
@@ -132,7 +141,7 @@ export const CustomDetails = DetailsBase.extend({
     },
 
     addProseMirrorPlugins() {
-        return [...(this.parent?.() ?? []), detailsNestingGuard(), emptyDetailsBody()]
+        return [...(this.parent?.() ?? []), detailsNestingGuard(), emptyDetailsBody(), detailsDrop()]
     },
 
     addKeyboardShortcuts() {
