@@ -290,10 +290,12 @@ body pre * {
     @apply fixed bottom-0 left-0 right-0 z-50 mx-auto w-[85vw] md:w-[50vw] rounded-t-2xl bg-surface border border-border
 }
 
+/* 제목 줄은 툴바와 함께 화면 위에 붙어 있어(components/editor.tsx) 높이를 아낀다. 한 줄 47px(밑줄 포함). */
 .title-editor {
     background-color: var(--color-editor);
-    padding: 1rem;
-    font-size: 1.25rem;
+    padding: 0.625rem 0.75rem;
+    font-size: 1.1875rem;
+    line-height: 1.35;
     font-weight: 600;
     letter-spacing: -0.01em;
 }

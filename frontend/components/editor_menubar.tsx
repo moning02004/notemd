@@ -49,7 +49,7 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
 
     // shrink-0: 모바일에서는 한 줄로 늘어서 옆으로 밀어 보므로 단추가 눌려 찌그러지면 안 된다.
     const base =
-        "shrink-0 p-2 rounded hover:bg-border transition flex items-center justify-center";
+        "shrink-0 p-1.5 rounded hover:bg-border transition flex items-center justify-center";
     const active = "bg-border-strong";
 
     const button = (
@@ -106,31 +106,31 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
          */
         <div className="relative md:w-[90%]">
             <div onScroll={() => setTableMenuOpen(false)}
-                 className="flex gap-1 p-2 pr-8 overflow-x-auto scrollbar-none
+                 className="flex gap-0.5 px-2 py-1 pr-8 overflow-x-auto scrollbar-none
                             md:flex-wrap md:pr-2 md:overflow-visible">
                 {/* ── 텍스트 서식 ── */}
                 {button(
                     () => editor.chain().focus().toggleBold().run(),
                     editor.isActive("bold"),
-                    <Bold size={18}/>,
+                    <Bold size={16}/>,
                     "굵게"
                 )}
                 {button(
                     () => editor.chain().focus().toggleItalic().run(),
                     editor.isActive("italic"),
-                    <Italic size={18}/>,
+                    <Italic size={16}/>,
                     "기울임"
                 )}
                 {button(
                     () => editor.chain().focus().toggleStrike().run(),
                     editor.isActive("strike"),
-                    <Strikethrough size={18}/>,
+                    <Strikethrough size={16}/>,
                     "취소선"
                 )}
                 {button(
                     openLinkModal,
                     editor.isActive("link"),
-                    <LinkIcon size={18}/>,
+                    <LinkIcon size={16}/>,
                     "링크"
                 )}
                 {button(
@@ -138,51 +138,51 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
                     // 넣을 자리는 에디터가 들고 있는 선택 영역 그대로 남는다.
                     openNotePicker,
                     false,
-                    <FileSymlink size={18}/>,
+                    <FileSymlink size={16}/>,
                     "노트 가져오기"
                 )}
 
-                <div className="shrink-0 w-px h-6 bg-border-strong mx-1 my-auto"/>
+                <div className="shrink-0 w-px h-5 bg-border-strong mx-1 my-auto"/>
 
                 {/* ── 정렬 ── */}
                 {button(
                     () => editor.chain().focus().setTextAlign("left").run(),
                     editor.isActive({textAlign: "left"}),
-                    <AlignLeft size={18}/>,
+                    <AlignLeft size={16}/>,
                     "왼쪽 정렬"
                 )}
                 {button(
                     () => editor.chain().focus().setTextAlign("center").run(),
                     editor.isActive({textAlign: "center"}),
-                    <AlignCenter size={18}/>,
+                    <AlignCenter size={16}/>,
                     "가운데 정렬"
                 )}
                 {button(
                     () => editor.chain().focus().setTextAlign("right").run(),
                     editor.isActive({textAlign: "right"}),
-                    <AlignRight size={18}/>,
+                    <AlignRight size={16}/>,
                     "오른쪽 정렬"
                 )}
 
-                <div className="shrink-0 w-px h-6 bg-border-strong mx-1 my-auto"/>
+                <div className="shrink-0 w-px h-5 bg-border-strong mx-1 my-auto"/>
 
                 {/* ── 블록 요소 ── */}
                 {button(
                     () => editor.chain().focus().toggleHeading({level: 1}).run(),
                     editor.isActive("heading", {level: 1}),
-                    <Heading1 size={18}/>,
+                    <Heading1 size={16}/>,
                     "제목 1"
                 )}
                 {button(
                     () => editor.chain().focus().toggleHeading({level: 2}).run(),
                     editor.isActive("heading", {level: 2}),
-                    <Heading2 size={18}/>,
+                    <Heading2 size={16}/>,
                     "제목 2"
                 )}
                 {button(
                     () => editor.chain().focus().toggleHeading({level: 3}).run(),
                     editor.isActive("heading", {level: 3}),
-                    <Heading3 size={18}/>,
+                    <Heading3 size={16}/>,
                     "제목 3"
                 )}
                 {button(
@@ -190,42 +190,42 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
                         ? editor.chain().focus().unsetDetails().run()
                         : editor.chain().focus().setDetails().run(),
                     editor.isActive("details"),
-                    <FaAnglesRight size={15}/>,
+                    <FaAnglesRight size={13}/>,
                     "세부정보 블록"
                 )}
                 {button(
                     () => editor.chain().focus().toggleOrderedList().run(),
                     editor.isActive("orderedList"),
-                    <GoListOrdered size={18}/>,
+                    <GoListOrdered size={16}/>,
                     "순서 있는 목록"
                 )}
                 {button(
                     () => editor.chain().focus().toggleBulletList().run(),
                     editor.isActive("bulletList"),
-                    <GoListUnordered size={18}/>,
+                    <GoListUnordered size={16}/>,
                     "순서 없는 목록"
                 )}
                 {button(
                     () => editor.chain().focus().toggleTaskList().run(),
                     editor.isActive("taskList"),
-                    <GoTasklist size={18}/>,
+                    <GoTasklist size={16}/>,
                     "체크리스트"
                 )}
                 {button(
                     () => editor.chain().focus().toggleCodeBlock().run(),
                     editor.isActive("codeBlock"),
-                    <Code2 size={18}/>,
+                    <Code2 size={16}/>,
                     "코드 블록"
                 )}
                 {button(
                     () => editor.chain().focus().toggleBlockquote().run(),
                     editor.isActive("blockquote"),
-                    <Quote size={18}/>,
+                    <Quote size={16}/>,
                     "인용구"
                 )}
 
                 {/* ── 이미지 ── */}
-                {button(handleImageClick, false, <FiImage size={18}/>, "이미지 삽입")}
+                {button(handleImageClick, false, <FiImage size={16}/>, "이미지 삽입")}
                 <input
                     type="file"
                     accept="image/*"
@@ -234,7 +234,7 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
                     onChange={handleImageUpload}
                 />
 
-                <div className="shrink-0 w-px h-6 bg-border-strong mx-1 my-auto"/>
+                <div className="shrink-0 w-px h-5 bg-border-strong mx-1 my-auto"/>
 
                 {/* ══ 테이블 드롭다운 ══════════════════════════════════════ */}
                 <div className="relative" ref={tableMenuRef}>
@@ -252,8 +252,8 @@ export default function MenuBar({editor, noteId, tableMenuOpen, setTableMenuOpen
                         className={`${base} gap-0.5 ${tableMenuOpen ? active : ""}`}
                         title="테이블"
                     >
-                        <TableIcon size={18}/>
-                        <ChevronDown size={12}/>
+                        <TableIcon size={16}/>
+                        <ChevronDown size={11}/>
                     </button>
 
                     {tableMenuOpen && (

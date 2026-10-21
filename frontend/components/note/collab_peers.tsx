@@ -19,16 +19,16 @@ export function CollabPeers({peers}: { peers: CollabPeer[] }) {
         <div className="flex shrink-0 items-center pl-2 pr-1" aria-label={`같이 보는 사람: ${names}`} title={names}>
             {shown.map(peer => (
                 <span key={peer.key}
-                      className="-ml-1.5 first:ml-0 flex h-7 w-7 items-center justify-center rounded-full
-                                 border-2 border-surface text-[11px] font-semibold text-white select-none"
+                      className="-ml-1.5 first:ml-0 flex h-6 w-6 items-center justify-center rounded-full
+                                 border-2 border-surface text-[10px] font-semibold text-white select-none"
                       style={{backgroundColor: peer.color}}
                       title={peer.name}>
                     {Array.from(peer.name)[0] ?? "?"}
                 </span>
             ))}
             {rest > 0 &&
-                <span className="-ml-1.5 flex h-7 min-w-7 items-center justify-center rounded-full border-2 border-surface
-                                 bg-background px-1 text-[11px] font-semibold text-muted select-none">
+                <span className="-ml-1.5 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-surface
+                                 bg-background px-1 text-[10px] font-semibold text-muted select-none">
                     +{rest}
                 </span>}
         </div>

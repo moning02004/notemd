@@ -475,9 +475,10 @@ export function useEditorInstance({initialContent, setContent, uploadFile, onPic
             /*
              * Enter 로 내려가며 쓸 때 커서가 화면 바닥에 붙지 않게, 바닥에서 이만큼 남으면 미리 스크롤해
              * 이만큼 띄워 둔다(기본값은 5px 이라 커서가 맨 아래 줄에 걸려 있었다).
+             * 위쪽은 화면 위에 붙은 제목 줄 + 툴바(83px, components/editor.tsx)에 가리지 않게 그만큼 더 둔다.
              */
-            scrollThreshold: {top: 40, right: 0, bottom: 120, left: 0},
-            scrollMargin: {top: 40, right: 0, bottom: 120, left: 0},
+            scrollThreshold: {top: 120, right: 0, bottom: 120, left: 0},
+            scrollMargin: {top: 120, right: 0, bottom: 120, left: 0},
         },
         extensions: [
             CustomImage.configure({

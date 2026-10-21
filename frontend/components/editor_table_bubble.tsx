@@ -112,7 +112,7 @@ export default function EditorTableBubble({editor, scrollTarget}: Props) {
         equalityFn: (a, b) => JSON.stringify(a) === JSON.stringify(b),
     })
 
-    // 말풍선이 올라갈 수 있는 한계. 편집 화면 위에 붙은 툴바(sticky)에 가리지 않게 그 아래까지만 간다.
+    // 말풍선이 올라갈 수 있는 한계. 편집 화면 위에 붙은 제목 줄 + 툴바(sticky)에 가리지 않게 그 아래까지만 간다.
     const minTop = () => {
         const toolbar = scrollTarget?.querySelector<HTMLElement>(":scope > .sticky")
         const ceiling = toolbar?.getBoundingClientRect().bottom ?? scrollTarget?.getBoundingClientRect().top ?? 0

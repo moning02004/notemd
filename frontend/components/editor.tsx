@@ -186,6 +186,9 @@ export function MarkdownEditor({
         <div ref={setScroller}
              className={`h-screen flex flex-col bg-surface w-full overflow-y-auto
                         ${peekNoteId ? "md:pr-[var(--note-peek-width)]" : ""}`}>
+            {/* 제목 줄(뒤로 가기·제목·메뉴)과 툴바를 한 덩어리로 위에 붙인다. 내려 읽는 중에도 어느 노트인지 보이고
+                바로 나가거나 설정을 열 수 있다. 알림(휴지통·오프라인 등)은 길 수 있어 붙이지 않고 그 아래에 둔다. */}
+            <div className="sticky top-0 z-10 bg-surface">
             <div
                 className="flex flex-row items-center bg-surface border-b border-border px-3 transition-colors duration-300">
                 {
@@ -196,7 +199,7 @@ export function MarkdownEditor({
                         role="button"
                         aria-label="뒤로"
                         aria-busy={leaving}>
-                        {leaving ? <Spinner size={24} className="text-accent"/> : <FiArrowLeft size={24}/>}
+                        {leaving ? <Spinner size={20} className="text-accent"/> : <FiArrowLeft size={20}/>}
                     </div>
                 }
                 <input type="text"
@@ -214,18 +217,16 @@ export function MarkdownEditor({
                 {
                     isOwner ?
                         <div
-                            className="my-auto p-3 rounded-lg cursor-pointer text-muted hover:bg-background hover:text-foreground transition-colors duration-200"
+                            className="my-auto p-1.5 rounded-lg cursor-pointer text-muted hover:bg-background hover:text-foreground transition-colors duration-200"
                             onClick={() => setOpenedSetting(true)}>
-                            <FiMenu size={24}/>
+                            <FiMenu size={20}/>
                         </div> : !isReadonly ? <div className="text-sm"><MdWorkspacesFilled/></div> : <div></div>
                 }
             </div>
 
-            {notice}
-
             {
                 !isReadonly &&
-                <div ref={setToolbarElement} className="pr-3 bg-editor sticky top-0 z-10 flex shadow-sm">
+                <div ref={setToolbarElement} className="pr-2.5 bg-editor flex shadow-sm">
                     {/* min-w-0: 툴바가 제 폭보다 좁아져야 모바일에서 옆으로 밀 수 있다 */}
                     <div className="flex-1 min-w-0">
                         <MenuBar editor={editor} noteId={paramsNoteId}
@@ -237,6 +238,9 @@ export function MarkdownEditor({
                     <div className="shrink-0 my-auto text-right">{status}</div>
                 </div>
             }
+            </div>
+
+            {notice}
             {!isReadonly && <EditorKeyboardBar editor={editor}/>}
             {
                 /* 버블 메뉴의 z-index 가 모달보다 높아서, 링크 모달이 떠 있는 동안에는 감춘다 */
