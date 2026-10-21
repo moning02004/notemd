@@ -10,12 +10,31 @@ jobs:
   test:
     uses: ./.github/workflows/test.yaml
 
+  # 세 이미지를 서로 기다리지 않고 동시에 빌드한다.
   build-and-push:
     needs: test
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: notemd_backend
+            context: ./backend
+            file: ./backend/Dockerfile
+          - image: notemd_frontend
+            context: ./frontend
+            file: ./frontend/Dockerfile
+          # 공동 편집 서버(4.0). 에디터 스키마(frontend/lib/editor_schema.ts)를 담아야 해서 저장소 루트에서 빌드한다.
+          - image: notemd_collab
+            context: .
+            file: ./collab/Dockerfile
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # 캐시(type=gha)를 쓰려면 buildx 빌더가 있어야 한다. 기본 docker 드라이버는 gha 캐시를 못 쓴다.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -23,34 +42,21 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push for backend
+      # 서버는 우분투(amd64)뿐이라 플랫폼 하나만 만든다.
+      # 레이어는 GitHub Actions 캐시에 이미지마다 따로 둔다. 코드만 바뀐 릴리스는 apt·pip·npm 설치를 건너뛴다.
+      # build-args 는 프론트만 쓴다. 다른 이미지는 받지 않는 인자라 무시된다.
+      - name: Build and push ${{ matrix.image }}
         uses: docker/build-push-action@v5
         with:
-          context: ./backend
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          platforms: linux/amd64
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/notemd_backend:${{ github.event.release.tag_name }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/notemd_backend:latest
-
-      - name: Build and push for frontend
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/notemd_frontend:${{ github.event.release.tag_name }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/notemd_frontend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image }}:${{ github.event.release.tag_name }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image }}:latest
           build-args: |
             NEXT_PUBLIC_API_HOST=${{ secrets.NEXT_PUBLIC_API_HOST }}
             NEXT_PUBLIC_COLLAB_URL=${{ secrets.NEXT_PUBLIC_COLLAB_URL }}
-
-      # 공동 편집 서버(4.0). 에디터 스키마(frontend/lib/editor_schema.ts)를 담아야 해서 저장소 루트에서 빌드한다.
-      - name: Build and push for collab
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./collab/Dockerfile
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/notemd_collab:${{ github.event.release.tag_name }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/notemd_collab:latest
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
